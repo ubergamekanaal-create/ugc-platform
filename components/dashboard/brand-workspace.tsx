@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type JSX, type ReactNode, useMemo } from "react";
+import { type JSX, type ReactNode, useState, useMemo } from "react";
 import { BrandCampaignComposer } from "@/components/dashboard/brand-campaign-composer";
 import { BrandIntegrationsPanel } from "@/components/dashboard/brand-integrations-panel";
 import { SignOutButton } from "@/components/dashboard/sign-out-button";
@@ -26,6 +26,13 @@ import {
   getDisplayName,
   getInitials,
 } from "@/lib/utils";
+import BrandMenu from "./brand-menus";
+import BrandInformationCard from "../brandSettings/brand-information-card";
+import TeamManagementCard from "../brandSettings/team-management-card";
+import TrybePartnersCard from "../brandSettings/try-be-partners-card";
+import AnalyticsSettingsCard from "../brandSettings/analytics-settings-card";
+import SampleRequestsCard from "../brandSettings/sample-requests-card";
+import ProductCatalogCard from "../brandSettings/product-catalog-card";
 
 type BrandWorkspaceProps = {
   profile: UserProfile & { role: "brand" };
@@ -479,11 +486,12 @@ export function BrandWorkspace({
   const chartSeries =
     data.campaigns.length > 0
       ? data.campaigns.slice(0, 4).map((campaign, index) => ({
-          label: `W${index + 1}`,
-          value: clampPercent(30 + campaign.application_count * 11 + index * 5),
-        }))
+        label: `W${index + 1}`,
+        value: clampPercent(30 + campaign.application_count * 11 + index * 5),
+      }))
       : emptySeries;
-
+    
+  console.log(profile, "profileeeeee_______")
   function renderDashboardSection() {
     return (
       <div className="space-y-6">
@@ -620,32 +628,32 @@ export function BrandWorkspace({
                 {(analyticsBars.length
                   ? analyticsBars
                   : [
-                      {
-                        label: "Spring UGC Sprint",
-                        value: 74,
-                        meta: "6 submissions",
-                      },
-                    ]).map((item) => (
-                  <div key={item.label}>
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">
-                          {item.label}
+                    {
+                      label: "Spring UGC Sprint",
+                      value: 74,
+                      meta: "6 submissions",
+                    },
+                  ]).map((item) => (
+                    <div key={item.label}>
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">
+                            {item.label}
+                          </p>
+                          <p className="text-sm text-slate-500">{item.meta}</p>
+                        </div>
+                        <p className="text-sm font-medium text-slate-500">
+                          {item.value}%
                         </p>
-                        <p className="text-sm text-slate-500">{item.meta}</p>
                       </div>
-                      <p className="text-sm font-medium text-slate-500">
-                        {item.value}%
-                      </p>
+                      <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className="h-full rounded-full bg-[linear-gradient(90deg,_#076BD2,_#60A5FA)]"
+                          style={{ width: `${item.value}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className="h-full rounded-full bg-[linear-gradient(90deg,_#076BD2,_#60A5FA)]"
-                        style={{ width: `${item.value}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </SectionPanel>
           </FadeIn>
@@ -1019,9 +1027,9 @@ export function BrandWorkspace({
               value:
                 ads.length > 0
                   ? `${(
-                      ads.reduce((sum, ad) => sum + Number(ad.roas), 0) /
-                      ads.length
-                    ).toFixed(1)}x`
+                    ads.reduce((sum, ad) => sum + Number(ad.roas), 0) /
+                    ads.length
+                  ).toFixed(1)}x`
                   : "2.1x",
             },
           ].map((metric) => (
@@ -1312,7 +1320,7 @@ export function BrandWorkspace({
               label: "Active campaign budget",
               value: formatCompactCurrency(
                 activeCampaigns.reduce((sum, campaign) => sum + campaign.budget, 0) ||
-                  0,
+                0,
               ),
             },
           ].map((metric) => (
@@ -1374,26 +1382,26 @@ export function BrandWorkspace({
               {(transactions.length
                 ? transactions
                 : [
-                    {
-                      id: "fallback-finance-1",
-                      label: "Creator seeding top-up",
-                      amount: 1200,
-                      status: "Scheduled",
-                    },
-                  ]).map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between gap-4 rounded-[1.5rem] border border-slate-200 px-4 py-4"
-                >
-                  <div>
-                    <p className="font-semibold text-slate-950">{item.label}</p>
-                    <p className="mt-1 text-sm text-slate-500">{item.status}</p>
+                  {
+                    id: "fallback-finance-1",
+                    label: "Creator seeding top-up",
+                    amount: 1200,
+                    status: "Scheduled",
+                  },
+                ]).map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between gap-4 rounded-[1.5rem] border border-slate-200 px-4 py-4"
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-950">{item.label}</p>
+                      <p className="mt-1 text-sm text-slate-500">{item.status}</p>
+                    </div>
+                    <p className="text-lg font-semibold text-slate-950">
+                      {formatCurrency(item.amount)}
+                    </p>
                   </div>
-                  <p className="text-lg font-semibold text-slate-950">
-                    {formatCurrency(item.amount)}
-                  </p>
-                </div>
-              ))}
+                ))}
             </div>
           </SectionPanel>
         </div>
@@ -1405,76 +1413,115 @@ export function BrandWorkspace({
     return <BrandIntegrationsPanel />;
   }
 
+  // function renderSettingsSection() {
+  //   return (
+  //     <>
+  //       <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+  //         <SectionPanel>
+  //           <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
+  //             Workspace Settings
+  //           </h2>
+  //           <div className="mt-8 grid gap-4 md:grid-cols-2">
+  //             {[
+  //               {
+  //                 label: "Company",
+  //                 value: displayName,
+  //               },
+  //               {
+  //                 label: "Email",
+  //                 value: profile.email,
+  //               },
+  //               {
+  //                 label: "Role",
+  //                 value: "Brand owner",
+  //               },
+  //               {
+  //                 label: "Workspace",
+  //                 value: "CIRCL HQ",
+  //               },
+  //             ].map((item) => (
+  //               <div key={item.label} className="rounded-[1.5rem] bg-slate-50 p-4">
+  //                 <p className="text-sm text-slate-500">{item.label}</p>
+  //                 <p className="mt-2 text-lg font-semibold text-slate-950">
+  //                   {item.value}
+  //                 </p>
+  //               </div>
+  //             ))}
+  //           </div>
+  //         </SectionPanel>
+  //         <SectionPanel>
+  //           <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
+  //             Preferences
+  //           </h2>
+  //           <div className="mt-8 space-y-4">
+  //             {[
+  //               "Creator application notifications",
+  //               "Campaign performance recaps",
+  //               "Finance summary emails",
+  //               "Weekly roster recommendations",
+  //             ].map((item, index) => (
+  //               <div
+  //                 key={item}
+  //                 className="flex items-center justify-between gap-4 rounded-[1.5rem] border border-slate-200 px-4 py-4"
+  //               >
+  //                 <span className="font-medium text-slate-800">{item}</span>
+  //                 <span
+  //                   className={cn(
+  //                     "flex h-7 w-12 items-center rounded-full p-1 transition",
+  //                     index < 3 ? "justify-end bg-accent" : "justify-start bg-slate-200",
+  //                   )}
+  //                 >
+  //                   <span className="h-5 w-5 rounded-full bg-white shadow-sm" />
+  //                 </span>
+  //               </div>
+  //             ))}
+  //           </div>
+  //           <div className="mt-8">
+  //             <SignOutButton variant="light" />
+  //           </div>
+  //         </SectionPanel>
+  //       </div>
+  //       <BrandMenu />
+  //     </>
+
+
+  //   );
+  // }
   function renderSettingsSection() {
+    const [activeIndex, setActiveIndex] = useState(0);
+
+    const renderRightContent = () => {
+      switch (activeIndex) {
+        case 0:
+          return <BrandInformationCard />;
+        case 1:
+          return <div ><TeamManagementCard /></div>;
+        case 2:
+          return <div className="card"><TrybePartnersCard /></div>;
+        case 3:
+          return <div className="card"><AnalyticsSettingsCard /></div>;
+        case 4:
+          return <div className="card"><SampleRequestsCard /></div>;
+        case 5:
+          return <div className="card"><ProductCatalogCard /></div>;
+        default:
+          return null;
+      }
+    };
+
     return (
-      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <SectionPanel>
-          <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-            Workspace Settings
-          </h2>
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            {[
-              {
-                label: "Company",
-                value: displayName,
-              },
-              {
-                label: "Email",
-                value: profile.email,
-              },
-              {
-                label: "Role",
-                value: "Brand owner",
-              },
-              {
-                label: "Workspace",
-                value: "CIRCL HQ",
-              },
-            ].map((item) => (
-              <div key={item.label} className="rounded-[1.5rem] bg-slate-50 p-4">
-                <p className="text-sm text-slate-500">{item.label}</p>
-                <p className="mt-2 text-lg font-semibold text-slate-950">
-                  {item.value}
-                </p>
-              </div>
-            ))}
-          </div>
-        </SectionPanel>
-        <SectionPanel>
-          <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-            Preferences
-          </h2>
-          <div className="mt-8 space-y-4">
-            {[
-              "Creator application notifications",
-              "Campaign performance recaps",
-              "Finance summary emails",
-              "Weekly roster recommendations",
-            ].map((item, index) => (
-              <div
-                key={item}
-                className="flex items-center justify-between gap-4 rounded-[1.5rem] border border-slate-200 px-4 py-4"
-              >
-                <span className="font-medium text-slate-800">{item}</span>
-                <span
-                  className={cn(
-                    "flex h-7 w-12 items-center rounded-full p-1 transition",
-                    index < 3 ? "justify-end bg-accent" : "justify-start bg-slate-200",
-                  )}
-                >
-                  <span className="h-5 w-5 rounded-full bg-white shadow-sm" />
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-8">
-            <SignOutButton variant="light" />
-          </div>
-        </SectionPanel>
+      <div className="flex gap-6 ">
+        {/* LEFT SIDEBAR */}
+        <BrandMenu
+          activeIndex={activeIndex}
+          setActiveIndex={setActiveIndex}
+        />
+
+        {/* RIGHT CONTENT */}
+        <div className="flex-1">{renderRightContent()}</div>
       </div>
     );
   }
-
   function renderSectionContent() {
     switch (section) {
       case "dashboard":

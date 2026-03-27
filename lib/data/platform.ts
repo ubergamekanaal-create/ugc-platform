@@ -459,7 +459,6 @@ export async function getDashboardContext(): Promise<DashboardContext | null> {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser();
-
   if (userError) {
     console.error("getDashboardContext: auth.getUser failed", userError);
   }

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const context = await getDashboardContext();
-
+  
   if (!context) {
     redirect("/login");
   }
