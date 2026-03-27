@@ -12,6 +12,8 @@ export type ApplicationStatus =
   | "accepted"
   | "declined";
 
+export type InvitationStatus = "pending" | "accepted" | "declined";
+
 export type UserProfile = {
   id: string;
   email: string;
@@ -69,6 +71,35 @@ export type BrandApplicationSummary = CampaignApplication & {
   creator_headline: string | null;
 };
 
+export type CampaignInvitation = {
+  id: string;
+  campaign_id: string;
+  brand_id: string;
+  creator_id: string;
+  message: string | null;
+  offered_rate: number;
+  status: InvitationStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BrandCreatorDirectoryEntry = {
+  id: string;
+  name: string;
+  headline: string | null;
+  avatar_url: string | null;
+  applications: number;
+  accepted: number;
+  rate: number;
+  focus: string;
+  latest_campaign_title: string | null;
+  latest_application_at: string | null;
+  invitations: number;
+  pending_invitations: number;
+  invited_campaign_ids: string[];
+  last_invited_at: string | null;
+};
+
 export type CreatorCampaignSummary = Campaign & {
   brand_name: string;
   brand_headline: string | null;
@@ -78,17 +109,33 @@ export type CreatorCampaignSummary = Campaign & {
 export type CreatorApplicationSummary = CampaignApplication & {
   campaign_title: string;
   campaign_budget: number;
+  brand_id: string;
   brand_name: string;
+};
+
+export type CreatorInvitationSummary = CampaignInvitation & {
+  campaign_title: string;
+  campaign_budget: number;
+  campaign_description: string;
+  deliverables: string;
+  duration: string;
+  payment_type: string;
+  platforms: string[];
+  brand_name: string;
+  brand_headline: string | null;
 };
 
 export type BrandDashboardData = {
   campaigns: BrandCampaignSummary[];
   applications: BrandApplicationSummary[];
+  creators: BrandCreatorDirectoryEntry[];
+  invitations: CampaignInvitation[];
 };
 
 export type CreatorDashboardData = {
   campaigns: CreatorCampaignSummary[];
   applications: CreatorApplicationSummary[];
+  invitations: CreatorInvitationSummary[];
 };
 
 export type DashboardMetric = {
@@ -125,4 +172,34 @@ export type BrandStoreProduct = {
   price: number | null;
   currency: string | null;
   synced_at: string;
+};
+
+export type ChatCandidate = {
+  id: string;
+  name: string;
+  headline: string | null;
+  context_label: string | null;
+};
+
+export type ChatConversationSummary = {
+  id: string;
+  brand_id: string;
+  creator_id: string;
+  campaign_id: string | null;
+  campaign_title: string | null;
+  counterpart_id: string;
+  counterpart_name: string;
+  counterpart_headline: string | null;
+  latest_message_preview: string | null;
+  latest_message_at: string | null;
+  created_at: string;
+};
+
+export type ChatMessage = {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  sender_name: string;
+  body: string;
+  created_at: string;
 };

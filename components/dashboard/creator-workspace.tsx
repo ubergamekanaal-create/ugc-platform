@@ -11,6 +11,8 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
+import { CreatorInvitationsPanel } from "@/components/dashboard/creator-invitations-panel";
+import { RealtimeChatPanel } from "@/components/dashboard/realtime-chat-panel";
 import { SignOutButton } from "@/components/dashboard/sign-out-button";
 import { StripeActionButton } from "@/components/dashboard/stripe-action-button";
 import {
@@ -19,6 +21,7 @@ import {
   MotionScale,
   PageTransition,
 } from "@/components/shared/motion";
+import { buildCreatorChatCandidates } from "@/lib/chat/candidates";
 import {
   creatorWorkspaceSections,
   getCreatorWorkspaceHref,
@@ -49,6 +52,8 @@ type BrandConnection = {
   openCampaigns: number;
   applied: number;
   accepted: number;
+  offers: number;
+  pendingOffers: number;
   latestCampaign: string;
   platforms: string[];
 };
@@ -75,6 +80,8 @@ const fallbackBrands: BrandConnection[] = [
     openCampaigns: 2,
     applied: 1,
     accepted: 0,
+    offers: 1,
+    pendingOffers: 1,
     latestCampaign: "Spring UGC Sprint",
     platforms: ["TikTok", "Instagram Reels"],
   },
@@ -84,6 +91,8 @@ const fallbackBrands: BrandConnection[] = [
     openCampaigns: 1,
     applied: 1,
     accepted: 1,
+    offers: 0,
+    pendingOffers: 0,
     latestCampaign: "Fitness App Testimonial Series",
     platforms: ["TikTok", "YouTube Shorts"],
   },
@@ -119,6 +128,8 @@ function buildBrandConnections(data: CreatorDashboardData) {
       openCampaigns: 1,
       applied: 0,
       accepted: 0,
+      offers: 0,
+      pendingOffers: 0,
       latestCampaign: campaign.title,
       platforms: campaign.platforms,
     });
@@ -144,14 +155,49 @@ function buildBrandConnections(data: CreatorDashboardData) {
       openCampaigns: 0,
       applied: 1,
       accepted: application.status === "accepted" ? 1 : 0,
+      offers: 0,
+      pendingOffers: 0,
       latestCampaign: application.campaign_title,
       platforms: [],
     });
   }
 
+  for (const invitation of data.invitations) {
+    const existing = brands.get(invitation.brand_name);
+
+    if (existing) {
+      existing.offers += 1;
+      existing.latestCampaign = invitation.campaign_title;
+      existing.platforms = [
+        ...new Set([...existing.platforms, ...invitation.platforms]),
+      ];
+
+      if (invitation.status === "pending") {
+        existing.pendingOffers += 1;
+      }
+
+      continue;
+    }
+
+    brands.set(invitation.brand_name, {
+      name: invitation.brand_name,
+      headline: invitation.brand_headline,
+      openCampaigns: invitation.status === "pending" ? 1 : 0,
+      applied: 0,
+      accepted: 0,
+      offers: 1,
+      pendingOffers: invitation.status === "pending" ? 1 : 0,
+      latestCampaign: invitation.campaign_title,
+      platforms: invitation.platforms,
+    });
+  }
+
   return [...brands.values()].sort((left, right) => {
     const priorityDelta =
-      right.accepted * 3 + right.applied - (left.accepted * 3 + left.applied);
+      right.pendingOffers * 5 +
+      right.accepted * 3 +
+      right.applied -
+      (left.pendingOffers * 5 + left.accepted * 3 + left.applied);
 
     if (priorityDelta !== 0) {
       return priorityDelta;
@@ -300,7 +346,6 @@ export function CreatorWorkspace({
   const [drafts, setDrafts] = useState<DraftState>({});
   const [feedback, setFeedback] = useState<string | null>(null);
   const [pendingCampaignId, setPendingCampaignId] = useState<string | null>(null);
-  const [selectedThreadIndex, setSelectedThreadIndex] = useState(0);
   const [firstName, setFirstName] = useState(nameParts.firstName);
   const [lastName, setLastName] = useState(nameParts.lastName);
   const [headline, setHeadline] = useState(profile.headline ?? "");
@@ -316,6 +361,10 @@ export function CreatorWorkspace({
     const builtConnections = buildBrandConnections(data);
     return builtConnections.length ? builtConnections : fallbackBrands;
   }, [data]);
+  const chatCandidates = useMemo(() => buildCreatorChatCandidates(data), [data]);
+  const pendingInvitations = data.invitations.filter(
+    (invitation) => invitation.status === "pending",
+  );
   const acceptedValue = data.applications
     .filter((application) => application.status === "accepted")
     .reduce((sum, application) => sum + application.rate, 0);
@@ -342,20 +391,6 @@ export function CreatorWorkspace({
       return haystack.includes(query);
     });
   }, [data.campaigns, deferredQuery]);
-  const chatThreads = brandConnections.map((brand, index) => ({
-    name: brand.name,
-    headline: brand.headline ?? `${brand.openCampaigns} active briefs`,
-    preview:
-      index === 0
-        ? "Would you be open to a second hook variation for the next round?"
-        : index === 1
-          ? "We loved the direction. Can you share revised footage tomorrow?"
-          : "Thanks for applying. We are reviewing concepts this afternoon.",
-    time: index === 0 ? "5m ago" : index === 1 ? "32m ago" : "2h ago",
-    unread: index === 0 ? 1 : 0,
-  }));
-  const activeThread = chatThreads[selectedThreadIndex] ?? chatThreads[0];
-
   async function handleApply(campaignId: string) {
     const draft = drafts[campaignId];
 
@@ -421,11 +456,15 @@ export function CreatorWorkspace({
   function renderHomeSection() {
     return (
       <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
           {[
             {
               label: "Open campaigns",
               value: String(data.campaigns.length),
+            },
+            {
+              label: "Pending invites",
+              value: String(pendingInvitations.length),
             },
             {
               label: "Applications sent",
@@ -444,6 +483,27 @@ export function CreatorWorkspace({
             </SectionPanel>
           ))}
         </div>
+
+        {data.invitations.length ? (
+          <SectionPanel>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
+                  Brand Invitations
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  Review direct offers from brands and accept or decline them.
+                </p>
+              </div>
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-accent">
+                {pendingInvitations.length} pending
+              </span>
+            </div>
+            <div className="mt-8">
+              <CreatorInvitationsPanel invitations={data.invitations} />
+            </div>
+          </SectionPanel>
+        ) : null}
 
         <SectionPanel>
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -670,179 +730,124 @@ export function CreatorWorkspace({
 
   function renderMyBrandsSection() {
     return (
-      <div className="grid gap-6 md:grid-cols-2">
-        {brandConnections.map((brand) => (
-          <HoverLift key={brand.name} className="h-full">
-            <SectionPanel className="h-full">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-semibold text-slate-950">
-                    {brand.name}
-                  </h2>
-                  <p className="mt-2 text-sm text-slate-500">
-                    {brand.headline ?? "Brand partnership pipeline"}
-                  </p>
-                </div>
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-accent">
-                  {brand.applied} applied
-                </span>
+      <div className="space-y-6">
+        {data.invitations.length ? (
+          <SectionPanel>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
+                  Current Offers
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  Pending and completed invitation responses from brands.
+                </p>
               </div>
-              <div className="mt-6 grid grid-cols-3 gap-3">
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                    Briefs
-                  </p>
-                  <p className="mt-2 text-lg font-semibold text-slate-950">
-                    {brand.openCampaigns}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                    Applied
-                  </p>
-                  <p className="mt-2 text-lg font-semibold text-slate-950">
-                    {brand.applied}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                    Accepted
-                  </p>
-                  <p className="mt-2 text-lg font-semibold text-slate-950">
-                    {brand.accepted}
-                  </p>
-                </div>
-              </div>
-              <p className="mt-6 text-sm leading-7 text-slate-600">
-                Latest brief: {brand.latestCampaign}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {brand.platforms.length ? (
-                  brand.platforms.map((platform) => (
-                    <span
-                      key={platform}
-                      className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500"
-                    >
-                      {platform}
-                    </span>
-                  ))
-                ) : (
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
-                    Direct outreach
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-accent">
+                {pendingInvitations.length} pending
+              </span>
+            </div>
+            <div className="mt-8">
+              <CreatorInvitationsPanel invitations={data.invitations} />
+            </div>
+          </SectionPanel>
+        ) : null}
+
+        <div className="grid gap-6 md:grid-cols-2">
+          {brandConnections.map((brand) => (
+            <HoverLift key={brand.name} className="h-full">
+              <SectionPanel className="h-full">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-semibold text-slate-950">
+                      {brand.name}
+                    </h2>
+                    <p className="mt-2 text-sm text-slate-500">
+                      {brand.headline ?? "Brand partnership pipeline"}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-accent">
+                    {brand.pendingOffers > 0
+                      ? `${brand.pendingOffers} offer${brand.pendingOffers === 1 ? "" : "s"}`
+                      : `${brand.applied} applied`}
                   </span>
-                )}
-              </div>
-              <div className="mt-6 flex gap-3">
-                <Link
-                  href="/dashboard/chat"
-                  className="inline-flex flex-1 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-4 py-3 text-sm font-semibold text-white"
-                >
-                  Open chat
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                >
-                  View briefs
-                </Link>
-              </div>
-            </SectionPanel>
-          </HoverLift>
-        ))}
+                </div>
+                <div className="mt-6 grid grid-cols-4 gap-3">
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                      Briefs
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-slate-950">
+                      {brand.openCampaigns}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                      Offers
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-slate-950">
+                      {brand.offers}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                      Applied
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-slate-950">
+                      {brand.applied}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                      Accepted
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-slate-950">
+                      {brand.accepted}
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-6 text-sm leading-7 text-slate-600">
+                  Latest brief: {brand.latestCampaign}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {brand.platforms.length ? (
+                    brand.platforms.map((platform) => (
+                      <span
+                        key={platform}
+                        className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500"
+                      >
+                        {platform}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
+                      Direct outreach
+                    </span>
+                  )}
+                </div>
+                <div className="mt-6 flex gap-3">
+                  <Link
+                    href="/dashboard/chat"
+                    className="inline-flex flex-1 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-4 py-3 text-sm font-semibold text-white"
+                  >
+                    Open chat
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    View briefs
+                  </Link>
+                </div>
+              </SectionPanel>
+            </HoverLift>
+          ))}
+        </div>
       </div>
     );
   }
 
   function renderChatSection() {
-    return (
-      <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
-        <SectionPanel className="p-4">
-          <div className="flex items-center justify-between gap-4 px-2 pb-4">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-950">Inbox</h2>
-              <p className="text-sm text-slate-500">Brand messages</p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            {chatThreads.map((thread, index) => (
-              <button
-                key={thread.name}
-                type="button"
-                onClick={() => setSelectedThreadIndex(index)}
-                className={cn(
-                  "flex w-full items-start gap-3 rounded-[1.5rem] px-3 py-4 text-left transition",
-                  index === selectedThreadIndex ? "bg-slate-100" : "hover:bg-slate-50",
-                )}
-              >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white">
-                  {getInitials(thread.name)}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center justify-between gap-3">
-                    <span className="truncate font-semibold text-slate-950">
-                      {thread.name}
-                    </span>
-                    <span className="text-xs text-slate-400">{thread.time}</span>
-                  </span>
-                  <span className="mt-1 block truncate text-sm text-slate-500">
-                    {thread.preview}
-                  </span>
-                </span>
-                {thread.unread ? (
-                  <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-accent px-2 text-xs font-semibold text-white">
-                    {thread.unread}
-                  </span>
-                ) : null}
-              </button>
-            ))}
-          </div>
-        </SectionPanel>
-
-        <SectionPanel className="min-h-[560px]">
-          <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-6">
-            <div className="flex items-center gap-4">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white">
-                {getInitials(activeThread?.name)}
-              </span>
-              <div>
-                <p className="font-semibold text-slate-950">
-                  {activeThread?.name}
-                </p>
-                <p className="text-sm text-slate-500">
-                  {activeThread?.headline}
-                </p>
-              </div>
-            </div>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
-              Active
-            </span>
-          </div>
-          <div className="space-y-6 py-8">
-            <div className="max-w-xl rounded-[1.5rem] bg-slate-100 px-5 py-4 text-sm leading-7 text-slate-700">
-              Thanks for applying. We really liked the product demo angle in your pitch.
-            </div>
-            <div className="ml-auto max-w-xl rounded-[1.5rem] bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-4 text-sm leading-7 text-white">
-              Happy to refine the hooks and send over a second version if that helps.
-            </div>
-            <div className="max-w-xl rounded-[1.5rem] bg-slate-100 px-5 py-4 text-sm leading-7 text-slate-700">
-              That works. Please include one variation that feels more paid-social friendly.
-            </div>
-          </div>
-          <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <input
-                type="text"
-                placeholder="Write a message"
-                className="h-12 flex-1 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-              />
-              <MotionScale className="h-12 rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 text-sm font-semibold text-white">
-                Send
-              </MotionScale>
-            </div>
-          </div>
-        </SectionPanel>
-      </div>
-    );
+    return <RealtimeChatPanel profile={profile} role="creator" candidates={chatCandidates} />;
   }
 
   function renderPayoutsSection() {

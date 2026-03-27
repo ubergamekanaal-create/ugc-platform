@@ -1,23 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { type JSX, type ReactNode, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import {
+  type JSX,
+  type ReactNode,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { BrandCampaignComposer } from "@/components/dashboard/brand-campaign-composer";
+import { BrandCreatorDirectory } from "@/components/dashboard/brand-creator-directory";
 import { BrandIntegrationsPanel } from "@/components/dashboard/brand-integrations-panel";
+import { RealtimeChatPanel } from "@/components/dashboard/realtime-chat-panel";
 import { SignOutButton } from "@/components/dashboard/sign-out-button";
 import { StripeActionButton } from "@/components/dashboard/stripe-action-button";
 import {
   FadeIn,
   HoverLift,
-  MotionScale,
   PageTransition,
 } from "@/components/shared/motion";
+import { buildBrandChatCandidates } from "@/lib/chat/candidates";
 import {
   brandWorkspaceSections,
   getBrandWorkspaceHref,
   type BrandWorkspaceSection,
 } from "@/lib/brand-workspace";
-import type { BrandDashboardData, UserProfile } from "@/lib/types";
+import { createClient } from "@/lib/supabase/client";
+import type {
+  BrandCreatorDirectoryEntry,
+  BrandDashboardData,
+  ApplicationStatus,
+  UserProfile,
+} from "@/lib/types";
 import {
   cn,
   formatCompactCurrency,
@@ -91,6 +106,25 @@ const fallbackCreators: CreatorSpotlight[] = [
     focus: "Lifestyle UGC",
   },
 ];
+
+const fallbackCreatorDirectory: BrandCreatorDirectoryEntry[] = fallbackCreators.map(
+  (creator, index) => ({
+    id: `fallback-creator-${index + 1}`,
+    name: creator.name,
+    headline: creator.headline,
+    avatar_url: null,
+    applications: creator.applications,
+    accepted: creator.accepted,
+    rate: creator.rate,
+    focus: creator.focus,
+    latest_campaign_title: creator.campaignTitle,
+    latest_application_at: null,
+    invitations: 0,
+    pending_invitations: 0,
+    invited_campaign_ids: [],
+    last_invited_at: null,
+  }),
+);
 
 const emptySeries = [
   { label: "W1", value: 28 },
@@ -375,9 +409,17 @@ export function BrandWorkspace({
   data,
   section,
 }: BrandWorkspaceProps) {
+  const router = useRouter();
   const activeSection =
     brandWorkspaceSections.find((item) => item.slug === section) ??
     brandWorkspaceSections[0];
+  const [applicationFeedback, setApplicationFeedback] = useState<string | null>(
+    null,
+  );
+  const [pendingApplicationId, setPendingApplicationId] = useState<string | null>(
+    null,
+  );
+  const [isReviewRefreshing, startReviewRefresh] = useTransition();
   const displayName = getDisplayName(profile.company_name, "CIRCL Brand");
   const welcomeName = getDisplayName(
     profile.full_name || profile.company_name,
@@ -406,6 +448,11 @@ export function BrandWorkspace({
     const builtRoster = buildCreatorRoster(data);
     return builtRoster.length ? builtRoster : fallbackCreators;
   }, [data]);
+  const creatorDirectory = useMemo(
+    () => (data.creators.length ? data.creators : fallbackCreatorDirectory),
+    [data.creators],
+  );
+  const chatCandidates = useMemo(() => buildBrandChatCandidates(data), [data]);
   const topCreators = creatorRoster.slice(0, 4);
   const heroCampaign = data.campaigns[0];
   const primaryStats = [
@@ -449,18 +496,6 @@ export function BrandWorkspace({
       amount: Math.round(campaign.budget * (0.38 + index * 0.08)),
       status: index === 0 ? "Scheduled" : index === 1 ? "Queued" : "Draft",
     }));
-  const chatThreads = topCreators.map((creator, index) => ({
-    name: creator.name,
-    headline: creator.headline ?? creator.focus,
-    preview:
-      index === 0
-        ? "I can turn the latest brief around by Friday with three hook variations."
-        : index === 1
-          ? "Can you confirm if paid usage is included for Meta retargeting?"
-          : "Shared concept directions and a revised shot list for review.",
-    time: index === 0 ? "2m ago" : index === 1 ? "21m ago" : "1h ago",
-    unread: index === 0 ? 2 : 0,
-  }));
   const ads = (data.campaigns.length ? data.campaigns : [])
     .slice(0, 3)
     .map((campaign, index) => ({
@@ -483,6 +518,32 @@ export function BrandWorkspace({
           value: clampPercent(30 + campaign.application_count * 11 + index * 5),
         }))
       : emptySeries;
+
+  async function handleApplicationStatus(
+    applicationId: string,
+    status: ApplicationStatus,
+  ) {
+    setPendingApplicationId(applicationId);
+    setApplicationFeedback(null);
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("campaign_applications")
+      .update({ status })
+      .eq("id", applicationId);
+
+    if (error) {
+      setApplicationFeedback(error.message);
+      setPendingApplicationId(null);
+      return;
+    }
+
+    setApplicationFeedback(`Application updated to ${status}. Refreshing queue...`);
+    setPendingApplicationId(null);
+    startReviewRefresh(() => {
+      router.refresh();
+    });
+  }
 
   function renderDashboardSection() {
     return (
@@ -880,6 +941,47 @@ export function BrandWorkspace({
                       </div>
                     </div>
                   </div>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void handleApplicationStatus(application.id, "shortlisted")
+                      }
+                      disabled={
+                        pendingApplicationId === application.id ||
+                        application.status === "shortlisted"
+                      }
+                      className="inline-flex h-11 items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-4 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Shortlist
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void handleApplicationStatus(application.id, "accepted")
+                      }
+                      disabled={
+                        pendingApplicationId === application.id ||
+                        application.status === "accepted"
+                      }
+                      className="inline-flex h-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void handleApplicationStatus(application.id, "declined")
+                      }
+                      disabled={
+                        pendingApplicationId === application.id ||
+                        application.status === "declined"
+                      }
+                      className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Decline
+                    </button>
+                  </div>
                 </div>
               ))
             ) : (
@@ -887,6 +989,12 @@ export function BrandWorkspace({
                 No submissions yet. Launch a campaign and creators will start appearing here.
               </div>
             )}
+            {applicationFeedback ? (
+              <p className="text-sm text-slate-500">{applicationFeedback}</p>
+            ) : null}
+            {isReviewRefreshing ? (
+              <p className="text-sm text-slate-500">Refreshing submissions...</p>
+            ) : null}
           </div>
         </SectionPanel>
       </div>
@@ -894,109 +1002,7 @@ export function BrandWorkspace({
   }
 
   function renderChatSection() {
-    const activeThread = chatThreads[0];
-
-    return (
-      <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
-        <FadeIn>
-          <SectionPanel className="p-4">
-            <div className="flex items-center justify-between gap-4 px-2 pb-4">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-950">Inbox</h2>
-                <p className="text-sm text-slate-500">
-                  Creator and team messages
-                </p>
-              </div>
-              <MotionScale className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white">
-                New thread
-              </MotionScale>
-            </div>
-            <div className="space-y-2">
-              {chatThreads.map((thread) => (
-                <button
-                  key={thread.name}
-                  type="button"
-                  className={cn(
-                    "flex w-full items-start gap-3 rounded-[1.5rem] px-3 py-4 text-left transition",
-                    thread.name === activeThread?.name
-                      ? "bg-slate-100"
-                      : "hover:bg-slate-50",
-                  )}
-                >
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white">
-                    {getInitials(thread.name)}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center justify-between gap-3">
-                      <span className="truncate font-semibold text-slate-950">
-                        {thread.name}
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        {thread.time}
-                      </span>
-                    </span>
-                    <span className="mt-1 block truncate text-sm text-slate-500">
-                      {thread.preview}
-                    </span>
-                  </span>
-                  {thread.unread ? (
-                    <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-accent px-2 text-xs font-semibold text-white">
-                      {thread.unread}
-                    </span>
-                  ) : null}
-                </button>
-              ))}
-            </div>
-          </SectionPanel>
-        </FadeIn>
-
-        <FadeIn delay={0.08}>
-          <SectionPanel className="min-h-[620px]">
-            <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-6">
-              <div className="flex items-center gap-4">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white">
-                  {getInitials(activeThread?.name)}
-                </span>
-                <div>
-                  <p className="font-semibold text-slate-950">
-                    {activeThread?.name}
-                  </p>
-                  <p className="text-sm text-slate-500">
-                    {activeThread?.headline ?? "Creator"}
-                  </p>
-                </div>
-              </div>
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
-                Active
-              </span>
-            </div>
-            <div className="space-y-6 py-8">
-              <div className="max-w-xl rounded-[1.5rem] bg-slate-100 px-5 py-4 text-sm leading-7 text-slate-700">
-                Shared the updated product brief and usage window for the next paid run.
-              </div>
-              <div className="ml-auto max-w-xl rounded-[1.5rem] bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-4 text-sm leading-7 text-white">
-                Perfect. I can send first concepts tonight and final selects within two days.
-              </div>
-              <div className="max-w-xl rounded-[1.5rem] bg-slate-100 px-5 py-4 text-sm leading-7 text-slate-700">
-                Please include one hook variation tailored for retargeting and a clean product-only edit.
-              </div>
-            </div>
-            <div className="mt-auto rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <input
-                  type="text"
-                  placeholder="Reply to the thread"
-                  className="h-12 flex-1 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                />
-                <MotionScale className="h-12 rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 text-sm font-semibold text-white">
-                  Send message
-                </MotionScale>
-              </div>
-            </div>
-          </SectionPanel>
-        </FadeIn>
-      </div>
-    );
+    return <RealtimeChatPanel profile={profile} role="brand" candidates={chatCandidates} />;
   }
 
   function renderAdsSection() {
@@ -1225,72 +1231,102 @@ export function BrandWorkspace({
   function renderCreatorsSection() {
     return (
       <div className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {creatorRoster.map((creator) => (
-            <HoverLift key={creator.name} className="h-full">
-              <SectionPanel className="h-full">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <span className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-slate-900 text-sm font-semibold text-white">
-                      {getInitials(creator.name)}
-                    </span>
-                    <div>
-                      <p className="text-xl font-semibold text-slate-950">
-                        {creator.name}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {creator.headline ?? creator.focus}
-                      </p>
+        <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+          <SectionPanel>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
+                  Campaigns Ready For Invites
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  Use an active brief as the source for brand outreach.
+                </p>
+              </div>
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-accent">
+                {data.campaigns.length} campaigns
+              </span>
+            </div>
+            <div className="mt-8 space-y-4">
+              {data.campaigns.length ? (
+                data.campaigns.map((campaign) => (
+                  <div
+                    key={campaign.id}
+                    className="rounded-[1.5rem] border border-slate-200 px-4 py-4"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="font-semibold text-slate-950">
+                          {campaign.title}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {campaign.platforms.join(" • ")}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          "rounded-full px-3 py-1 text-xs font-semibold",
+                          getStatusClasses(campaign.status),
+                        )}
+                      >
+                        {campaign.status}
+                      </span>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm text-slate-500">
+                      <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                        <p>Budget</p>
+                        <p className="mt-2 font-semibold text-slate-950">
+                          {formatCurrency(campaign.budget)}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                        <p>Creator slots</p>
+                        <p className="mt-2 font-semibold text-slate-950">
+                          {campaign.creator_slots}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                        <p>Submissions</p>
+                        <p className="mt-2 font-semibold text-slate-950">
+                          {campaign.application_count}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-accent">
-                    {creator.focus}
-                  </span>
+                ))
+              ) : (
+                <div className="rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-8 text-center text-sm text-slate-500">
+                  Create a campaign first. Once you have a live brief, you can
+                  invite creators directly from this page.
                 </div>
-                <div className="mt-6 grid grid-cols-3 gap-3">
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                      Apps
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-slate-950">
-                      {creator.applications}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                      Won
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-slate-950">
-                      {creator.accepted}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                      Rate
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-slate-950">
-                      {formatCompactCurrency(creator.rate)}
-                    </p>
-                  </div>
-                </div>
-                <p className="mt-6 text-sm leading-7 text-slate-600">
-                  Best fit for {creator.campaignTitle}. Strong match for premium short-form creative and paid amplification.
+              )}
+            </div>
+          </SectionPanel>
+
+          <SectionPanel>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
+                  Launch A Campaign
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  Publish a new brief without leaving the creator roster.
                 </p>
-                <div className="mt-6 flex gap-3">
-                  <MotionScale className="flex-1 rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-4 py-3 text-sm font-semibold text-white">
-                    Invite to brief
-                  </MotionScale>
-                  <button
-                    type="button"
-                    className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                  >
-                    View profile
-                  </button>
-                </div>
-              </SectionPanel>
-            </HoverLift>
-          ))}
+              </div>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
+                Live insert
+              </span>
+            </div>
+            <div className="mt-8">
+              <BrandCampaignComposer brandId={profile.id} />
+            </div>
+          </SectionPanel>
         </div>
+
+        <BrandCreatorDirectory
+          brandId={profile.id}
+          campaigns={data.campaigns}
+          creators={creatorDirectory}
+        />
       </div>
     );
   }

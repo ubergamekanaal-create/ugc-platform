@@ -2,12 +2,16 @@ import { createClient } from "@/lib/supabase/server";
 import type {
   BrandApplicationSummary,
   BrandCampaignSummary,
+  BrandCreatorDirectoryEntry,
   BrandDashboardData,
   Campaign,
   CampaignApplication,
+  CampaignInvitation,
   CreatorApplicationSummary,
   CreatorCampaignSummary,
   CreatorDashboardData,
+  CreatorInvitationSummary,
+  InvitationStatus,
   PublicProfile,
   Role,
   UserProfile,
@@ -26,149 +30,6 @@ type DashboardContext =
       profile: UserProfile & { role: "creator" };
       data: CreatorDashboardData;
     };
-
-const brandCampaignFallback: Campaign[] = [
-  {
-    id: "demo-campaign-1",
-    brand_id: "brand-demo",
-    title: "Spring UGC Sprint",
-    description:
-      "Source short-form creator assets for a product launch across TikTok and Reels.",
-    budget: 4500,
-    status: "active",
-    platforms: ["TikTok", "Instagram Reels"],
-    deliverables: "3 videos, 6 hooks, raw footage handoff",
-    creator_slots: 4,
-    duration: "14 days",
-    payment_type: "Fixed",
-    created_at: "2026-03-18T10:00:00.000Z",
-  },
-  {
-    id: "demo-campaign-2",
-    brand_id: "brand-demo",
-    title: "Creator Seeding Program",
-    description:
-      "Find niche beauty creators who can produce organic unboxing and testimonial content.",
-    budget: 2600,
-    status: "open",
-    platforms: ["Instagram", "YouTube Shorts"],
-    deliverables: "2 videos, 1 story set, usage rights",
-    creator_slots: 6,
-    duration: "21 days",
-    payment_type: "Hybrid",
-    created_at: "2026-03-21T14:30:00.000Z",
-  },
-];
-
-const creatorCampaignFallback: Campaign[] = [
-  {
-    id: "market-campaign-1",
-    brand_id: "brand-demo",
-    title: "Premium Skincare Demo Content",
-    description:
-      "Shoot a clean, product-first walkthrough that feels native to creator-led skincare reviews.",
-    budget: 1800,
-    status: "open",
-    platforms: ["TikTok", "Instagram Reels"],
-    deliverables: "2 short-form videos + 5 stills",
-    creator_slots: 3,
-    duration: "10 days",
-    payment_type: "Fixed",
-    created_at: "2026-03-22T11:00:00.000Z",
-  },
-  {
-    id: "market-campaign-2",
-    brand_id: "brand-demo-2",
-    title: "Fitness App Testimonial Series",
-    description:
-      "Create punchy, story-led hooks around workouts, progress, and app-specific value props.",
-    budget: 2400,
-    status: "open",
-    platforms: ["TikTok", "YouTube Shorts"],
-    deliverables: "3 videos, 1 voiceover option",
-    creator_slots: 5,
-    duration: "14 days",
-    payment_type: "Performance bonus",
-    created_at: "2026-03-23T09:45:00.000Z",
-  },
-  {
-    id: "market-campaign-3",
-    brand_id: "brand-demo-3",
-    title: "Home Office Creator Pack",
-    description:
-      "Showcase a desk setup product line with premium framing, lifestyle context, and authentic talking points.",
-    budget: 3200,
-    status: "open",
-    platforms: ["Instagram Reels", "Pinterest"],
-    deliverables: "2 videos, 8 product photos",
-    creator_slots: 4,
-    duration: "18 days",
-    payment_type: "Fixed",
-    created_at: "2026-03-24T16:20:00.000Z",
-  },
-];
-
-const applicationFallback: CampaignApplication[] = [
-  {
-    id: "application-demo-1",
-    campaign_id: "demo-campaign-1",
-    creator_id: "creator-demo",
-    pitch:
-      "I can deliver testimonial-led hooks and raw variations with a premium beauty style.",
-    rate: 950,
-    status: "shortlisted",
-    created_at: "2026-03-20T08:00:00.000Z",
-  },
-  {
-    id: "application-demo-2",
-    campaign_id: "market-campaign-2",
-    creator_id: "creator-demo",
-    pitch:
-      "I focus on high-retention fitness storytelling and can ship edits quickly.",
-    rate: 1100,
-    status: "pending",
-    created_at: "2026-03-24T07:30:00.000Z",
-  },
-];
-
-const publicProfileFallback: Record<string, PublicProfile> = {
-  "brand-demo": {
-    id: "brand-demo",
-    role: "brand",
-    display_name: "Northstar Labs",
-    full_name: null,
-    company_name: "Northstar Labs",
-    headline: "UGC-focused product launches",
-    avatar_url: null,
-  },
-  "brand-demo-2": {
-    id: "brand-demo-2",
-    role: "brand",
-    display_name: "Pulse Studio",
-    full_name: null,
-    company_name: "Pulse Studio",
-    headline: "Mobile growth team",
-    avatar_url: null,
-  },
-  "brand-demo-3": {
-    id: "brand-demo-3",
-    role: "brand",
-    display_name: "Cascade Home",
-    full_name: null,
-    company_name: "Cascade Home",
-    headline: "Design-led consumer brand",
-    avatar_url: null,
-  },
-  "creator-demo": {
-    id: "creator-demo",
-    role: "creator",
-    display_name: "Riley Cole",
-    full_name: "Riley Cole",
-    company_name: null,
-    headline: "Beauty and lifestyle UGC creator",
-    avatar_url: null,
-  },
-};
 
 function isRole(value: unknown): value is Role {
   return value === "brand" || value === "creator";
@@ -255,6 +116,26 @@ function normalizeApplication(row: Record<string, unknown>): CampaignApplication
   };
 }
 
+function normalizeInvitation(row: Record<string, unknown>): CampaignInvitation {
+  return {
+    id: readString(row.id),
+    campaign_id: readString(row.campaign_id),
+    brand_id: readString(row.brand_id),
+    creator_id: readString(row.creator_id),
+    message: readNullableString(row.message),
+    offered_rate: readNumber(row.offered_rate),
+    status:
+      row.status === "accepted" || row.status === "declined"
+        ? (row.status as InvitationStatus)
+        : "pending",
+    created_at: readString(row.created_at, new Date().toISOString()),
+    updated_at: readString(
+      row.updated_at,
+      readString(row.created_at, new Date().toISOString()),
+    ),
+  };
+}
+
 async function getPublicProfiles(
   supabase: SupabaseServerClient,
   ids: string[],
@@ -272,12 +153,11 @@ async function getPublicProfiles(
     .in("id", uniqueIds);
 
   if (error || !data) {
-    return new Map(
-      uniqueIds
-        .map((id) => publicProfileFallback[id])
-        .filter(Boolean)
-        .map((profile) => [profile.id, profile]),
-    );
+    console.error("getPublicProfiles: public_profiles lookup failed", {
+      ids: uniqueIds,
+      error,
+    });
+    return new Map<string, PublicProfile>();
   }
 
   return new Map(
@@ -308,11 +188,16 @@ async function getBrandData(
     .eq("brand_id", userId)
     .order("created_at", { ascending: false });
 
-  const campaigns = campaignError
-    ? brandCampaignFallback
-    : ((rawCampaigns ?? []) as Array<Record<string, unknown>>).map(
-        normalizeCampaign,
-      );
+  if (campaignError) {
+    console.error("getBrandData: campaigns lookup failed", {
+      userId,
+      error: campaignError,
+    });
+  }
+
+  const campaigns = ((rawCampaigns ?? []) as Array<Record<string, unknown>>).map(
+    normalizeCampaign,
+  );
 
   const campaignIds = campaigns.map((campaign) => campaign.id);
 
@@ -324,18 +209,70 @@ async function getBrandData(
         .order("created_at", { ascending: false })
     : { data: [], error: null };
 
-  const applications = applicationError
-    ? applicationFallback.filter((application) =>
-        campaignIds.includes(application.campaign_id),
-      )
-    : ((rawApplications ?? []) as Array<Record<string, unknown>>).map(
-        normalizeApplication,
-      );
+  if (applicationError) {
+    console.error("getBrandData: applications lookup failed", {
+      userId,
+      campaignIds,
+      error: applicationError,
+    });
+  }
+
+  const applications = ((rawApplications ?? []) as Array<Record<string, unknown>>).map(
+    normalizeApplication,
+  );
+
+  const { data: rawInvitations, error: invitationError } = await supabase
+    .from("campaign_invitations")
+    .select(
+      "id, campaign_id, brand_id, creator_id, message, offered_rate, status, created_at, updated_at",
+    )
+    .eq("brand_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (invitationError) {
+    console.error("getBrandData: invitations lookup failed", {
+      userId,
+      error: invitationError,
+    });
+  }
+
+  const invitations = ((rawInvitations ?? []) as Array<Record<string, unknown>>).map(
+    normalizeInvitation,
+  );
 
   const profiles = await getPublicProfiles(
     supabase,
-    applications.map((application) => application.creator_id),
+    [
+      ...applications.map((application) => application.creator_id),
+      ...invitations.map((invitation) => invitation.creator_id),
+    ],
   );
+
+  const { data: rawCreatorDirectory, error: creatorDirectoryError } = await supabase
+    .from("public_profiles")
+    .select(
+      "id, role, display_name, full_name, company_name, headline, avatar_url",
+    )
+    .eq("role", "creator");
+
+  if (creatorDirectoryError) {
+    console.error("getBrandData: creator directory lookup failed", {
+      userId,
+      error: creatorDirectoryError,
+    });
+  }
+
+  const creatorDirectoryProfiles = creatorDirectoryError
+    ? []
+    : ((rawCreatorDirectory ?? []) as Array<Record<string, unknown>>).map((row) => ({
+        id: readString(row.id),
+        role: isRole(row.role) ? row.role : "creator",
+        display_name: readNullableString(row.display_name),
+        full_name: readNullableString(row.full_name),
+        company_name: readNullableString(row.company_name),
+        headline: readNullableString(row.headline),
+        avatar_url: readNullableString(row.avatar_url),
+      }));
 
   const campaignsWithCounts: BrandCampaignSummary[] = campaigns.map((campaign) => ({
     ...campaign,
@@ -346,9 +283,7 @@ async function getBrandData(
 
   const enrichedApplications: BrandApplicationSummary[] = applications.map(
     (application) => {
-      const creator =
-        profiles.get(application.creator_id) ??
-        publicProfileFallback[application.creator_id];
+      const creator = profiles.get(application.creator_id) ?? null;
       const campaign = campaigns.find(
         (campaignItem) => campaignItem.id === application.campaign_id,
       );
@@ -366,9 +301,78 @@ async function getBrandData(
     },
   );
 
+  const creatorDirectory = (
+    creatorDirectoryProfiles.length
+      ? creatorDirectoryProfiles
+      : [...profiles.values()].filter((profile) => profile.role === "creator")
+  )
+    .map((creator): BrandCreatorDirectoryEntry => {
+      const creatorApplications = applications.filter(
+        (application) => application.creator_id === creator.id,
+      );
+      const creatorInvitations = invitations.filter(
+        (invitation) => invitation.creator_id === creator.id,
+      );
+      const latestApplication = creatorApplications[0] ?? null;
+      const matchedCampaign = latestApplication
+        ? campaigns.find((campaign) => campaign.id === latestApplication.campaign_id)
+        : null;
+
+      return {
+        id: creator.id,
+        name:
+          creator.display_name ??
+          creator.full_name ??
+          creator.company_name ??
+          "Creator",
+        headline: creator.headline ?? null,
+        avatar_url: creator.avatar_url ?? null,
+        applications: creatorApplications.length,
+        accepted: creatorApplications.filter(
+          (application) => application.status === "accepted",
+        ).length,
+        rate: creatorApplications.reduce(
+          (highest, application) => Math.max(highest, application.rate),
+          0,
+        ),
+        focus:
+          matchedCampaign?.title ??
+          creator.headline ??
+          "Open to short-form collaborations",
+        latest_campaign_title: matchedCampaign?.title ?? null,
+        latest_application_at: latestApplication?.created_at ?? null,
+        invitations: creatorInvitations.length,
+        pending_invitations: creatorInvitations.filter(
+          (invitation) => invitation.status === "pending",
+        ).length,
+        invited_campaign_ids: [
+          ...new Set(
+            creatorInvitations
+              .filter((invitation) => invitation.status !== "declined")
+              .map((invitation) => invitation.campaign_id),
+          ),
+        ],
+        last_invited_at: creatorInvitations[0]?.created_at ?? null,
+      };
+    })
+    .sort((left, right) => {
+      const scoreLeft =
+        left.accepted * 5 + left.applications * 3 + left.pending_invitations * 2;
+      const scoreRight =
+        right.accepted * 5 + right.applications * 3 + right.pending_invitations * 2;
+
+      if (scoreRight !== scoreLeft) {
+        return scoreRight - scoreLeft;
+      }
+
+      return left.name.localeCompare(right.name);
+    });
+
   return {
     campaigns: campaignsWithCounts,
     applications: enrichedApplications,
+    creators: creatorDirectory,
+    invitations,
   };
 }
 
@@ -385,11 +389,16 @@ async function getCreatorData(
     .neq("brand_id", userId)
     .order("created_at", { ascending: false });
 
-  const campaigns = campaignError
-    ? creatorCampaignFallback
-    : ((rawCampaigns ?? []) as Array<Record<string, unknown>>).map(
-        normalizeCampaign,
-      );
+  if (campaignError) {
+    console.error("getCreatorData: open campaigns lookup failed", {
+      userId,
+      error: campaignError,
+    });
+  }
+
+  const campaigns = ((rawCampaigns ?? []) as Array<Record<string, unknown>>).map(
+    normalizeCampaign,
+  );
 
   const { data: rawApplications, error: applicationError } = await supabase
     .from("campaign_applications")
@@ -397,52 +406,156 @@ async function getCreatorData(
     .eq("creator_id", userId)
     .order("created_at", { ascending: false });
 
-  const applications = applicationError
-    ? applicationFallback.filter((application) => application.creator_id === userId)
-    : ((rawApplications ?? []) as Array<Record<string, unknown>>).map(
-        normalizeApplication,
-      );
+  if (applicationError) {
+    console.error("getCreatorData: applications lookup failed", {
+      userId,
+      error: applicationError,
+    });
+  }
+
+  const applications = ((rawApplications ?? []) as Array<Record<string, unknown>>).map(
+    normalizeApplication,
+  );
+
+  const { data: rawInvitations, error: invitationError } = await supabase
+    .from("campaign_invitations")
+    .select(
+      "id, campaign_id, brand_id, creator_id, message, offered_rate, status, created_at, updated_at",
+    )
+    .eq("creator_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (invitationError) {
+    console.error("getCreatorData: invitations lookup failed", {
+      userId,
+      error: invitationError,
+    });
+  }
+
+  const invitations = ((rawInvitations ?? []) as Array<Record<string, unknown>>).map(
+    normalizeInvitation,
+  );
+
+  const appliedCampaignIds = [...new Set(applications.map((application) => application.campaign_id))];
+  const missingCampaignIds = appliedCampaignIds.filter(
+    (campaignId) => !campaigns.some((campaign) => campaign.id === campaignId),
+  );
+
+  const invitationCampaignIds = [
+    ...new Set(invitations.map((invitation) => invitation.campaign_id)),
+  ];
+  const missingInvitationCampaignIds = invitationCampaignIds.filter(
+    (campaignId) =>
+      !campaigns.some((campaign) => campaign.id === campaignId) &&
+      !missingCampaignIds.includes(campaignId),
+  );
+
+  const { data: rawAppliedCampaigns, error: appliedCampaignsError } = missingCampaignIds.length
+    ? await supabase
+        .from("campaigns")
+        .select(
+          "id, brand_id, title, description, budget, status, platforms, deliverables, creator_slots, duration, payment_type, created_at",
+        )
+        .in("id", missingCampaignIds)
+    : { data: [], error: null };
+
+  if (appliedCampaignsError) {
+    console.error("getCreatorData: applied campaigns lookup failed", {
+      userId,
+      campaignIds: missingCampaignIds,
+      error: appliedCampaignsError,
+    });
+  }
+
+  const applicationCampaigns = ((rawAppliedCampaigns ?? []) as Array<Record<string, unknown>>).map(
+    normalizeCampaign,
+  );
+  const { data: rawInvitationCampaigns, error: invitationCampaignsError } =
+    missingInvitationCampaignIds.length
+      ? await supabase
+          .from("campaigns")
+          .select(
+            "id, brand_id, title, description, budget, status, platforms, deliverables, creator_slots, duration, payment_type, created_at",
+          )
+          .in("id", missingInvitationCampaignIds)
+      : { data: [], error: null };
+
+  if (invitationCampaignsError) {
+    console.error("getCreatorData: invitation campaigns lookup failed", {
+      userId,
+      campaignIds: missingInvitationCampaignIds,
+      error: invitationCampaignsError,
+    });
+  }
+
+  const invitationCampaigns = ((rawInvitationCampaigns ?? []) as Array<Record<string, unknown>>).map(
+    normalizeCampaign,
+  );
+  const campaignMap = new Map(
+    [...campaigns, ...applicationCampaigns, ...invitationCampaigns].map((campaign) => [
+      campaign.id,
+      campaign,
+    ]),
+  );
 
   const profiles = await getPublicProfiles(
     supabase,
-    campaigns.map((campaign) => campaign.brand_id),
+    [
+      ...new Set([
+        ...[...campaignMap.values()].map((campaign) => campaign.brand_id),
+        ...invitations.map((invitation) => invitation.brand_id),
+      ]),
+    ],
   );
-  const appliedCampaignIds = new Set(
-    applications.map((application) => application.campaign_id),
-  );
+  const appliedCampaignIdSet = new Set(appliedCampaignIds);
 
   const campaignsWithBrand: CreatorCampaignSummary[] = campaigns.map((campaign) => {
-    const brand =
-      profiles.get(campaign.brand_id) ?? publicProfileFallback[campaign.brand_id];
+    const brand = profiles.get(campaign.brand_id) ?? null;
 
     return {
       ...campaign,
       brand_name:
         brand?.display_name ?? brand?.company_name ?? brand?.full_name ?? "Brand",
       brand_headline: brand?.headline ?? null,
-      has_applied: appliedCampaignIds.has(campaign.id),
+      has_applied: appliedCampaignIdSet.has(campaign.id),
     };
   });
 
   const enrichedApplications: CreatorApplicationSummary[] = applications.map(
     (application) => {
-      const campaign =
-        campaigns.find((campaignItem) => campaignItem.id === application.campaign_id) ??
-        creatorCampaignFallback.find(
-          (campaignItem) => campaignItem.id === application.campaign_id,
-        );
-      const brand =
-        (campaign &&
-          (profiles.get(campaign.brand_id) ??
-            publicProfileFallback[campaign.brand_id])) ||
-        null;
+      const campaign = campaignMap.get(application.campaign_id) ?? null;
+      const brand = campaign ? profiles.get(campaign.brand_id) ?? null : null;
 
       return {
         ...application,
         campaign_title: campaign?.title ?? "Campaign",
         campaign_budget: campaign?.budget ?? 0,
+        brand_id: campaign?.brand_id ?? "",
         brand_name:
           brand?.display_name ?? brand?.company_name ?? brand?.full_name ?? "Brand",
+      };
+    },
+  );
+
+  const enrichedInvitations: CreatorInvitationSummary[] = invitations.map(
+    (invitation) => {
+      const campaign = campaignMap.get(invitation.campaign_id) ?? null;
+      const brand =
+        profiles.get(invitation.brand_id) ??
+        (campaign ? profiles.get(campaign.brand_id) ?? null : null);
+
+      return {
+        ...invitation,
+        campaign_title: campaign?.title ?? "Campaign",
+        campaign_budget: campaign?.budget ?? 0,
+        campaign_description: campaign?.description ?? "",
+        deliverables: campaign?.deliverables ?? "",
+        duration: campaign?.duration ?? "14 days",
+        payment_type: campaign?.payment_type ?? "Fixed",
+        platforms: campaign?.platforms ?? [],
+        brand_name:
+          brand?.display_name ?? brand?.company_name ?? brand?.full_name ?? "Brand",
+        brand_headline: brand?.headline ?? null,
       };
     },
   );
@@ -450,6 +563,7 @@ async function getCreatorData(
   return {
     campaigns: campaignsWithBrand,
     applications: enrichedApplications,
+    invitations: enrichedInvitations,
   };
 }
 
