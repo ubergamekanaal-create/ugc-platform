@@ -141,6 +141,18 @@ export function CreatorInvitationsPanel({
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
+                <span>Content type</span>
+                <span className="max-w-[140px] text-right font-medium text-slate-950">
+                  {invitation.content_type}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span>Deadline</span>
+                <span className="max-w-[140px] text-right font-medium text-slate-950">
+                  {invitation.deadline ? formatDate(invitation.deadline) : "Flexible"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
                 <span>Timeline</span>
                 <span className="font-medium text-slate-950">
                   {invitation.duration}
@@ -154,6 +166,39 @@ export function CreatorInvitationsPanel({
               </div>
             </div>
           </div>
+
+          {(invitation.product_name ||
+            invitation.product_details ||
+            invitation.usage_rights ||
+            invitation.creator_requirements) && (
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              <div className="rounded-[1.25rem] bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                  Product
+                </p>
+                <p className="mt-2 font-semibold text-slate-950">
+                  {invitation.product_name || "Shared after accept"}
+                </p>
+                {invitation.product_details ? (
+                  <p className="mt-2 leading-6">{invitation.product_details}</p>
+                ) : null}
+              </div>
+              <div className="rounded-[1.25rem] bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                  Usage rights
+                </p>
+                <p className="mt-2 font-semibold text-slate-950">
+                  {invitation.usage_rights || "To be confirmed"}
+                </p>
+                <p className="mt-3 text-xs uppercase tracking-[0.16em] text-slate-400">
+                  Creator requirements
+                </p>
+                <p className="mt-2 font-semibold text-slate-950">
+                  {invitation.creator_requirements || "Open brief"}
+                </p>
+              </div>
+            </div>
+          )}
 
           {invitation.status === "pending" ? (
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">

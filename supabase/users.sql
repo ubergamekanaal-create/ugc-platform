@@ -9,6 +9,12 @@ create table if not exists public.users (
   headline text,
   avatar_url text,
   stripe_account_id text,
+  stripe_onboarding_complete boolean not null default false,
+  stripe_details_submitted boolean not null default false,
+  stripe_charges_enabled boolean not null default false,
+  stripe_payouts_enabled boolean not null default false,
+  stripe_transfers_enabled boolean not null default false,
+  stripe_onboarding_updated_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -40,6 +46,12 @@ alter table public.users add column if not exists company_name text;
 alter table public.users add column if not exists headline text;
 alter table public.users add column if not exists avatar_url text;
 alter table public.users add column if not exists stripe_account_id text;
+alter table public.users add column if not exists stripe_onboarding_complete boolean not null default false;
+alter table public.users add column if not exists stripe_details_submitted boolean not null default false;
+alter table public.users add column if not exists stripe_charges_enabled boolean not null default false;
+alter table public.users add column if not exists stripe_payouts_enabled boolean not null default false;
+alter table public.users add column if not exists stripe_transfers_enabled boolean not null default false;
+alter table public.users add column if not exists stripe_onboarding_updated_at timestamptz;
 alter table public.users add column if not exists created_at timestamptz not null default now();
 
 alter table public.users enable row level security;

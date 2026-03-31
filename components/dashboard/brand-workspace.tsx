@@ -1,24 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   type JSX,
   type ReactNode,
   useMemo,
-  useState,
-  useTransition,
 } from "react";
-import { BrandCampaignComposer } from "@/components/dashboard/brand-campaign-composer";
-import { BrandCreatorDirectory } from "@/components/dashboard/brand-creator-directory";
+import { BrandCreatorsHub } from "@/components/dashboard/brand-creators-hub";
+import { BrandFinancePanel } from "@/components/dashboard/brand-finance-panel";
 import { BrandIntegrationsPanel } from "@/components/dashboard/brand-integrations-panel";
+import { BrandMetaPanel } from "@/components/dashboard/brand-meta-panel";
+import { BrandSubmissionsPanel } from "@/components/dashboard/brand-submissions-panel";
+import { NotificationsCenter } from "@/components/dashboard/notifications-center";
 import { RealtimeChatPanel } from "@/components/dashboard/realtime-chat-panel";
 import { SignOutButton } from "@/components/dashboard/sign-out-button";
-import { StripeActionButton } from "@/components/dashboard/stripe-action-button";
+import {
+  WorkspacePanel,
+  WorkspaceShell,
+  type WorkspaceNavGroup,
+} from "@/components/dashboard/workspace-shell";
 import {
   FadeIn,
   HoverLift,
-  PageTransition,
 } from "@/components/shared/motion";
 import { buildBrandChatCandidates } from "@/lib/chat/candidates";
 import {
@@ -26,18 +29,18 @@ import {
   getBrandWorkspaceHref,
   type BrandWorkspaceSection,
 } from "@/lib/brand-workspace";
-import { createClient } from "@/lib/supabase/client";
 import type {
-  BrandCreatorDirectoryEntry,
   BrandDashboardData,
-  ApplicationStatus,
+  CampaignStatus,
   UserProfile,
 } from "@/lib/types";
 import {
   cn,
   formatCompactCurrency,
+  formatCompactNumber,
   formatCurrency,
   formatDate,
+  formatPercent,
   getDisplayName,
   getInitials,
 } from "@/lib/utils";
@@ -46,9 +49,17 @@ type BrandWorkspaceProps = {
   profile: UserProfile & { role: "brand" };
   data: BrandDashboardData;
   section: BrandWorkspaceSection;
+  detailView?: {
+    title: string;
+    description: string;
+    content: ReactNode;
+    metaItems?: Array<{ label: string; value: string }>;
+    banner?: ReactNode;
+  };
 };
 
 type CreatorSpotlight = {
+  id: string;
   name: string;
   headline: string | null;
   applications: number;
@@ -56,6 +67,25 @@ type CreatorSpotlight = {
   rate: number;
   campaignTitle: string;
   focus: string;
+};
+
+type CampaignPerformanceSummary = {
+  id: string;
+  title: string;
+  status: CampaignStatus;
+  budget: number;
+  creatorSlots: number;
+  applications: number;
+  shortlisted: number;
+  accepted: number;
+  submissions: number;
+  approved: number;
+  revisionRequested: number;
+  funded: number;
+  paidOut: number;
+  averageRate: number;
+  slotFillRate: number;
+  approvalRate: number;
 };
 
 type IconProps = {
@@ -77,55 +107,6 @@ const sectionIcons: Record<
   settings: SettingsIcon,
 };
 
-const fallbackCreators: CreatorSpotlight[] = [
-  {
-    name: "Mia Harper",
-    headline: "Beauty and skincare storyteller",
-    applications: 3,
-    accepted: 1,
-    rate: 980,
-    campaignTitle: "Spring UGC Sprint",
-    focus: "TikTok UGC",
-  },
-  {
-    name: "Noah Ellis",
-    headline: "Performance creative editor",
-    applications: 2,
-    accepted: 1,
-    rate: 1250,
-    campaignTitle: "Creator Seeding Program",
-    focus: "Paid social edits",
-  },
-  {
-    name: "Ava Morgan",
-    headline: "Lifestyle creator for premium consumer brands",
-    applications: 4,
-    accepted: 2,
-    rate: 1450,
-    campaignTitle: "Creator Seeding Program",
-    focus: "Lifestyle UGC",
-  },
-];
-
-const fallbackCreatorDirectory: BrandCreatorDirectoryEntry[] = fallbackCreators.map(
-  (creator, index) => ({
-    id: `fallback-creator-${index + 1}`,
-    name: creator.name,
-    headline: creator.headline,
-    avatar_url: null,
-    applications: creator.applications,
-    accepted: creator.accepted,
-    rate: creator.rate,
-    focus: creator.focus,
-    latest_campaign_title: creator.campaignTitle,
-    latest_application_at: null,
-    invitations: 0,
-    pending_invitations: 0,
-    invited_campaign_ids: [],
-    last_invited_at: null,
-  }),
-);
-
 const emptySeries = [
   { label: "W1", value: 28 },
   { label: "W2", value: 44 },
@@ -134,49 +115,68 @@ const emptySeries = [
 ];
 
 function buildCreatorRoster(data: BrandDashboardData) {
-  const creators = new Map<string, CreatorSpotlight>();
+  return data.creators
+    .map(
+      (creator): CreatorSpotlight => ({
+        id: creator.id,
+        name: creator.name,
+        headline: creator.headline,
+        applications: creator.applications,
+        accepted: creator.accepted,
+        rate: Math.max(creator.base_rate, creator.rate),
+        campaignTitle: creator.latest_campaign_title ?? creator.focus,
+        focus: creator.niches[0] ?? creator.focus,
+      }),
+    )
+    .sort((left, right) => {
+      const scoreDelta =
+        right.accepted * 3 +
+        right.applications -
+        (left.accepted * 3 + left.applications);
 
-  for (const application of data.applications) {
-    const existing = creators.get(application.creator_name);
-
-    if (existing) {
-      existing.applications += 1;
-      existing.rate = Math.max(existing.rate, application.rate);
-
-      if (application.status === "accepted") {
-        existing.accepted += 1;
+      if (scoreDelta !== 0) {
+        return scoreDelta;
       }
 
-      continue;
-    }
-
-    creators.set(application.creator_name, {
-      name: application.creator_name,
-      headline: application.creator_headline,
-      applications: 1,
-      accepted: application.status === "accepted" ? 1 : 0,
-      rate: application.rate,
-      campaignTitle: application.campaign_title,
-      focus: application.campaign_title,
+      return right.rate - left.rate;
     });
-  }
-
-  return [...creators.values()].sort((left, right) => {
-    const scoreDelta =
-      right.accepted * 3 +
-      right.applications -
-      (left.accepted * 3 + left.applications);
-
-    if (scoreDelta !== 0) {
-      return scoreDelta;
-    }
-
-    return right.rate - left.rate;
-  });
 }
 
 function clampPercent(value: number) {
   return Math.max(8, Math.min(100, Math.round(value)));
+}
+
+function safePercent(numerator: number, denominator: number) {
+  if (denominator <= 0) {
+    return 0;
+  }
+
+  return (numerator / denominator) * 100;
+}
+
+function getDateValue(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function getAverage(values: number[]) {
+  if (!values.length) {
+    return 0;
+  }
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function formatDurationDays(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "0d";
+  }
+
+  return `${value.toFixed(value >= 10 ? 0 : 1)}d`;
 }
 
 function getStatusClasses(status: string) {
@@ -184,7 +184,15 @@ function getStatusClasses(status: string) {
     return "bg-emerald-50 text-emerald-700";
   }
 
+  if (status === "approved") {
+    return "bg-emerald-50 text-emerald-700";
+  }
+
   if (status === "shortlisted") {
+    return "bg-amber-50 text-amber-700";
+  }
+
+  if (status === "revision_requested") {
     return "bg-amber-50 text-amber-700";
   }
 
@@ -192,8 +200,16 @@ function getStatusClasses(status: string) {
     return "bg-blue-50 text-blue-700";
   }
 
+  if (status === "submitted") {
+    return "bg-blue-50 text-blue-700";
+  }
+
   if (status === "connected") {
     return "bg-emerald-50 text-emerald-700";
+  }
+
+  if (status === "rejected" || status === "declined") {
+    return "bg-rose-50 text-rose-700";
   }
 
   return "bg-slate-100 text-slate-600";
@@ -392,34 +408,18 @@ function SectionPanel({
   className?: string;
   children: ReactNode;
 }) {
-  return (
-    <div
-      className={cn(
-        "rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
+  return <WorkspacePanel className={className}>{children}</WorkspacePanel>;
 }
 
 export function BrandWorkspace({
   profile,
   data,
   section,
+  detailView,
 }: BrandWorkspaceProps) {
-  const router = useRouter();
   const activeSection =
     brandWorkspaceSections.find((item) => item.slug === section) ??
     brandWorkspaceSections[0];
-  const [applicationFeedback, setApplicationFeedback] = useState<string | null>(
-    null,
-  );
-  const [pendingApplicationId, setPendingApplicationId] = useState<string | null>(
-    null,
-  );
-  const [isReviewRefreshing, startReviewRefresh] = useTransition();
   const displayName = getDisplayName(profile.company_name, "CIRCL Brand");
   const welcomeName = getDisplayName(
     profile.full_name || profile.company_name,
@@ -435,6 +435,15 @@ export function BrandWorkspace({
   const pendingReviews = data.applications.filter(
     (application) => application.status === "pending",
   ).length;
+  const pendingSubmissionReviews = data.submissions.filter(
+    (submission) => submission.status === "submitted",
+  ).length;
+  const revisionRequests = data.submissions.filter(
+    (submission) => submission.status === "revision_requested",
+  ).length;
+  const approvedSubmissionValue = data.submissions
+    .filter((submission) => submission.status === "approved")
+    .reduce((sum, submission) => sum + submission.rate, 0);
   const shortlisted = data.applications.filter(
     (application) => application.status === "shortlisted",
   ).length;
@@ -444,17 +453,192 @@ export function BrandWorkspace({
   const acceptedValue = data.applications
     .filter((application) => application.status === "accepted")
     .reduce((sum, application) => sum + application.rate, 0);
-  const creatorRoster = useMemo(() => {
-    const builtRoster = buildCreatorRoster(data);
-    return builtRoster.length ? builtRoster : fallbackCreators;
-  }, [data]);
-  const creatorDirectory = useMemo(
-    () => (data.creators.length ? data.creators : fallbackCreatorDirectory),
-    [data.creators],
+  const paidFundingTotal = data.fundings
+    .filter((funding) => funding.status === "paid")
+    .reduce((sum, funding) => sum + funding.amount, 0);
+  const totalPayoutsGross = data.payouts.reduce(
+    (sum, payout) => sum + payout.amount,
+    0,
   );
+  const paidPayoutCount = data.payouts.filter((payout) => payout.status === "paid").length;
+  const paidPayoutTotal = data.payouts
+    .filter((payout) => payout.status === "paid")
+    .reduce((sum, payout) => sum + payout.creator_amount, 0);
+  const payoutReadyTotal = data.payouts
+    .filter((payout) => payout.status === "payout_ready")
+    .reduce((sum, payout) => sum + payout.creator_amount, 0);
+  const totalCreatorSlots = data.campaigns.reduce(
+    (sum, campaign) => sum + campaign.creator_slots,
+    0,
+  );
+  const approvedSubmissions = data.submissions.filter(
+    (submission) => submission.status === "approved",
+  );
+  const submissionApprovalRate = safePercent(
+    approvedSubmissions.length,
+    data.submissions.length,
+  );
+  const creatorConversionRate = safePercent(acceptedCount, data.applications.length);
+  const slotFillRate = safePercent(acceptedCount, totalCreatorSlots);
+  const payoutReleaseRate = safePercent(paidPayoutCount, data.payouts.length);
+  const fundingCoverageRate = safePercent(paidFundingTotal, totalBudget);
+  const budgetCommittedRate = safePercent(totalPayoutsGross, totalBudget);
+  const averageAcceptedRate = acceptedCount
+    ? acceptedValue / acceptedCount
+    : data.applications.length
+      ? data.applications.reduce((sum, application) => sum + application.rate, 0) /
+        data.applications.length
+      : 0;
+  const reviewDurations = data.submissions
+    .map((submission) => {
+      const submittedAt =
+        getDateValue(submission.submitted_at) ?? getDateValue(submission.created_at);
+      const reviewedAt = getDateValue(submission.reviewed_at);
+
+      if (!submittedAt || !reviewedAt || reviewedAt < submittedAt) {
+        return null;
+      }
+
+      return (reviewedAt - submittedAt) / (1000 * 60 * 60 * 24);
+    })
+    .filter((value): value is number => value !== null);
+  const payoutDurations = data.payouts
+    .map((payout) => {
+      const createdAt = getDateValue(payout.created_at);
+      const paidAt = getDateValue(payout.paid_at);
+
+      if (!createdAt || !paidAt || paidAt < createdAt) {
+        return null;
+      }
+
+      return (paidAt - createdAt) / (1000 * 60 * 60 * 24);
+    })
+    .filter((value): value is number => value !== null);
+  const campaignPerformance = useMemo<CampaignPerformanceSummary[]>(
+    () =>
+      data.campaigns
+        .map((campaign) => {
+          const applications = data.applications.filter(
+            (application) => application.campaign_id === campaign.id,
+          );
+          const submissions = data.submissions.filter(
+            (submission) => submission.campaign_id === campaign.id,
+          );
+          const payouts = data.payouts.filter(
+            (payout) => payout.campaign_id === campaign.id,
+          );
+          const fundings = data.fundings.filter(
+            (funding) => funding.campaign_id === campaign.id && funding.status === "paid",
+          );
+          const accepted = applications.filter(
+            (application) => application.status === "accepted",
+          ).length;
+          const approved = submissions.filter(
+            (submission) => submission.status === "approved",
+          ).length;
+          const applicationRates = applications.map((application) => application.rate);
+
+          return {
+            id: campaign.id,
+            title: campaign.title,
+            status: campaign.status,
+            budget: campaign.budget,
+            creatorSlots: campaign.creator_slots,
+            applications: applications.length,
+            shortlisted: applications.filter(
+              (application) => application.status === "shortlisted",
+            ).length,
+            accepted,
+            submissions: submissions.length,
+            approved,
+            revisionRequested: submissions.filter(
+              (submission) => submission.status === "revision_requested",
+            ).length,
+            funded: fundings.reduce((sum, funding) => sum + funding.amount, 0),
+            paidOut: payouts
+              .filter((payout) => payout.status === "paid")
+              .reduce((sum, payout) => sum + payout.creator_amount, 0),
+            averageRate: applicationRates.length ? getAverage(applicationRates) : 0,
+            slotFillRate: safePercent(accepted, campaign.creator_slots),
+            approvalRate: safePercent(approved, Math.max(submissions.length, accepted)),
+          };
+        })
+        .sort((left, right) => {
+          const performanceDelta =
+            right.approved * 5 +
+            right.accepted * 3 +
+            right.applications -
+            (left.approved * 5 + left.accepted * 3 + left.applications);
+
+          if (performanceDelta !== 0) {
+            return performanceDelta;
+          }
+
+          return right.budget - left.budget;
+        }),
+    [data.applications, data.campaigns, data.fundings, data.payouts, data.submissions],
+  );
+  const analyticsFunnel = useMemo(
+    () => [
+      {
+        label: "Creator slots opened",
+        value: totalCreatorSlots,
+        meta: `${data.campaigns.length} live briefs`,
+      },
+      {
+        label: "Applications received",
+        value: data.applications.length,
+        meta: `${formatPercent(
+          safePercent(data.applications.length, Math.max(totalCreatorSlots, 1)),
+        )} demand per slot`,
+      },
+      {
+        label: "Creators accepted",
+        value: acceptedCount,
+        meta: `${formatPercent(slotFillRate)} slot fill`,
+      },
+      {
+        label: "Approved deliveries",
+        value: approvedSubmissions.length,
+        meta: `${formatPercent(submissionApprovalRate)} approval rate`,
+      },
+      {
+        label: "Payouts released",
+        value: paidPayoutCount,
+        meta: `${formatPercent(payoutReleaseRate)} released`,
+      },
+    ],
+    [
+      acceptedCount,
+      data.applications.length,
+      data.campaigns.length,
+      approvedSubmissions.length,
+      paidPayoutCount,
+      payoutReleaseRate,
+      slotFillRate,
+      submissionApprovalRate,
+      totalCreatorSlots,
+    ],
+  );
+  const maxFunnelValue = useMemo(
+    () => Math.max(...analyticsFunnel.map((item) => item.value), 1),
+    [analyticsFunnel],
+  );
+  const approvedDeliveries = useMemo(
+    () =>
+      approvedSubmissions
+        .slice()
+        .sort((left, right) => {
+          const rightReviewedAt = getDateValue(right.reviewed_at) ?? 0;
+          const leftReviewedAt = getDateValue(left.reviewed_at) ?? 0;
+          return rightReviewedAt - leftReviewedAt;
+        })
+        .slice(0, 5),
+    [approvedSubmissions],
+  );
+  const creatorRoster = useMemo(() => buildCreatorRoster(data), [data]);
   const chatCandidates = useMemo(() => buildBrandChatCandidates(data), [data]);
   const topCreators = creatorRoster.slice(0, 4);
-  const heroCampaign = data.campaigns[0];
   const primaryStats = [
     {
       label: "Live campaigns",
@@ -488,24 +672,6 @@ export function BrandWorkspace({
     },
   ];
   const completedSteps = onboardingSteps.filter((step) => step.complete).length;
-  const transactions = (data.campaigns.length ? data.campaigns : [])
-    .slice(0, 3)
-    .map((campaign, index) => ({
-      id: campaign.id,
-      label: campaign.title,
-      amount: Math.round(campaign.budget * (0.38 + index * 0.08)),
-      status: index === 0 ? "Scheduled" : index === 1 ? "Queued" : "Draft",
-    }));
-  const ads = (data.campaigns.length ? data.campaigns : [])
-    .slice(0, 3)
-    .map((campaign, index) => ({
-      id: campaign.id,
-      name: campaign.title,
-      status: index === 0 ? "Scaling" : index === 1 ? "Testing" : "Draft",
-      spend: Math.round(campaign.budget * (0.25 + index * 0.07)),
-      roas: (1.9 + index * 0.4).toFixed(1),
-      ctr: `${1.8 + index * 0.6}%`,
-    }));
   const analyticsBars = data.campaigns.slice(0, 4).map((campaign, index) => ({
     label: campaign.title,
     value: clampPercent(46 + campaign.application_count * 9 + index * 7),
@@ -518,32 +684,6 @@ export function BrandWorkspace({
           value: clampPercent(30 + campaign.application_count * 11 + index * 5),
         }))
       : emptySeries;
-
-  async function handleApplicationStatus(
-    applicationId: string,
-    status: ApplicationStatus,
-  ) {
-    setPendingApplicationId(applicationId);
-    setApplicationFeedback(null);
-
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("campaign_applications")
-      .update({ status })
-      .eq("id", applicationId);
-
-    if (error) {
-      setApplicationFeedback(error.message);
-      setPendingApplicationId(null);
-      return;
-    }
-
-    setApplicationFeedback(`Application updated to ${status}. Refreshing queue...`);
-    setPendingApplicationId(null);
-    startReviewRefresh(() => {
-      router.refresh();
-    });
-  }
 
   function renderDashboardSection() {
     return (
@@ -730,34 +870,41 @@ export function BrandWorkspace({
                 </Link>
               </div>
               <div className="mt-8 space-y-4">
-                {topCreators.map((creator) => (
-                  <div
-                    key={creator.name}
-                    className="flex items-center justify-between gap-4 rounded-[1.5rem] border border-slate-200 px-4 py-4"
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white">
-                        {getInitials(creator.name)}
-                      </span>
-                      <div>
+                {topCreators.length ? (
+                  topCreators.map((creator) => (
+                    <div
+                      key={creator.id}
+                      className="flex items-center justify-between gap-4 rounded-[1.5rem] border border-slate-200 px-4 py-4"
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white">
+                          {getInitials(creator.name)}
+                        </span>
+                        <div>
+                          <p className="font-semibold text-slate-950">
+                            {creator.name}
+                          </p>
+                          <p className="text-sm text-slate-500">
+                            {creator.headline ?? creator.focus}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
                         <p className="font-semibold text-slate-950">
-                          {creator.name}
+                          {creator.rate > 0 ? formatCurrency(creator.rate) : "Open"}
                         </p>
                         <p className="text-sm text-slate-500">
-                          {creator.headline ?? creator.focus}
+                          {creator.applications} submissions
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-slate-950">
-                        {formatCurrency(creator.rate)}
-                      </p>
-                      <p className="text-sm text-slate-500">
-                        {creator.applications} submissions
-                      </p>
-                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-8 text-center text-sm text-slate-500">
+                    Creator rankings will populate once creators complete their
+                    profiles or start applying to campaigns.
                   </div>
-                ))}
+                )}
               </div>
             </SectionPanel>
           </FadeIn>
@@ -769,18 +916,40 @@ export function BrandWorkspace({
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-                    Launch a Campaign
+                    Create Campaign
                   </h2>
                   <p className="mt-2 text-sm text-slate-500">
-                    Publish a fresh brief directly into the marketplace.
+                    Start a new brief on a dedicated page, then return here to track
+                    campaign traction and creator response.
                   </p>
                 </div>
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
-                  Supabase live
+                <span className="rounded-full bg-[rgba(7,107,210,0.1)] px-3 py-1 text-sm font-medium text-accent">
+                  Workspace flow
                 </span>
               </div>
-              <div className="mt-8">
-                <BrandCampaignComposer brandId={profile.id} />
+              <div className="mt-8 rounded-[1.75rem] bg-[linear-gradient(135deg,_rgba(231,242,255,0.95),_rgba(255,255,255,0.98))] p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Campaign setup
+                </p>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
+                  Use the full campaign editor when the brief needs deliverables,
+                  usage rights, targeting, and payment terms set properly. Inline
+                  editing has been moved out of the dashboard.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <Link
+                    href="/dashboard/creators/campaigns/new"
+                    className="inline-flex h-11 items-center justify-center rounded-full bg-[color:#076BD2] px-5 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.2)] transition hover:bg-[#0559AE]"
+                  >
+                    Create campaign
+                  </Link>
+                  <Link
+                    href="/dashboard/creators"
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-accent/15 bg-[rgba(7,107,210,0.06)] px-5 text-sm font-semibold text-accent transition hover:border-accent/25 hover:bg-[rgba(7,107,210,0.1)]"
+                  >
+                    Open creators workspace
+                  </Link>
+                </div>
               </div>
             </SectionPanel>
           </FadeIn>
@@ -811,6 +980,9 @@ export function BrandWorkspace({
                         <p className="mt-1 text-sm text-slate-500">
                           {campaign.platforms.join(" • ")}
                         </p>
+                        <p className="mt-2 text-sm font-medium text-accent">
+                          {campaign.product_name || campaign.content_type}
+                        </p>
                       </div>
                       <span
                         className={cn(
@@ -821,9 +993,37 @@ export function BrandWorkspace({
                         {campaign.status}
                       </span>
                     </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-600">
+                        <p>Content type</p>
+                        <p className="mt-2 font-semibold text-slate-950">
+                          {campaign.content_type}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-600">
+                        <p>Deadline</p>
+                        <p className="mt-2 font-semibold text-slate-950">
+                          {campaign.deadline ? formatDate(campaign.deadline) : "Flexible"}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-600">
+                        <p>Usage rights</p>
+                        <p className="mt-2 font-semibold text-slate-950">
+                          {campaign.usage_rights || "Not set"}
+                        </p>
+                      </div>
+                    </div>
                     <div className="mt-5 flex items-center justify-between gap-4 text-sm text-slate-500">
                       <span>{campaign.application_count} submissions</span>
                       <span>{formatCurrency(campaign.budget)}</span>
+                    </div>
+                    <div className="mt-4">
+                      <Link
+                        href={`/dashboard/creators/campaigns/${campaign.id}/edit`}
+                        className="inline-flex h-10 items-center justify-center rounded-2xl border border-accent/15 bg-[rgba(7,107,210,0.06)] px-4 text-sm font-semibold text-accent transition hover:border-accent/25 hover:bg-[rgba(7,107,210,0.1)]"
+                      >
+                        Edit brief
+                      </Link>
                     </div>
                   </div>
                 ))}
@@ -846,18 +1046,18 @@ export function BrandWorkspace({
         <div className="grid gap-4 md:grid-cols-3">
           {[
             {
-              label: "Pending",
+              label: "Pending applicants",
               value: String(pendingReviews),
               tone: "bg-slate-900 text-white",
             },
             {
-              label: "Shortlisted",
-              value: String(shortlisted),
+              label: "Awaiting review",
+              value: String(pendingSubmissionReviews),
               tone: "bg-amber-50 text-amber-700",
             },
             {
-              label: "Accepted value",
-              value: formatCompactCurrency(acceptedValue || 0),
+              label: "Approved value",
+              value: formatCompactCurrency(approvedSubmissionValue || 0),
               tone: "bg-emerald-50 text-emerald-700",
             },
           ].map((metric) => (
@@ -873,130 +1073,10 @@ export function BrandWorkspace({
             </HoverLift>
           ))}
         </div>
-        <SectionPanel>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-                Submission Queue
-              </h2>
-              <p className="mt-2 text-sm text-slate-500">
-                Review every creator pitch tied to your current campaigns.
-              </p>
-            </div>
-            <Link
-              href="/dashboard/creators"
-              className="text-sm font-medium text-accent transition hover:text-blue-500"
-            >
-              Browse creators
-            </Link>
-          </div>
-          <div className="mt-8 space-y-4">
-            {data.applications.length ? (
-              data.applications.map((application) => (
-                <div
-                  key={application.id}
-                  className="rounded-[1.5rem] border border-slate-200 p-5"
-                >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="max-w-3xl">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="text-xl font-semibold text-slate-950">
-                          {application.creator_name}
-                        </h3>
-                        <span
-                          className={cn(
-                            "rounded-full px-3 py-1 text-xs font-semibold capitalize",
-                            getStatusClasses(application.status),
-                          )}
-                        >
-                          {application.status}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm text-slate-500">
-                        {application.creator_headline ??
-                          "Creator profile in review"}
-                      </p>
-                      <p className="mt-4 text-sm leading-7 text-slate-600">
-                        {application.pitch}
-                      </p>
-                    </div>
-                    <div className="grid min-w-[240px] gap-3 rounded-[1.5rem] bg-slate-50 p-4 text-sm text-slate-600">
-                      <div className="flex items-center justify-between gap-3">
-                        <span>Campaign</span>
-                        <span className="font-medium text-slate-900">
-                          {application.campaign_title}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span>Rate</span>
-                        <span className="font-medium text-slate-900">
-                          {formatCurrency(application.rate)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span>Submitted</span>
-                        <span className="font-medium text-slate-900">
-                          {formatDate(application.created_at)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void handleApplicationStatus(application.id, "shortlisted")
-                      }
-                      disabled={
-                        pendingApplicationId === application.id ||
-                        application.status === "shortlisted"
-                      }
-                      className="inline-flex h-11 items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-4 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      Shortlist
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void handleApplicationStatus(application.id, "accepted")
-                      }
-                      disabled={
-                        pendingApplicationId === application.id ||
-                        application.status === "accepted"
-                      }
-                      className="inline-flex h-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      Accept
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void handleApplicationStatus(application.id, "declined")
-                      }
-                      disabled={
-                        pendingApplicationId === application.id ||
-                        application.status === "declined"
-                      }
-                      className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      Decline
-                    </button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
-                No submissions yet. Launch a campaign and creators will start appearing here.
-              </div>
-            )}
-            {applicationFeedback ? (
-              <p className="text-sm text-slate-500">{applicationFeedback}</p>
-            ) : null}
-            {isReviewRefreshing ? (
-              <p className="text-sm text-slate-500">Refreshing submissions...</p>
-            ) : null}
-          </div>
-        </SectionPanel>
+        <BrandSubmissionsPanel
+          applications={data.applications}
+          submissions={data.submissions}
+        />
       </div>
     );
   }
@@ -1006,119 +1086,35 @@ export function BrandWorkspace({
   }
 
   function renderAdsSection() {
-    return (
-      <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            {
-              label: "Active ad sets",
-              value: String(ads.length || 1),
-            },
-            {
-              label: "Media spend",
-              value: formatCompactCurrency(
-                ads.reduce((sum, ad) => sum + ad.spend, 0) || 1200,
-              ),
-            },
-            {
-              label: "Average ROAS",
-              value:
-                ads.length > 0
-                  ? `${(
-                      ads.reduce((sum, ad) => sum + Number(ad.roas), 0) /
-                      ads.length
-                    ).toFixed(1)}x`
-                  : "2.1x",
-            },
-          ].map((metric) => (
-            <SectionPanel key={metric.label} className="p-5">
-              <p className="text-sm text-slate-500">{metric.label}</p>
-              <p className="mt-3 text-3xl font-semibold text-slate-950">
-                {metric.value}
-              </p>
-            </SectionPanel>
-          ))}
-        </div>
-        <div className="grid gap-6 xl:grid-cols-2">
-          {ads.length ? (
-            ads.map((ad) => (
-              <HoverLift key={ad.id} className="h-full">
-                <SectionPanel className="h-full">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h2 className="text-2xl font-semibold text-slate-950">
-                        {ad.name}
-                      </h2>
-                      <p className="mt-2 text-sm text-slate-500">
-                        Creator content pushed into paid testing.
-                      </p>
-                    </div>
-                    <span
-                      className={cn(
-                        "rounded-full px-3 py-1 text-xs font-semibold",
-                        getStatusClasses(
-                          ad.status === "Scaling" ? "active" : "pending",
-                        ),
-                      )}
-                    >
-                      {ad.status}
-                    </span>
-                  </div>
-                  <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                    <div className="rounded-[1.5rem] bg-slate-50 p-4">
-                      <p className="text-sm text-slate-500">Spend</p>
-                      <p className="mt-2 text-2xl font-semibold text-slate-950">
-                        {formatCurrency(ad.spend)}
-                      </p>
-                    </div>
-                    <div className="rounded-[1.5rem] bg-slate-50 p-4">
-                      <p className="text-sm text-slate-500">ROAS</p>
-                      <p className="mt-2 text-2xl font-semibold text-slate-950">
-                        {ad.roas}x
-                      </p>
-                    </div>
-                    <div className="rounded-[1.5rem] bg-slate-50 p-4">
-                      <p className="text-sm text-slate-500">CTR</p>
-                      <p className="mt-2 text-2xl font-semibold text-slate-950">
-                        {ad.ctr}
-                      </p>
-                    </div>
-                  </div>
-                </SectionPanel>
-              </HoverLift>
-            ))
-          ) : (
-            <SectionPanel className="xl:col-span-2">
-              <div className="rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
-                No ad experiments yet. Turn one of your creator campaigns into a paid test and it will appear here.
-              </div>
-            </SectionPanel>
-          )}
-        </div>
-      </div>
-    );
+    return <BrandMetaPanel mode="ads" />;
   }
 
   function renderAnalyticsSection() {
-    const averageAcceptedRate = acceptedCount
-      ? acceptedValue / acceptedCount
-      : 1180;
-
     return (
       <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[
             {
-              label: "Creator response rate",
-              value: `${clampPercent(42 + shortlisted * 9)}%`,
+              label: "Creator conversion",
+              value: formatPercent(creatorConversionRate),
+              hint: `${acceptedCount} accepted from ${data.applications.length} applications`,
             },
             {
-              label: "Avg. creator rate",
-              value: formatCurrency(averageAcceptedRate),
+              label: "Submission approval",
+              value: formatPercent(submissionApprovalRate),
+              hint: `${approvedSubmissions.length} approved deliveries`,
             },
             {
-              label: "Campaign conversion",
-              value: `${clampPercent(18 + pendingReviews * 4)}%`,
+              label: "Payout release rate",
+              value: formatPercent(payoutReleaseRate),
+              hint: `${paidPayoutCount} of ${data.payouts.length} payouts released`,
+            },
+            {
+              label: "Avg. review time",
+              value: formatDurationDays(getAverage(reviewDurations)),
+              hint: reviewDurations.length
+                ? `${reviewDurations.length} reviewed submissions`
+                : "No completed reviews yet",
             },
           ].map((metric) => (
             <SectionPanel key={metric.label} className="p-5">
@@ -1126,10 +1122,11 @@ export function BrandWorkspace({
               <p className="mt-3 text-3xl font-semibold text-slate-950">
                 {metric.value}
               </p>
+              <p className="mt-2 text-sm text-slate-500">{metric.hint}</p>
             </SectionPanel>
           ))}
         </div>
-        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
           <SectionPanel>
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -1142,39 +1139,28 @@ export function BrandWorkspace({
               </div>
             </div>
             <div className="mt-8 space-y-5">
-              {[
-                {
-                  label: "Campaigns launched",
-                  value: data.campaigns.length || 1,
-                  width: 100,
-                },
-                {
-                  label: "Applications received",
-                  value: data.applications.length || 3,
-                  width: 82,
-                },
-                {
-                  label: "Creators shortlisted",
-                  value: shortlisted || 2,
-                  width: 58,
-                },
-                {
-                  label: "Creators accepted",
-                  value: acceptedCount || 1,
-                  width: 36,
-                },
-              ].map((item) => (
+              {analyticsFunnel.map((item) => (
                 <div key={item.label}>
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm font-medium text-slate-700">
-                      {item.label}
+                    <div>
+                      <span className="text-sm font-medium text-slate-700">
+                        {item.label}
+                      </span>
+                      <p className="mt-1 text-xs text-slate-500">{item.meta}</p>
+                    </div>
+                    <span className="text-sm text-slate-500">
+                      {formatCompactNumber(item.value)}
                     </span>
-                    <span className="text-sm text-slate-500">{item.value}</span>
                   </div>
                   <div className="mt-3 h-4 overflow-hidden rounded-full bg-slate-100">
                     <div
                       className="h-full rounded-full bg-[linear-gradient(90deg,_#076BD2,_#60A5FA)]"
-                      style={{ width: `${item.width}%` }}
+                      style={{
+                        width: `${Math.max(
+                          10,
+                          Math.round(safePercent(item.value, maxFunnelValue)),
+                        )}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -1182,84 +1168,93 @@ export function BrandWorkspace({
             </div>
           </SectionPanel>
           <SectionPanel>
-            <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-              Campaign Scorecard
-            </h2>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
+                  Finance & Delivery
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  Funding coverage, creator pricing, and payout pace from live records.
+                </p>
+              </div>
+            </div>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              {[
+                {
+                  label: "Funding coverage",
+                  value: formatPercent(fundingCoverageRate),
+                  helper: `${formatCompactCurrency(paidFundingTotal)} funded of ${formatCompactCurrency(totalBudget)}`,
+                },
+                {
+                  label: "Budget committed",
+                  value: formatPercent(budgetCommittedRate),
+                  helper: `${formatCompactCurrency(totalPayoutsGross)} allocated gross`,
+                },
+                {
+                  label: "Avg. creator rate",
+                  value: formatCurrency(averageAcceptedRate),
+                  helper: acceptedCount
+                    ? `${acceptedCount} accepted creators`
+                    : "No accepted creators yet",
+                },
+                {
+                  label: "Avg. payout time",
+                  value: formatDurationDays(getAverage(payoutDurations)),
+                  helper: payoutDurations.length
+                    ? `${payoutDurations.length} payouts completed`
+                    : "No released payouts yet",
+                },
+                {
+                  label: "Queued creator payouts",
+                  value: formatCompactCurrency(payoutReadyTotal),
+                  helper: `${data.payouts.filter((payout) => payout.status === "payout_ready").length} awaiting release`,
+                },
+                {
+                  label: "Revision request rate",
+                  value: formatPercent(
+                    safePercent(revisionRequests, Math.max(data.submissions.length, 1)),
+                  ),
+                  helper: `${revisionRequests} revisions requested`,
+                },
+              ].map((metric) => (
+                <div key={metric.label} className="rounded-[1.5rem] bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">{metric.label}</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-950">
+                    {metric.value}
+                  </p>
+                  <p className="mt-2 text-sm text-slate-500">{metric.helper}</p>
+                </div>
+              ))}
+            </div>
+          </SectionPanel>
+        </div>
+        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <SectionPanel>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
+                  Campaign Scorecard
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  Rank active briefs by creator demand, approvals, funding, and payout delivery.
+                </p>
+              </div>
+            </div>
             <div className="mt-8 space-y-4">
-              {data.campaigns.length ? (
-                data.campaigns.map((campaign) => (
+              {campaignPerformance.length ? (
+                campaignPerformance.map((campaign) => (
                   <div
                     key={campaign.id}
                     className="rounded-[1.5rem] border border-slate-200 p-4"
                   >
-                    <div className="flex items-center justify-between gap-4">
-                      <p className="font-semibold text-slate-950">
-                        {campaign.title}
-                      </p>
-                      <span className="text-sm text-slate-500">
-                        {campaign.application_count} creators
-                      </span>
-                    </div>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-2xl bg-slate-50 p-4">
-                        <p className="text-sm text-slate-500">Budget</p>
-                        <p className="mt-2 text-xl font-semibold text-slate-950">
-                          {formatCurrency(campaign.budget)}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl bg-slate-50 p-4">
-                        <p className="text-sm text-slate-500">Platforms</p>
-                        <p className="mt-2 text-base font-semibold text-slate-950">
-                          {campaign.platforms.join(", ")}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
-                  Launch a campaign to unlock your analytics scorecard.
-                </div>
-              )}
-            </div>
-          </SectionPanel>
-        </div>
-      </div>
-    );
-  }
-
-  function renderCreatorsSection() {
-    return (
-      <div className="space-y-6">
-        <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-          <SectionPanel>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-                  Campaigns Ready For Invites
-                </h2>
-                <p className="mt-2 text-sm text-slate-500">
-                  Use an active brief as the source for brand outreach.
-                </p>
-              </div>
-              <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-accent">
-                {data.campaigns.length} campaigns
-              </span>
-            </div>
-            <div className="mt-8 space-y-4">
-              {data.campaigns.length ? (
-                data.campaigns.map((campaign) => (
-                  <div
-                    key={campaign.id}
-                    className="rounded-[1.5rem] border border-slate-200 px-4 py-4"
-                  >
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <p className="font-semibold text-slate-950">
                           {campaign.title}
                         </p>
                         <p className="mt-1 text-sm text-slate-500">
-                          {campaign.platforms.join(" • ")}
+                          {campaign.applications} applicants • {campaign.accepted}/
+                          {campaign.creatorSlots} slots accepted
                         </p>
                       </div>
                       <span
@@ -1271,169 +1266,184 @@ export function BrandWorkspace({
                         {campaign.status}
                       </span>
                     </div>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm text-slate-500">
-                      <div className="rounded-2xl bg-slate-50 px-3 py-3">
-                        <p>Budget</p>
-                        <p className="mt-2 font-semibold text-slate-950">
-                          {formatCurrency(campaign.budget)}
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      <div className="rounded-2xl bg-slate-50 p-4">
+                        <p className="text-sm text-slate-500">Fill rate</p>
+                        <p className="mt-2 text-xl font-semibold text-slate-950">
+                          {formatPercent(campaign.slotFillRate)}
                         </p>
                       </div>
-                      <div className="rounded-2xl bg-slate-50 px-3 py-3">
-                        <p>Creator slots</p>
-                        <p className="mt-2 font-semibold text-slate-950">
-                          {campaign.creator_slots}
+                      <div className="rounded-2xl bg-slate-50 p-4">
+                        <p className="text-sm text-slate-500">Approval rate</p>
+                        <p className="mt-2 text-xl font-semibold text-slate-950">
+                          {formatPercent(campaign.approvalRate)}
                         </p>
                       </div>
-                      <div className="rounded-2xl bg-slate-50 px-3 py-3">
-                        <p>Submissions</p>
-                        <p className="mt-2 font-semibold text-slate-950">
-                          {campaign.application_count}
+                      <div className="rounded-2xl bg-slate-50 p-4">
+                        <p className="text-sm text-slate-500">Avg. rate</p>
+                        <p className="mt-2 text-xl font-semibold text-slate-950">
+                          {formatCurrency(campaign.averageRate)}
                         </p>
                       </div>
+                      <div className="rounded-2xl bg-slate-50 p-4">
+                        <p className="text-sm text-slate-500">Paid out</p>
+                        <p className="mt-2 text-xl font-semibold text-slate-950">
+                          {formatCompactCurrency(campaign.paidOut)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl bg-slate-50 p-4">
+                        <div className="flex items-center justify-between gap-3 text-sm text-slate-500">
+                          <span>Funding progress</span>
+                          <span>{formatPercent(safePercent(campaign.funded, campaign.budget))}</span>
+                        </div>
+                        <div className="mt-3 h-3 overflow-hidden rounded-full bg-white">
+                          <div
+                            className="h-full rounded-full bg-[linear-gradient(90deg,_#076BD2,_#60A5FA)]"
+                            style={{
+                              width: `${Math.max(
+                                8,
+                                Math.min(
+                                  100,
+                                  Math.round(safePercent(campaign.funded, campaign.budget)),
+                                ),
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                        <p className="mt-3 text-sm text-slate-500">
+                          {formatCompactCurrency(campaign.funded)} funded of{" "}
+                          {formatCompactCurrency(campaign.budget)}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 p-4">
+                        <p className="text-sm text-slate-500">Workflow</p>
+                        <p className="mt-2 text-base font-semibold text-slate-950">
+                          {campaign.shortlisted} shortlisted • {campaign.submissions} submitted
+                        </p>
+                        <p className="mt-2 text-sm text-slate-500">
+                          {campaign.approved} approved • {campaign.revisionRequested} revisions
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <Link
+                        href={`/dashboard/creators/campaigns/${campaign.id}/edit`}
+                        className="inline-flex h-10 items-center justify-center rounded-2xl border border-accent/15 bg-[rgba(7,107,210,0.06)] px-4 text-sm font-semibold text-accent transition hover:border-accent/25 hover:bg-[rgba(7,107,210,0.1)]"
+                      >
+                        Edit brief
+                      </Link>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-8 text-center text-sm text-slate-500">
-                  Create a campaign first. Once you have a live brief, you can
-                  invite creators directly from this page.
+                <div className="rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
+                  Launch a campaign to unlock your analytics scorecard.
                 </div>
               )}
             </div>
           </SectionPanel>
 
           <SectionPanel>
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-                  Launch A Campaign
+                  Top Content
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
-                  Publish a new brief without leaving the creator roster.
+                  Recently approved deliveries with the strongest completion signals.
                 </p>
               </div>
               <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
-                Live insert
+                {approvedDeliveries.length} approved
               </span>
             </div>
-            <div className="mt-8">
-              <BrandCampaignComposer brandId={profile.id} />
+            <div className="mt-8 space-y-4">
+              {approvedDeliveries.length ? (
+                approvedDeliveries.map((submission) => (
+                  <div
+                    key={submission.id}
+                    className="rounded-[1.5rem] border border-slate-200 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="font-semibold text-slate-950">
+                          {submission.creator_name}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {submission.campaign_title}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                        Approved
+                      </span>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl bg-slate-50 p-4">
+                        <p className="text-sm text-slate-500">Creator payout</p>
+                        <p className="mt-2 text-xl font-semibold text-slate-950">
+                          {formatCurrency(submission.rate)}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 p-4">
+                        <p className="text-sm text-slate-500">Assets delivered</p>
+                        <p className="mt-2 text-xl font-semibold text-slate-950">
+                          {submission.assets.length + submission.content_links.length}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 p-4">
+                        <p className="text-sm text-slate-500">Reviewed</p>
+                        <p className="mt-2 text-base font-semibold text-slate-950">
+                          {submission.reviewed_at
+                            ? formatDate(submission.reviewed_at)
+                            : "Pending"}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 p-4">
+                        <p className="text-sm text-slate-500">Revision</p>
+                        <p className="mt-2 text-base font-semibold text-slate-950">
+                          V{submission.revision_number}
+                        </p>
+                      </div>
+                    </div>
+                    {submission.feedback ? (
+                      <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                        <p className="font-semibold text-slate-950">Review note</p>
+                        <p className="mt-2">{submission.feedback}</p>
+                      </div>
+                    ) : null}
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
+                  Approved creator deliveries will appear here once campaigns move through review.
+                </div>
+              )}
             </div>
           </SectionPanel>
         </div>
-
-        <BrandCreatorDirectory
-          brandId={profile.id}
-          campaigns={data.campaigns}
-          creators={creatorDirectory}
-        />
       </div>
+    );
+  }
+
+  function renderCreatorsSection() {
+    return (
+      <BrandCreatorsHub
+        brandId={profile.id}
+        campaigns={data.campaigns}
+        creators={data.creators}
+      />
     );
   }
 
   function renderFinanceSection() {
     return (
-      <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            {
-              label: "Committed spend",
-              value: formatCompactCurrency(totalBudget || 0),
-            },
-            {
-              label: "Accepted creator work",
-              value: formatCompactCurrency(acceptedValue || 0),
-            },
-            {
-              label: "Active campaign budget",
-              value: formatCompactCurrency(
-                activeCampaigns.reduce((sum, campaign) => sum + campaign.budget, 0) ||
-                  0,
-              ),
-            },
-          ].map((metric) => (
-            <SectionPanel key={metric.label} className="p-5">
-              <p className="text-sm text-slate-500">{metric.label}</p>
-              <p className="mt-3 text-3xl font-semibold text-slate-950">
-                {metric.value}
-              </p>
-            </SectionPanel>
-          ))}
-        </div>
-        <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <SectionPanel>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-                  Fund Campaigns
-                </h2>
-                <p className="mt-2 text-sm text-slate-500">
-                  Use Stripe Checkout to top up brand payments for creator work.
-                </p>
-              </div>
-              <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-accent">
-                Brand payments
-              </span>
-            </div>
-            <div className="mt-8 space-y-4 rounded-[1.75rem] bg-slate-50 p-5">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-slate-500">Next payment</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-950">
-                    {heroCampaign
-                      ? formatCurrency(Math.max(heroCampaign.budget, 100))
-                      : formatCurrency(1000)}
-                  </p>
-                </div>
-                <span className="rounded-full bg-white px-3 py-1 text-sm font-medium text-slate-500">
-                  Secure checkout
-                </span>
-              </div>
-              <StripeActionButton
-                endpoint="/api/stripe/checkout"
-                payload={{
-                  campaignId: heroCampaign?.id ?? null,
-                  title: heroCampaign?.title ?? "Campaign wallet top-up",
-                  amount: heroCampaign?.budget ?? 1000,
-                }}
-                label="Top up with Stripe"
-                pendingLabel="Redirecting to Stripe..."
-                tone="light"
-              />
-            </div>
-          </SectionPanel>
-          <SectionPanel>
-            <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-              Budget Timeline
-            </h2>
-            <div className="mt-8 space-y-4">
-              {(transactions.length
-                ? transactions
-                : [
-                    {
-                      id: "fallback-finance-1",
-                      label: "Creator seeding top-up",
-                      amount: 1200,
-                      status: "Scheduled",
-                    },
-                  ]).map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between gap-4 rounded-[1.5rem] border border-slate-200 px-4 py-4"
-                >
-                  <div>
-                    <p className="font-semibold text-slate-950">{item.label}</p>
-                    <p className="mt-1 text-sm text-slate-500">{item.status}</p>
-                  </div>
-                  <p className="text-lg font-semibold text-slate-950">
-                    {formatCurrency(item.amount)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </SectionPanel>
-        </div>
-      </div>
+      <BrandFinancePanel
+        campaigns={data.campaigns}
+        fundings={data.fundings}
+        payouts={data.payouts}
+      />
     );
   }
 
@@ -1536,168 +1546,151 @@ export function BrandWorkspace({
     }
   }
 
-  return (
-    <PageTransition className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(7,107,210,0.1),_transparent_28%),linear-gradient(180deg,_#f8fbff_0%,_#f3f6fb_48%,_#eef2f8_100%)] text-slate-950">
-      <div className="mx-auto grid min-h-screen w-full max-w-[1660px] lg:grid-cols-[320px_1fr]">
-        <aside className="border-b border-slate-200 bg-white/85 px-5 py-5 backdrop-blur lg:min-h-screen lg:border-b-0 lg:border-r lg:px-6">
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
-            <div className="flex items-center gap-4">
-              <span className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-slate-950 text-lg font-semibold text-white">
-                {getInitials(displayName)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xl font-semibold text-slate-950">
-                  {displayName}
-                </p>
-                <p className="text-sm text-slate-500">Owner</p>
-              </div>
-            </div>
-          </div>
+  const navGroups: WorkspaceNavGroup[] = [
+    {
+      items: brandWorkspaceSections
+        .filter((item) => item.group === "primary")
+        .map((item) => {
+          const Icon = sectionIcons[item.slug];
 
-          <nav className="mt-10 space-y-2">
-            {brandWorkspaceSections
-              .filter((item) => item.group === "primary")
-              .map((item) => {
-                const Icon = sectionIcons[item.slug];
-                const isActive = item.slug === section;
+          return {
+            href: getBrandWorkspaceHref(item.slug),
+            label: item.label,
+            active: item.slug === section,
+            icon: <Icon className="h-5 w-5" />,
+            badge:
+              item.slug === "submissions" && pendingReviews > 0
+                ? String(pendingReviews)
+                : null,
+          };
+        }),
+    },
+    {
+      label: "Configuration",
+      items: brandWorkspaceSections
+        .filter((item) => item.group === "configuration")
+        .map((item) => {
+          const Icon = sectionIcons[item.slug];
 
-                return (
-                  <Link
-                    key={item.slug}
-                    href={getBrandWorkspaceHref(item.slug)}
-                    aria-current={isActive ? "page" : undefined}
-                    className={cn(
-                      "flex items-center gap-3 rounded-[1.25rem] px-4 py-3 text-lg font-medium transition",
-                      isActive
-                        ? "bg-slate-100 text-slate-950"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-950",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "flex h-9 w-9 items-center justify-center rounded-xl",
-                        isActive ? "text-accent" : "text-slate-500",
-                      )}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-          </nav>
-
-          <div className="mt-10">
-            <p className="px-4 text-sm font-medium uppercase tracking-[0.18em] text-slate-400">
-              Configuration
+          return {
+            href: getBrandWorkspaceHref(item.slug),
+            label: item.label,
+            active: item.slug === section,
+            icon: <Icon className="h-5 w-5" />,
+          };
+        }),
+    },
+  ];
+  const heroTitle = detailView
+    ? detailView.title
+    : section === "dashboard"
+      ? `Welcome back, ${welcomeName}.`
+      : activeSection.label;
+  const heroDescription = detailView
+    ? detailView.description
+    : section === "dashboard"
+      ? "Run creator sourcing, campaign delivery, approvals, and payouts from a single operating surface."
+      : activeSection.description;
+  const isSubmissionsOverview = !detailView && section === "submissions";
+  const headerActions = (
+    <>
+      <span
+        className={cn(
+          "rounded-full px-4 py-2 text-sm font-semibold",
+          pendingReviews
+            ? "bg-amber-50 text-amber-700"
+            : "bg-emerald-50 text-emerald-700",
+        )}
+      >
+        {pendingReviews
+          ? `${pendingReviews} applications in queue`
+          : "Review queue clear"}
+      </span>
+      <SignOutButton variant="light" />
+    </>
+  );
+  const topBanner =
+    detailView?.banner ?? (
+      <WorkspacePanel className="bg-[linear-gradient(135deg,_rgba(8,145,178,0.08),_rgba(255,255,255,0.9),_rgba(7,107,210,0.1))]">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">
+              Focus lane
             </p>
-            <div className="mt-3 space-y-2">
-              {brandWorkspaceSections
-                .filter((item) => item.group === "configuration")
-                .map((item) => {
-                  const Icon = sectionIcons[item.slug];
-                  const isActive = item.slug === section;
-
-                  return (
-                    <Link
-                      key={item.slug}
-                      href={getBrandWorkspaceHref(item.slug)}
-                      aria-current={isActive ? "page" : undefined}
-                      className={cn(
-                        "flex items-center gap-3 rounded-[1.25rem] px-4 py-3 text-lg font-medium transition",
-                        isActive
-                          ? "bg-slate-100 text-slate-950"
-                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-950",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "flex h-9 w-9 items-center justify-center rounded-xl",
-                          isActive ? "text-accent" : "text-slate-500",
-                        )}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
-            </div>
+            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+              {pendingReviews || pendingSubmissionReviews
+                ? "Keep creator reviews moving before they slow campaign pacing."
+                : "Everything live is moving cleanly across creators, content, and payout ops."}
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
+              {pendingReviews || pendingSubmissionReviews
+                ? `${pendingReviews} applications and ${pendingSubmissionReviews} submissions are ready for action. Jump straight into review or open chat to unblock creators.`
+                : "Your current programs are synced, replies are flowing, and there is no active review backlog blocking delivery."}
+            </p>
           </div>
-        </aside>
-
-        <main className="px-4 py-5 sm:px-6 lg:px-8">
-          <FadeIn>
-            <div className="flex flex-col gap-4 rounded-[2rem] border border-blue-200/80 bg-[linear-gradient(180deg,_rgba(208,227,247,0.92),_rgba(230,239,250,0.92))] px-5 py-4 shadow-[0_15px_40px_rgba(7,107,210,0.08)] sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3 text-slate-800">
-                <span className="text-2xl">👋</span>
-                <div>
-                  <p className="text-xl font-medium">
-                    Need help setting up your brand or inviting your creators?
-                  </p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    CIRCL keeps campaign setup, creators, and payments in the same workspace.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/dashboard/chat"
-                  className="inline-flex h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(7,107,210,0.2)] transition hover:opacity-95"
-                >
-                  Chat
-                </Link>
-                <span className="text-xl text-slate-500">×</span>
-              </div>
-            </div>
-          </FadeIn>
-
-          <FadeIn delay={0.06}>
-            <div className="mt-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <h1 className="text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
-                  {section === "dashboard"
-                    ? `Welcome back, ${welcomeName}!`
-                    : activeSection.label}
-                </h1>
-                <p className="mt-3 max-w-3xl text-lg text-slate-500">
-                  {section === "dashboard"
-                    ? "Manage your creators, campaigns, and content"
-                    : activeSection.description}
-                </p>
-                <div className="mt-5 flex flex-wrap gap-3">
-                  {primaryStats.map((stat) => (
-                    <span
-                      key={stat.label}
-                      className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-[0_8px_24px_rgba(15,23,42,0.04)]"
-                    >
-                      <span className="text-slate-400">{stat.label}</span>{" "}
-                      <span className="text-slate-950">{stat.value}</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <span
-                  className={cn(
-                    "rounded-[1.25rem] px-4 py-3 text-sm font-medium",
-                    pendingReviews
-                      ? "bg-amber-50 text-amber-700"
-                      : "bg-emerald-50 text-emerald-700",
-                  )}
-                >
-                  {pendingReviews
-                    ? `${pendingReviews} submissions need review`
-                    : "You're all caught up"}
-                </span>
-                <SignOutButton variant="light" />
-              </div>
-            </div>
-          </FadeIn>
-
-          <div className="mt-8">{renderSectionContent()}</div>
-        </main>
+          <div className="flex flex-wrap items-center gap-3">
+            <NotificationsCenter profile={profile} />
+            <Link
+              href="/dashboard/chat"
+              className="inline-flex h-11 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              Open chat
+            </Link>
+          </div>
+        </div>
+      </WorkspacePanel>
+    );
+  const sidebarFooter = (
+    <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(239,246,255,0.96))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+      <div className="absolute -right-10 top-0 h-20 w-20 rounded-full bg-[radial-gradient(circle,_rgba(7,107,210,0.18),_transparent_70%)]" />
+      <div className="relative">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+          Pipeline
+        </p>
+        <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+          {pendingReviews + pendingSubmissionReviews > 0
+            ? `${pendingReviews + pendingSubmissionReviews} items need action`
+            : "Operations are in sync"}
+        </p>
+        <p className="mt-3 text-sm leading-7 text-slate-600">
+          {revisionRequests > 0
+            ? `${revisionRequests} revisions are still open with creators.`
+            : "Use the creator roster to source the next wave before demand slows down."}
+        </p>
+        <Link
+          href="/dashboard/creators"
+          className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-slate-950 shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:bg-slate-50"
+        >
+          Open creator roster
+        </Link>
       </div>
-    </PageTransition>
+    </div>
+  );
+
+  return (
+    <WorkspaceShell
+      tone="brand"
+      displayName={displayName}
+      roleLabel="Brand workspace"
+      initials={getInitials(displayName)}
+      eyebrow={
+        detailView
+          ? "Review detail"
+          : section === "dashboard"
+            ? "Brand operating system"
+            : "Brand workspace"
+      }
+      title={heroTitle}
+      description={heroDescription}
+      navGroups={navGroups}
+      metaItems={detailView?.metaItems ?? primaryStats}
+      topBanner={topBanner}
+      showTopBanner={!isSubmissionsOverview}
+      showHeroSection={!isSubmissionsOverview}
+      headerActions={headerActions}
+      sidebarFooter={sidebarFooter}
+    >
+      {detailView ? detailView.content : renderSectionContent()}
+    </WorkspaceShell>
   );
 }

@@ -5,16 +5,30 @@ create table if not exists public.campaigns (
   brand_id uuid not null references public.users(id) on delete cascade,
   title text not null,
   description text not null,
+  product_name text not null default '',
+  product_details text not null default '',
+  content_type text not null default 'UGC Video',
   budget numeric(10, 2) not null default 0,
   status text not null default 'open' check (status in ('open', 'in_review', 'active', 'completed')),
   platforms text[] not null default '{}',
   deliverables text not null default '',
   creator_slots integer not null default 1 check (creator_slots > 0),
   duration text not null default '14 days',
+  deadline date,
   payment_type text not null default 'Fixed',
+  usage_rights text not null default '',
+  creator_requirements text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.campaigns
+  add column if not exists product_name text not null default '',
+  add column if not exists product_details text not null default '',
+  add column if not exists content_type text not null default 'UGC Video',
+  add column if not exists deadline date,
+  add column if not exists usage_rights text not null default '',
+  add column if not exists creator_requirements text not null default '';
 
 create table if not exists public.campaign_applications (
   id uuid primary key default gen_random_uuid(),
