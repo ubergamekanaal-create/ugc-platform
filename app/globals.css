@@ -4,8 +4,48 @@
 
 :root {
   color-scheme: dark;
+  --font-sans: "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", "Inter", "Segoe UI", ui-sans-serif, system-ui,
+    sans-serif;
+  --background: 6 10 18;
+  --foreground: 244 247 250;
+  --card: 13 18 27;
+  --card-soft: 18 25 38;
+  --border: 36 46 63;
+  --muted: 148 163 184;
+  --accent: 7 107 210;
+  --accent-secondary: 59 130 246;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@layer base {
+  * {
+    border-color: rgb(var(--border) / 1);
+  }
+
+  body {
+    @apply min-h-screen bg-background text-foreground font-sans antialiased;
+    background-image:
+      radial-gradient(circle at top, rgba(7, 107, 210, 0.16), transparent 28%),
+      radial-gradient(circle at 85% 20%, rgba(59, 130, 246, 0.14), transparent 22%),
+      linear-gradient(180deg, rgba(9, 13, 21, 0.96), rgba(5, 8, 14, 1));
+  }
+
+  ::selection {
+    background: rgba(7, 107, 210, 0.32);
+    color: white;
+  }
 }
 
 body {
   @apply bg-background text-foreground font-sans antialiased;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
 }

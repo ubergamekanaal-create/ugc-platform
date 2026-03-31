@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const BRAND_PREFIX = "/brand";
 const CREATOR_PREFIX = "/creator";
-const DEFAULT_LOGIN = "/login/brand";
+const DASHBOARD_PREFIX = "/dashboard";
+const DEFAULT_LOGIN = "/login";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -42,8 +43,9 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isBrandRoute = pathname.startsWith(BRAND_PREFIX);
   const isCreatorRoute = pathname.startsWith(CREATOR_PREFIX);
+  const isDashboardRoute = pathname.startsWith(DASHBOARD_PREFIX);
 
-  if (!isBrandRoute && !isCreatorRoute) {
+  if (!isBrandRoute && !isCreatorRoute && !isDashboardRoute) {
     return response;
   }
 
@@ -62,20 +64,20 @@ export async function middleware(request: NextRequest) {
     .single();
 
   if (error || !profile?.role) {
-    return NextResponse.redirect(new URL(DEFAULT_LOGIN, request.url));
+    return NextResponse.redirect(new URL("/signup", request.url));
   }
 
   if (isBrandRoute && profile.role !== "brand") {
-    return NextResponse.redirect(new URL("/creator/dashboard", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   if (isCreatorRoute && profile.role !== "creator") {
-    return NextResponse.redirect(new URL("/brand/dashboard", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/brand/:path*", "/creator/:path*"],
+  matcher: ["/dashboard/:path*", "/brand/:path*", "/creator/:path*"],
 };
