@@ -56,6 +56,7 @@ import {
   getDisplayName,
   getInitials,
 } from "@/lib/utils";
+import { GlobalInviteModal } from "../creators/global-invite-modal";
 
 type CreatorWorkspaceProps = {
   profile: UserProfile & { role: "creator" };

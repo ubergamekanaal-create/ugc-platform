@@ -10,12 +10,12 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const body = (await request.json().catch(() => null)) as
     | {
-        role?: string;
-        fullName?: string;
-        companyName?: string;
-        email?: string;
-        password?: string;
-      }
+      role?: string;
+      fullName?: string;
+      companyName?: string;
+      email?: string;
+      password?: string;
+    }
     | null;
 
   const role = resolveRole(body?.role);
@@ -59,7 +59,16 @@ export async function POST(request: Request) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
-
+  if (data.user && role === "brand") {
+    await supabase.from("team_members").upsert(
+      {
+        brand_id: data.user.id,
+        user_id: data.user.id,
+        role: "owner",
+      },
+      { onConflict: "brand_id,user_id" }
+    );
+  }
   if (data.session) {
     return NextResponse.json({ redirectTo: "/dashboard" });
   }

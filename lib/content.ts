@@ -27,22 +27,40 @@ export const howItWorksSteps = [
 
 export const featureCards = [
   {
-    eyebrow: "Marketplace",
-    title: "Campaign marketplace built for speed",
+    eyebrow: "Instant approvals",
+    title: "Review & greenlight creator requests in seconds",
     description:
-      "Launch briefs, filter creator opportunities, and keep every application in one structured workspace.",
+      "Skip back-and-forth emails. Quickly evaluate creator submissions, approve samples, and trigger next steps without slowing down your campaign flow.",
   },
   {
-    eyebrow: "Payments",
-    title: "Secure payments and payout setup",
+    eyebrow: "Performance tracking",
+    title: "See which creators actually move the needle",
     description:
-      "Collect brand payments and route creator payouts with Stripe checkout and Connect onboarding entry points.",
+      "Track content performance across every creator. Understand what drives clicks, conversions, and revenue so you can double down on what works.",
   },
   {
-    eyebrow: "Analytics",
-    title: "Performance and revenue visibility",
+    eyebrow: "Automated payouts",
+    title: "Handle creator payments without manual work",
     description:
-      "See budgets, conversion trends, reply velocity, and creator earnings in a dashboard that stays actionable.",
+      "From commissions to fixed payouts, automate the entire process. No spreadsheets, no confusion — just accurate and timely payments.",
+  },
+  {
+    eyebrow: "Ad integration",
+    title: "Turn winning content into ads instantly",
+    description:
+      "Launch high-performing creator content directly into paid campaigns. No extra setup — just pick, push, and scale.",
+  },
+  {
+    eyebrow: "Insights dashboard",
+    title: "Make decisions based on real performance data",
+    description:
+      "Get a clear view of what’s working across campaigns. Compare creators, formats, and results in one simple dashboard.",
+  },
+  {
+    eyebrow: "Collaboration hub",
+    title: "Manage creators, content, and approvals in one place",
+    description:
+      "Invite creators, review submissions, and manage communication — all inside a single streamlined workspace.",
   },
 ];
 

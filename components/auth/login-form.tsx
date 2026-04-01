@@ -7,13 +7,11 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [resetHint, setResetHint] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    setResetHint(null);
     setIsSubmitting(true);
 
     try {
@@ -81,20 +79,22 @@ export function LoginForm() {
       </div>
 
       <div className="space-y-3 text-left">
-        <button
+        {/* <button
           type="button"
           onClick={() =>
-            setResetHint(
-              "Forgot password flow can be connected to Supabase recovery emails from here.",
-            )
           }
           className="text-sm font-medium text-accent transition hover:text-accent/80"
         >
           Forgot your password?
-        </button>
-        {resetHint ? (
-          <p className="text-sm text-slate-500">{resetHint}</p>
-        ) : null}
+        </button> */}
+        <div className="text-left">
+          <Link
+            href="/forgot-password"
+            className="text-sm font-medium text-accent transition hover:text-accent/80"
+          >
+            Forgot your password?
+          </Link>
+        </div>
         {error ? <p className="text-sm text-rose-500">{error}</p> : null}
       </div>
 
