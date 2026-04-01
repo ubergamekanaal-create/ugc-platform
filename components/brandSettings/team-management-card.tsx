@@ -20,6 +20,16 @@ type Invitation = {
     role: string;
     status: string;
 };
+type Permissions = {
+    include_in_chats: boolean;
+    view_analytics: boolean;
+    manage_submissions: boolean;
+    manage_creators: boolean;
+    view_finance: boolean;
+    manage_campaigns: boolean;
+    manage_integrations: boolean;
+    manage_settings: boolean;
+};
 const EditPermissionsModal = ({
     member,
     onClose,
@@ -27,12 +37,21 @@ const EditPermissionsModal = ({
     member: any;
     onClose: () => void;
 }) => {
-    const [permissions, setPermissions] = useState(
-        member.permissions || {}
+    const [permissions, setPermissions] = useState<Permissions>(
+        member.permissions || {
+            include_in_chats: false,
+            view_analytics: false,
+            manage_submissions: false,
+            manage_creators: false,
+            view_finance: false,
+            manage_campaigns: false,
+            manage_integrations: false,
+            manage_settings: false,
+        }
     );
 
-    const toggle = (key: string) => {
-        setPermissions((prev: any) => ({
+    const toggle = (key: keyof Permissions) => {
+        setPermissions((prev) => ({
             ...prev,
             [key]: !prev[key],
         }));
@@ -56,7 +75,7 @@ const EditPermissionsModal = ({
         }
     };
 
-    const perms = [
+    const perms: { key: keyof Permissions; label: string; desc: string }[] = [
         { key: "include_in_chats", label: "Include in Chats", desc: "Add to brand chat channels" },
         { key: "view_analytics", label: "View Analytics", desc: "Access analytics dashboard" },
         { key: "manage_submissions", label: "Manage Submissions", desc: "Approve/reject submissions" },
@@ -675,7 +694,7 @@ const InviteModal = ({
     const [role, setRole] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const defaultPermissions = {
+    const defaultPermissions: Permissions = {
         include_in_chats: true,
         view_analytics: true,
         manage_submissions: true,
@@ -686,7 +705,7 @@ const InviteModal = ({
         manage_settings: true,
     };
 
-    const [permissions, setPermissions] = useState(defaultPermissions);
+    const [permissions, setPermissions] = useState<Permissions>(defaultPermissions);
 
     // OWNER → FORCE ALL TRUE
     useEffect(() => {
@@ -695,7 +714,7 @@ const InviteModal = ({
         }
     }, [role]);
 
-    const togglePermission = (key: string) => {
+    const togglePermission = (key: keyof Permissions) => {
         if (role === "owner") return;
 
         setPermissions((prev) => ({
@@ -710,7 +729,7 @@ const InviteModal = ({
     const handleToggleAll = () => {
         if (role === "owner") return;
 
-        const updated = Object.keys(permissions).reduce((acc, key) => {
+        const updated = (Object.keys(permissions) as (keyof Permissions)[]).reduce((acc, key) => {
             acc[key] = !areAllSelected;
             return acc;
         }, {} as any);
@@ -764,7 +783,7 @@ const InviteModal = ({
                     onChange={(e) => setEmail(e.target.value)}
                 />
 
-                {/* ✅ ROLE SELECT */}
+                {/* ROLE SELECT */}
                 <select
                     className="w-full mb-4 p-3 bg-slate-100 rounded-full"
                     value={role}
@@ -776,7 +795,7 @@ const InviteModal = ({
                     <option value="owner">Owner</option>
                 </select>
 
-                {/* ✅ SHOW ONLY WHEN ROLE SELECTED */}
+                {/* SHOW ONLY WHEN ROLE SELECTED */}
                 {role && (
                     <div className="border-t pt-4">
 
@@ -815,8 +834,8 @@ const InviteModal = ({
                                     </div>
 
                                     <button
-                                        onClick={() => togglePermission(perm.key)}
-                                        className={`w-10 h-5 flex items-center rounded-full p-1 transition ${permissions[perm.key]
+                                        onClick={() => togglePermission(perm.key as keyof Permissions)}
+                                        className={`w-10 h-5 flex items-center rounded-full p-1 transition ${permissions[perm.key as keyof Permissions]
                                             ? "bg-blue-500"
                                             : "bg-slate-300"
                                             } ${role === "owner"
@@ -825,7 +844,7 @@ const InviteModal = ({
                                             }`}
                                     >
                                         <div
-                                            className={`bg-white w-4 h-4 rounded-full shadow-md transform transition ${permissions[perm.key]
+                                            className={`bg-white w-4 h-4 rounded-full shadow-md transform transition ${permissions[perm.key as keyof Permissions]
                                                 ? "translate-x-5"
                                                 : ""
                                                 }`}
