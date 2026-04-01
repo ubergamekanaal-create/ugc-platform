@@ -16,6 +16,10 @@ export default async function NewBrandCampaignPage() {
   }
 
   return (
-    <BrandCampaignEditorScreen profile={context.profile} data={context.data} />
+    <BrandCampaignEditorScreen
+      profile={context.profile}
+      data={context.data}
+      renderMode="content"
+    />
   );
 }

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getSignedCreatorPortfolioAssetUrls } from "@/lib/creator-profile/assets";
 import {
   getSignedSubmissionAssetUrls,
@@ -1219,52 +1220,55 @@ async function getCreatorData(
   };
 }
 
-export async function getDashboardContext(): Promise<DashboardContext | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-  if (userError) {
-    console.error("getDashboardContext: auth.getUser failed", userError);
-  }
+export const getDashboardContext = cache(
+  async (): Promise<DashboardContext | null> => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-  if (!user) {
-    console.error("getDashboardContext: no authenticated user found in cookies");
-    return null;
-  }
+    if (userError) {
+      console.error("getDashboardContext: auth.getUser failed", userError);
+    }
 
-  const { data: rawProfile, error } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+    if (!user) {
+      console.error("getDashboardContext: no authenticated user found in cookies");
+      return null;
+    }
 
-  if (error || !rawProfile) {
-    console.error("getDashboardContext: users profile lookup failed", {
-      userId: user.id,
-      error,
-    });
-    return null;
-  }
+    const { data: rawProfile, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", user.id)
+      .single();
 
-  const profile = normalizeProfile(rawProfile as Record<string, unknown>);
+    if (error || !rawProfile) {
+      console.error("getDashboardContext: users profile lookup failed", {
+        userId: user.id,
+        error,
+      });
+      return null;
+    }
 
-  if (profile.role === "brand") {
-    const brandProfile = profile as UserProfile & { role: "brand" };
+    const profile = normalizeProfile(rawProfile as Record<string, unknown>);
+
+    if (profile.role === "brand") {
+      const brandProfile = profile as UserProfile & { role: "brand" };
+
+      return {
+        role: "brand",
+        profile: brandProfile,
+        data: await getBrandData(supabase, brandProfile.id),
+      };
+    }
+
+    const creatorProfile = profile as UserProfile & { role: "creator" };
 
     return {
-      role: "brand",
-      profile: brandProfile,
-      data: await getBrandData(supabase, brandProfile.id),
+      role: "creator",
+      profile: creatorProfile,
+      data: await getCreatorData(supabase, creatorProfile.id),
     };
-  }
-
-  const creatorProfile = profile as UserProfile & { role: "creator" };
-
-  return {
-    role: "creator",
-    profile: creatorProfile,
-    data: await getCreatorData(supabase, creatorProfile.id),
-  };
-}
+  },
+);

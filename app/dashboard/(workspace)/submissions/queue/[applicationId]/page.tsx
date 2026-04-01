@@ -13,15 +13,18 @@ import { formatCompactCurrency, formatCurrency, formatDate } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 type QueueSubmissionDetailPageProps = {
-  params: {
+  params: Promise<{
     applicationId: string;
-  };
+  }>;
 };
 
 export default async function QueueSubmissionDetailPage({
   params,
 }: QueueSubmissionDetailPageProps) {
-  const context = await getDashboardContext();
+  const [{ applicationId }, context] = await Promise.all([
+    params,
+    getDashboardContext(),
+  ]);
 
   if (!context) {
     redirect("/login");
@@ -32,8 +35,7 @@ export default async function QueueSubmissionDetailPage({
   }
 
   const application =
-    context.data.applications.find((item) => item.id === params.applicationId) ??
-    null;
+    context.data.applications.find((item) => item.id === applicationId) ?? null;
 
   if (!application) {
     notFound();
@@ -59,6 +61,7 @@ export default async function QueueSubmissionDetailPage({
       profile={context.profile}
       data={context.data}
       section="submissions"
+      renderMode="content"
       detailView={{
         title: `${application.creator_name} review`,
         description:
@@ -175,7 +178,9 @@ export default async function QueueSubmissionDetailPage({
                       Base rate
                     </p>
                     <p className="mt-3 text-xl font-semibold text-slate-950">
-                      {creator?.base_rate ? formatCurrency(creator.base_rate) : formatCurrency(application.rate)}
+                      {creator?.base_rate
+                        ? formatCurrency(creator.base_rate)
+                        : formatCurrency(application.rate)}
                     </p>
                   </div>
                   <div className="rounded-[1.5rem] bg-slate-50 p-4">
@@ -222,28 +227,17 @@ export default async function QueueSubmissionDetailPage({
 
                 {creator?.platform_specialties.length ? (
                   <div className="mt-6">
-                    <p className="text-sm font-medium text-slate-600">Platform specialties</p>
+                    <p className="text-sm font-medium text-slate-600">Platforms</p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {creator.platform_specialties.map((item) => (
                         <span
                           key={item}
-                          className="rounded-full bg-[rgba(7,107,210,0.1)] px-3 py-1 text-xs font-medium text-accent"
+                          className="rounded-full bg-[rgba(7,107,210,0.08)] px-3 py-1 text-xs font-medium text-accent"
                         >
                           {item}
                         </span>
                       ))}
                     </div>
-                  </div>
-                ) : null}
-
-                {creator?.featured_result ? (
-                  <div className="mt-6 rounded-[1.5rem] bg-[linear-gradient(135deg,_rgba(239,246,255,0.95),_rgba(255,255,255,0.98))] p-4">
-                    <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                      Featured result
-                    </p>
-                    <p className="mt-3 text-sm leading-7 text-slate-700">
-                      {creator.featured_result}
-                    </p>
                   </div>
                 ) : null}
               </WorkspacePanel>
@@ -257,15 +251,21 @@ export default async function QueueSubmissionDetailPage({
                 </h2>
                 <div className="mt-6 space-y-4 text-sm text-slate-600">
                   <div className="flex items-center justify-between gap-4 rounded-[1.25rem] bg-slate-50 px-4 py-4">
+                    <span>Status</span>
+                    <span className="font-semibold text-slate-950">
+                      {campaign?.status.replaceAll("_", " ") ?? "Unknown"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 rounded-[1.25rem] bg-slate-50 px-4 py-4">
                     <span>Budget</span>
                     <span className="font-semibold text-slate-950">
                       {campaign ? formatCompactCurrency(campaign.budget) : "Unknown"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-4 rounded-[1.25rem] bg-slate-50 px-4 py-4">
-                    <span>Creator slots</span>
+                    <span>Deliveries</span>
                     <span className="font-semibold text-slate-950">
-                      {campaign?.creator_slots ?? "Unknown"}
+                      {campaign?.deliverables || "Not specified"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-4 rounded-[1.25rem] bg-slate-50 px-4 py-4">
@@ -275,123 +275,51 @@ export default async function QueueSubmissionDetailPage({
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-4 rounded-[1.25rem] bg-slate-50 px-4 py-4">
-                    <span>Status</span>
-                    <span className="font-semibold capitalize text-slate-950">
-                      {campaign?.status ?? "Unknown"}
+                    <span>Linked delivery</span>
+                    <span className="font-semibold text-slate-950">
+                      {linkedSubmission ? linkedSubmission.status.replaceAll("_", " ") : "Not submitted"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 rounded-[1.25rem] bg-slate-50 px-4 py-4">
+                    <span>Linked payout</span>
+                    <span className="font-semibold text-slate-950">
+                      {linkedPayout ? formatCurrency(linkedPayout.creator_amount) : "Not queued"}
                     </span>
                   </div>
                 </div>
-
-                {campaign?.description ? (
-                  <p className="mt-6 text-sm leading-7 text-slate-600">
-                    {campaign.description}
-                  </p>
-                ) : null}
               </WorkspacePanel>
             </div>
 
             {linkedSubmission ? (
-              <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-                <WorkspacePanel>
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                        Linked delivery
-                      </p>
-                      <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
-                        Delivery preview
-                      </h2>
-                    </div>
-                    <Link
-                      href={`/dashboard/submissions/deliveries/${linkedSubmission.id}`}
-                      className="inline-flex h-10 items-center justify-center rounded-full border border-accent/15 bg-[rgba(7,107,210,0.06)] px-4 text-sm font-semibold text-accent transition hover:border-accent/25 hover:bg-[rgba(7,107,210,0.1)]"
-                    >
-                      Open delivery detail
-                    </Link>
+              <WorkspacePanel>
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                      Linked delivery
+                    </p>
+                    <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                      Submission details available
+                    </h2>
+                    <p className="mt-2 text-sm leading-7 text-slate-500">
+                      Review the linked delivery directly here or open the dedicated delivery
+                      detail page for final approval actions.
+                    </p>
                   </div>
+                  <BrandSubmissionActionButtons
+                    submissionId={linkedSubmission.id}
+                    status={linkedSubmission.status}
+                    feedback={linkedSubmission.feedback}
+                    variant="table"
+                  />
+                </div>
 
-                  {linkedSubmission.notes ? (
-                    <div className="mt-6 rounded-[1.5rem] bg-slate-50 p-4 text-sm leading-7 text-slate-700">
-                      {linkedSubmission.notes}
-                    </div>
-                  ) : null}
-
-                  {linkedSubmission.content_links.length ? (
-                    <div className="mt-6 space-y-3">
-                      {linkedSubmission.content_links.map((link) => (
-                        <a
-                          key={link}
-                          href={link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block truncate text-sm font-medium text-accent transition hover:text-[#0559AE]"
-                        >
-                          {link}
-                        </a>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  <div className="mt-6">
-                    <SubmissionAssetsGallery
-                      assets={linkedSubmission.assets}
-                      emptyLabel="No uploaded assets were included in this delivery."
-                    />
-                  </div>
-                </WorkspacePanel>
-
-                <WorkspacePanel>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                    Delivery actions
-                  </p>
-                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
-                    Review linked submission
-                  </h2>
-                  <p className="mt-2 text-sm leading-7 text-slate-500">
-                    Handle revision requests, final approval, or rejection from the same queue
-                    view when a creator has already submitted work.
-                  </p>
-                  <div className="mt-6">
-                    <BrandSubmissionActionButtons
-                      submissionId={linkedSubmission.id}
-                      status={linkedSubmission.status}
-                      feedback={linkedSubmission.feedback}
-                      variant="detail"
-                    />
-                  </div>
-
-                  <div className="mt-6 space-y-4 text-sm text-slate-600">
-                    <div className="flex items-center justify-between gap-4 rounded-[1.25rem] bg-slate-50 px-4 py-4">
-                      <span>Revision</span>
-                      <span className="font-semibold text-slate-950">
-                        {linkedSubmission.revision_number}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-4 rounded-[1.25rem] bg-slate-50 px-4 py-4">
-                      <span>Submitted</span>
-                      <span className="font-semibold text-slate-950">
-                        {linkedSubmission.submitted_at
-                          ? formatDate(linkedSubmission.submitted_at)
-                          : formatDate(linkedSubmission.created_at)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-4 rounded-[1.25rem] bg-slate-50 px-4 py-4">
-                      <span>Reviewed</span>
-                      <span className="font-semibold text-slate-950">
-                        {linkedSubmission.reviewed_at
-                          ? formatDate(linkedSubmission.reviewed_at)
-                          : "Awaiting review"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-4 rounded-[1.25rem] bg-slate-50 px-4 py-4">
-                      <span>Payout</span>
-                      <span className="font-semibold text-slate-950">
-                        {linkedPayout ? formatCurrency(linkedPayout.creator_amount) : "Not queued"}
-                      </span>
-                    </div>
-                  </div>
-                </WorkspacePanel>
-              </div>
+                <div className="mt-6">
+                  <SubmissionAssetsGallery
+                    assets={linkedSubmission.assets}
+                    emptyLabel="The linked delivery has no uploaded files yet."
+                  />
+                </div>
+              </WorkspacePanel>
             ) : null}
           </div>
         ),
