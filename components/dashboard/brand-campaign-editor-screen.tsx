@@ -13,12 +13,14 @@ type BrandCampaignEditorScreenProps = {
   profile: UserProfile & { role: "brand" };
   data: BrandDashboardData;
   campaign?: BrandCampaignSummary | null;
+  renderMode?: "full" | "content";
 };
 
 export function BrandCampaignEditorScreen({
   profile,
   data,
   campaign = null,
+  renderMode = "full",
 }: BrandCampaignEditorScreenProps) {
   const isEditing = Boolean(campaign);
 
@@ -27,6 +29,7 @@ export function BrandCampaignEditorScreen({
       profile={profile}
       data={data}
       section="creators"
+      renderMode={renderMode}
       detailView={{
         title: isEditing ? `Edit ${campaign?.title}` : "Create campaign",
         description: isEditing

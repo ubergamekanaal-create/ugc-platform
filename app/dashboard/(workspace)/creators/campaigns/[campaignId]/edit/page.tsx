@@ -5,15 +5,18 @@ import { getDashboardContext } from "@/lib/data/platform";
 export const dynamic = "force-dynamic";
 
 type EditBrandCampaignPageProps = {
-  params: {
+  params: Promise<{
     campaignId: string;
-  };
+  }>;
 };
 
 export default async function EditBrandCampaignPage({
   params,
 }: EditBrandCampaignPageProps) {
-  const context = await getDashboardContext();
+  const [{ campaignId }, context] = await Promise.all([
+    params,
+    getDashboardContext(),
+  ]);
 
   if (!context) {
     redirect("/login");
@@ -24,7 +27,7 @@ export default async function EditBrandCampaignPage({
   }
 
   const campaign =
-    context.data.campaigns.find((item) => item.id === params.campaignId) ?? null;
+    context.data.campaigns.find((item) => item.id === campaignId) ?? null;
 
   if (!campaign) {
     notFound();
@@ -35,6 +38,7 @@ export default async function EditBrandCampaignPage({
       profile={context.profile}
       data={context.data}
       campaign={campaign}
+      renderMode="content"
     />
   );
 }
