@@ -1697,7 +1697,7 @@ export function BrandWorkspace({
     return <BrandIntegrationsPanel />;
   }
 
-  function renderSettingsSection() {
+  function SettingsSection() {
     const [activeIndex, setActiveIndex] = useState(0);
 
     const renderRightContent = () => {
@@ -1752,7 +1752,7 @@ export function BrandWorkspace({
       case "integrations":
         return renderIntegrationsSection();
       case "settings":
-        return renderSettingsSection();
+        return <SettingsSection />;
       default:
         return null;
     }
