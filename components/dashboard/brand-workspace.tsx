@@ -5,6 +5,7 @@ import {
   type JSX,
   type ReactNode,
   useMemo,
+  useState,
 } from "react";
 import { BrandCreatorsHub } from "@/components/dashboard/brand-creators-hub";
 import { BrandFinancePanel } from "@/components/dashboard/brand-finance-panel";
@@ -47,6 +48,13 @@ import {
   getDisplayName,
   getInitials,
 } from "@/lib/utils";
+import BrandInformationCard from "../brandSettings/brand-information-card";
+import TeamManagementCard from "../brandSettings/team-management-card";
+import TrybePartnersCard from "../brandSettings/try-be-partners-card";
+import AnalyticsSettingsCard from "../brandSettings/analytics-settings-card";
+import SampleRequestsCard from "../brandSettings/sample-requests-card";
+import ProductCatalogCard from "../brandSettings/product-catalog-card";
+import BrandMenu from "./brand-menus";
 
 type BrandWorkspaceProps = {
   profile: UserProfile & { role: "brand" };
@@ -517,7 +525,7 @@ export function BrandWorkspace({
     ? acceptedValue / acceptedCount
     : data.applications.length
       ? data.applications.reduce((sum, application) => sum + application.rate, 0) /
-        data.applications.length
+      data.applications.length
       : 0;
   const reviewDurations = data.submissions
     .map((submission) => {
@@ -950,8 +958,8 @@ export function BrandWorkspace({
                                 height:
                                   point.value > 0
                                     ? `${clampPercent(
-                                        (point.value / recentPayoutActivity.maxValue) * 100,
-                                      )}%`
+                                      (point.value / recentPayoutActivity.maxValue) * 100,
+                                    )}%`
                                     : "0%",
                               }}
                             />
@@ -1689,72 +1697,38 @@ export function BrandWorkspace({
     return <BrandIntegrationsPanel />;
   }
 
-  function renderSettingsSection() {
+  function SettingsSection() {
+    const [activeIndex, setActiveIndex] = useState(0);
+
+    const renderRightContent = () => {
+      switch (activeIndex) {
+        case 0:
+          return <BrandInformationCard />;
+        case 1:
+          return <div ><TeamManagementCard /></div>;
+        case 2:
+          return <div className="card"><TrybePartnersCard /></div>;
+        case 3:
+          return <div className="card"><AnalyticsSettingsCard /></div>;
+        case 4:
+          return <div className="card"><SampleRequestsCard /></div>;
+        case 5:
+          return <div className="card"><ProductCatalogCard /></div>;
+        default:
+          return null;
+      }
+    };
+
     return (
-      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <SectionPanel>
-          <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-            Workspace Settings
-          </h2>
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            {[
-              {
-                label: "Company",
-                value: displayName,
-              },
-              {
-                label: "Email",
-                value: profile.email,
-              },
-              {
-                label: "Role",
-                value: "Brand owner",
-              },
-              {
-                label: "Workspace",
-                value: "CIRCL HQ",
-              },
-            ].map((item) => (
-              <div key={item.label} className="rounded-[1.5rem] bg-slate-50 p-4">
-                <p className="text-sm text-slate-500">{item.label}</p>
-                <p className="mt-2 text-lg font-semibold text-slate-950">
-                  {item.value}
-                </p>
-              </div>
-            ))}
-          </div>
-        </SectionPanel>
-        <SectionPanel>
-          <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-            Preferences
-          </h2>
-          <div className="mt-8 space-y-4">
-            {[
-              "Creator application notifications",
-              "Campaign performance recaps",
-              "Finance summary emails",
-              "Weekly roster recommendations",
-            ].map((item, index) => (
-              <div
-                key={item}
-                className="flex items-center justify-between gap-4 rounded-[1.5rem] border border-slate-200 px-4 py-4"
-              >
-                <span className="font-medium text-slate-800">{item}</span>
-                <span
-                  className={cn(
-                    "flex h-7 w-12 items-center rounded-full p-1 transition",
-                    index < 3 ? "justify-end bg-accent" : "justify-start bg-slate-200",
-                  )}
-                >
-                  <span className="h-5 w-5 rounded-full bg-white shadow-sm" />
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-8">
-            <SignOutButton variant="light" />
-          </div>
-        </SectionPanel>
+      <div className="flex flex-col md:flex-row gap-6 ">
+        {/* LEFT SIDEBAR */}
+        <BrandMenu
+          activeIndex={activeIndex}
+          setActiveIndex={setActiveIndex}
+        />
+
+        {/* RIGHT CONTENT */}
+        <div className="flex-1">{renderRightContent()}</div>
       </div>
     );
   }
@@ -1778,7 +1752,7 @@ export function BrandWorkspace({
       case "integrations":
         return renderIntegrationsSection();
       case "settings":
-        return renderSettingsSection();
+        return <SettingsSection />;
       default:
         return null;
     }
