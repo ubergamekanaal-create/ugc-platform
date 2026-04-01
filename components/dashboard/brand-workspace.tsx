@@ -15,8 +15,11 @@ import { NotificationsCenter } from "@/components/dashboard/notifications-center
 import { RealtimeChatPanel } from "@/components/dashboard/realtime-chat-panel";
 import { SignOutButton } from "@/components/dashboard/sign-out-button";
 import {
+  WorkspaceMainContent,
   WorkspacePanel,
+  WorkspaceSidebar,
   WorkspaceShell,
+  WorkspaceViewport,
   type WorkspaceNavGroup,
 } from "@/components/dashboard/workspace-shell";
 import {
@@ -49,6 +52,7 @@ type BrandWorkspaceProps = {
   profile: UserProfile & { role: "brand" };
   data: BrandDashboardData;
   section: BrandWorkspaceSection;
+  renderMode?: "full" | "content";
   detailView?: {
     title: string;
     description: string;
@@ -56,6 +60,13 @@ type BrandWorkspaceProps = {
     metaItems?: Array<{ label: string; value: string }>;
     banner?: ReactNode;
   };
+};
+
+type BrandWorkspaceChromeProps = {
+  profile: UserProfile & { role: "brand" };
+  data: BrandDashboardData;
+  section: BrandWorkspaceSection;
+  children: ReactNode;
 };
 
 type CreatorSpotlight = {
@@ -433,6 +444,7 @@ export function BrandWorkspace({
   profile,
   data,
   section,
+  renderMode = "full",
   detailView,
 }: BrandWorkspaceProps) {
   const activeSection =
@@ -1893,6 +1905,32 @@ export function BrandWorkspace({
     </div>
   );
 
+  const content = detailView ? detailView.content : renderSectionContent();
+
+  if (renderMode === "content") {
+    return (
+      <WorkspaceMainContent
+        tone="brand"
+        eyebrow={
+          detailView
+            ? "Review detail"
+            : section === "dashboard"
+              ? "Brand operating system"
+              : "Brand workspace"
+        }
+        title={heroTitle}
+        description={heroDescription}
+        metaItems={detailView?.metaItems ?? primaryStats}
+        topBanner={topBanner}
+        showTopBanner={!isSubmissionsOverview}
+        showHeroSection={!isSubmissionsOverview}
+        headerActions={headerActions}
+      >
+        {content}
+      </WorkspaceMainContent>
+    );
+  }
+
   return (
     <WorkspaceShell
       tone="brand"
@@ -1916,7 +1954,101 @@ export function BrandWorkspace({
       headerActions={headerActions}
       sidebarFooter={sidebarFooter}
     >
-      {detailView ? detailView.content : renderSectionContent()}
+      {content}
     </WorkspaceShell>
+  );
+}
+
+export function BrandWorkspaceChrome({
+  profile,
+  data,
+  section,
+  children,
+}: BrandWorkspaceChromeProps) {
+  const displayName = getDisplayName(profile.company_name, "CIRCL Brand");
+  const pendingReviews = data.applications.filter(
+    (application) => application.status === "pending",
+  ).length;
+  const pendingSubmissionReviews = data.submissions.filter(
+    (submission) => submission.status === "submitted",
+  ).length;
+  const revisionRequests = data.submissions.filter(
+    (submission) => submission.status === "revision_requested",
+  ).length;
+  const navGroups: WorkspaceNavGroup[] = [
+    {
+      label: "Operations",
+      items: brandWorkspaceSections
+        .filter((item) => item.group === "primary")
+        .map((item) => {
+          const Icon = sectionIcons[item.slug];
+
+          return {
+            href: getBrandWorkspaceHref(item.slug),
+            label: item.label,
+            active: item.slug === section,
+            icon: <Icon className="h-5 w-5" />,
+            badge:
+              item.slug === "submissions" && pendingReviews > 0
+                ? String(pendingReviews)
+                : null,
+          };
+        }),
+    },
+    {
+      label: "Configuration",
+      items: brandWorkspaceSections
+        .filter((item) => item.group === "configuration")
+        .map((item) => {
+          const Icon = sectionIcons[item.slug];
+
+          return {
+            href: getBrandWorkspaceHref(item.slug),
+            label: item.label,
+            active: item.slug === section,
+            icon: <Icon className="h-5 w-5" />,
+          };
+        }),
+    },
+  ];
+  const sidebarFooter = (
+    <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(239,246,255,0.96))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+      <div className="absolute -right-10 top-0 h-20 w-20 rounded-full bg-[radial-gradient(circle,_rgba(7,107,210,0.18),_transparent_70%)]" />
+      <div className="relative">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+          Pipeline
+        </p>
+        <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+          {pendingReviews + pendingSubmissionReviews > 0
+            ? `${pendingReviews + pendingSubmissionReviews} items need action`
+            : "Operations are in sync"}
+        </p>
+        <p className="mt-3 text-sm leading-7 text-slate-600">
+          {revisionRequests > 0
+            ? `${revisionRequests} revisions are still open with creators.`
+            : "Use the creator roster to source the next wave before demand slows down."}
+        </p>
+        <Link
+          href="/dashboard/creators"
+          className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-slate-950 shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:bg-slate-50"
+        >
+          Open creator roster
+        </Link>
+      </div>
+    </div>
+  );
+
+  return (
+    <WorkspaceViewport tone="brand">
+      <WorkspaceSidebar
+        tone="brand"
+        displayName={displayName}
+        roleLabel="Brand workspace"
+        initials={getInitials(displayName)}
+        navGroups={navGroups}
+        sidebarFooter={sidebarFooter}
+      />
+      <div className="min-w-0">{children}</div>
+    </WorkspaceViewport>
   );
 }

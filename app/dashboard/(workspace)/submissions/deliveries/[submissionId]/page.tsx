@@ -10,15 +10,18 @@ import { formatCompactCurrency, formatCurrency, formatDate } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 type DeliverySubmissionDetailPageProps = {
-  params: {
+  params: Promise<{
     submissionId: string;
-  };
+  }>;
 };
 
 export default async function DeliverySubmissionDetailPage({
   params,
 }: DeliverySubmissionDetailPageProps) {
-  const context = await getDashboardContext();
+  const [{ submissionId }, context] = await Promise.all([
+    params,
+    getDashboardContext(),
+  ]);
 
   if (!context) {
     redirect("/login");
@@ -29,7 +32,7 @@ export default async function DeliverySubmissionDetailPage({
   }
 
   const submission =
-    context.data.submissions.find((item) => item.id === params.submissionId) ?? null;
+    context.data.submissions.find((item) => item.id === submissionId) ?? null;
 
   if (!submission) {
     notFound();
@@ -54,6 +57,7 @@ export default async function DeliverySubmissionDetailPage({
       profile={context.profile}
       data={context.data}
       section="submissions"
+      renderMode="content"
       detailView={{
         title: `${submission.creator_name} delivery review`,
         description:
@@ -239,8 +243,16 @@ export default async function DeliverySubmissionDetailPage({
                     <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
                       Campaign status
                     </p>
-                    <p className="mt-3 text-xl font-semibold capitalize text-slate-950">
-                      {campaign?.status ?? "Unknown"}
+                    <p className="mt-3 text-xl font-semibold text-slate-950">
+                      {campaign?.status.replaceAll("_", " ") ?? "Unknown"}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.5rem] bg-slate-50 p-4">
+                    <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                      Deliverables
+                    </p>
+                    <p className="mt-3 text-xl font-semibold text-slate-950">
+                      {campaign?.deliverables || "Not specified"}
                     </p>
                   </div>
                   <div className="rounded-[1.5rem] bg-slate-50 p-4">
@@ -251,75 +263,46 @@ export default async function DeliverySubmissionDetailPage({
                       {campaign?.deadline ? formatDate(campaign.deadline) : "Flexible"}
                     </p>
                   </div>
-                  <div className="rounded-[1.5rem] bg-slate-50 p-4">
-                    <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                      Creator rate
-                    </p>
-                    <p className="mt-3 text-xl font-semibold text-slate-950">
-                      {formatCurrency(submission.rate)}
-                    </p>
-                  </div>
                 </div>
-
-                {campaign?.description ? (
-                  <p className="mt-6 text-sm leading-7 text-slate-600">
-                    {campaign.description}
-                  </p>
-                ) : null}
               </WorkspacePanel>
 
               <WorkspacePanel>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                  Creator and pitch
+                  Creator context
                 </p>
                 <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
                   {submission.creator_name}
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
-                  {submission.creator_headline ?? "Creator delivery ready for review"}
+                  {submission.creator_headline ?? "Creator profile in review"}
                 </p>
-
                 <div className="mt-6 grid gap-4 md:grid-cols-2">
                   <div className="rounded-[1.5rem] bg-slate-50 p-4">
                     <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
                       Base rate
                     </p>
                     <p className="mt-3 text-xl font-semibold text-slate-950">
-                      {creator?.base_rate ? formatCurrency(creator.base_rate) : "Not set"}
+                      {creator?.base_rate ? formatCurrency(creator.base_rate) : formatCurrency(submission.rate)}
                     </p>
                   </div>
                   <div className="rounded-[1.5rem] bg-slate-50 p-4">
                     <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                      Previous accepts
+                      Engagement
                     </p>
                     <p className="mt-3 text-xl font-semibold text-slate-950">
-                      {creator?.accepted ?? 0}
+                      {creator?.engagement_rate ? `${creator.engagement_rate}%` : "Not set"}
                     </p>
                   </div>
                 </div>
 
-                {application?.pitch ? (
-                  <div className="mt-6 rounded-[1.5rem] bg-slate-50 p-4">
+                {application ? (
+                  <div className="mt-6 rounded-[1.5rem] bg-[rgba(7,107,210,0.05)] p-4">
                     <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                      Original pitch
+                      Linked application
                     </p>
                     <p className="mt-3 text-sm leading-7 text-slate-700">
                       {application.pitch}
                     </p>
-                  </div>
-                ) : null}
-
-                {application ? (
-                  <div className="mt-6 flex flex-wrap items-center gap-3">
-                    <span className="rounded-full bg-[rgba(7,107,210,0.1)] px-3 py-1 text-xs font-semibold text-accent">
-                      {application.status.replaceAll("_", " ")}
-                    </span>
-                    <Link
-                      href={`/dashboard/submissions/queue/${application.id}`}
-                      className="text-sm font-semibold text-accent transition hover:text-[#0559AE]"
-                    >
-                      Open queue detail
-                    </Link>
                   </div>
                 ) : null}
               </WorkspacePanel>

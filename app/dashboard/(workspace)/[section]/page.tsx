@@ -14,28 +14,31 @@ import { getDashboardContext } from "@/lib/data/platform";
 export const dynamic = "force-dynamic";
 
 type DashboardSectionPageProps = {
-  params: {
+  params: Promise<{
     section: string;
-  };
+  }>;
 };
 
 export default async function DashboardSectionPage({
   params,
 }: DashboardSectionPageProps) {
-  const context = await getDashboardContext();
+  const [{ section }, context] = await Promise.all([
+    params,
+    getDashboardContext(),
+  ]);
 
   if (!context) {
     redirect("/login");
   }
 
   if (context.role === "brand") {
-    const alias = brandWorkspaceSectionAliases[params.section];
+    const alias = brandWorkspaceSectionAliases[section];
 
     if (alias) {
       redirect(alias === "dashboard" ? "/dashboard" : `/dashboard/${alias}`);
     }
 
-    if (!isBrandWorkspaceSection(params.section)) {
+    if (!isBrandWorkspaceSection(section)) {
       notFound();
     }
 
@@ -43,18 +46,19 @@ export default async function DashboardSectionPage({
       <BrandWorkspace
         profile={context.profile}
         data={context.data}
-        section={params.section}
+        section={section}
+        renderMode="content"
       />
     );
   }
 
-  const alias = creatorWorkspaceSectionAliases[params.section];
+  const alias = creatorWorkspaceSectionAliases[section];
 
   if (alias) {
     redirect(alias === "home" ? "/dashboard" : `/dashboard/${alias}`);
   }
 
-  if (!isCreatorWorkspaceSection(params.section)) {
+  if (!isCreatorWorkspaceSection(section)) {
     notFound();
   }
 
@@ -62,7 +66,8 @@ export default async function DashboardSectionPage({
     <CreatorWorkspace
       profile={context.profile}
       data={context.data}
-      section={params.section}
+      section={section}
+      renderMode="content"
     />
   );
 }

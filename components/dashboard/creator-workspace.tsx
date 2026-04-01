@@ -20,8 +20,11 @@ import { NotificationsCenter } from "@/components/dashboard/notifications-center
 import { RealtimeChatPanel } from "@/components/dashboard/realtime-chat-panel";
 import { SignOutButton } from "@/components/dashboard/sign-out-button";
 import {
+  WorkspaceMainContent,
   WorkspacePanel,
+  WorkspaceSidebar,
   WorkspaceShell,
+  WorkspaceViewport,
   type WorkspaceNavGroup,
 } from "@/components/dashboard/workspace-shell";
 import {
@@ -58,6 +61,14 @@ type CreatorWorkspaceProps = {
   profile: UserProfile & { role: "creator" };
   data: CreatorDashboardData;
   section: CreatorWorkspaceSection;
+  renderMode?: "full" | "content";
+};
+
+type CreatorWorkspaceChromeProps = {
+  profile: UserProfile & { role: "creator" };
+  data: CreatorDashboardData;
+  section: CreatorWorkspaceSection;
+  children: ReactNode;
 };
 
 type DraftState = Record<string, { pitch: string; rate: string }>;
@@ -451,6 +462,7 @@ export function CreatorWorkspace({
   profile,
   data,
   section,
+  renderMode = "full",
 }: CreatorWorkspaceProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
@@ -1908,6 +1920,37 @@ export function CreatorWorkspace({
     </div>
   );
 
+  const content = renderSectionContent();
+
+  if (renderMode === "content") {
+    return (
+      <WorkspaceMainContent
+        tone="creator"
+        eyebrow={section === "home" ? "Creator workspace" : "Creator studio"}
+        title={heroTitle}
+        description={heroDescription}
+        metaItems={[
+          {
+            label: "Open campaigns",
+            value: String(data.campaigns.length),
+          },
+          {
+            label: "Pending invites",
+            value: String(pendingInvitations.length),
+          },
+          {
+            label: "Accepted pipeline",
+            value: formatCompactCurrency(acceptedValue || 0),
+          },
+        ]}
+        topBanner={topBanner}
+        headerActions={headerActions}
+      >
+        {content}
+      </WorkspaceMainContent>
+    );
+  }
+
   return (
     <WorkspaceShell
       tone="creator"
@@ -1936,7 +1979,75 @@ export function CreatorWorkspace({
       headerActions={headerActions}
       sidebarFooter={sidebarFooter}
     >
-      {renderSectionContent()}
+      {content}
     </WorkspaceShell>
+  );
+}
+
+export function CreatorWorkspaceChrome({
+  profile,
+  data,
+  section,
+  children,
+}: CreatorWorkspaceChromeProps) {
+  const pendingInvitations = data.invitations.filter(
+    (invitation) => invitation.status === "pending",
+  );
+  const navGroups: WorkspaceNavGroup[] = [
+    {
+      items: creatorWorkspaceSections.map((item) => {
+        const Icon = sectionIcons[item.slug];
+
+        return {
+          href: getCreatorWorkspaceHref(item.slug),
+          label: item.label,
+          active: item.slug === section,
+          icon: <Icon className="h-5 w-5" />,
+          badge:
+            item.slug === "my-brands" && pendingInvitations.length > 0
+              ? String(pendingInvitations.length)
+              : null,
+        };
+      }),
+    },
+  ];
+  const displayName = getDisplayName(profile.full_name, "Creator");
+  const sidebarFooter = (
+    <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(254,242,242,0.9))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+      <div className="absolute -right-8 top-0 h-20 w-20 rounded-full bg-[radial-gradient(circle,_rgba(244,114,182,0.18),_transparent_70%)]" />
+      <div className="relative">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+          Next move
+        </p>
+        <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+          {data.profile_assets.length > 0
+            ? `${data.profile_assets.length} samples live`
+            : "Upload portfolio proof"}
+        </p>
+        <p className="mt-3 text-sm leading-7 text-slate-600">
+          Fresh samples and clear audience data help brands trust your fit before they ever message you.
+        </p>
+        <Link
+          href="/dashboard/profile"
+          className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-slate-950 shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:bg-slate-50"
+        >
+          Open profile
+        </Link>
+      </div>
+    </div>
+  );
+
+  return (
+    <WorkspaceViewport tone="creator">
+      <WorkspaceSidebar
+        tone="creator"
+        displayName={displayName}
+        roleLabel="Creator studio"
+        initials={getInitials(displayName)}
+        navGroups={navGroups}
+        sidebarFooter={sidebarFooter}
+      />
+      <div className="min-w-0">{children}</div>
+    </WorkspaceViewport>
   );
 }
