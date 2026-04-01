@@ -9,6 +9,7 @@ type StripeActionButtonProps = {
   label: string;
   pendingLabel: string;
   tone?: "dark" | "light";
+  disabled?: boolean;
 };
 
 export function StripeActionButton({
@@ -17,6 +18,7 @@ export function StripeActionButton({
   label,
   pendingLabel,
   tone = "dark",
+  disabled = false,
 }: StripeActionButtonProps) {
   const [isPending, setIsPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export function StripeActionButton({
       <button
         type="button"
         onClick={handleClick}
-        disabled={isPending}
+        disabled={isPending || disabled}
         className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-3 text-sm font-semibold text-white transition hover:shadow-glow disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending ? pendingLabel : label}

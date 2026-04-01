@@ -1,15 +1,38 @@
+import { getSignedCreatorPortfolioAssetUrls } from "@/lib/creator-profile/assets";
+import {
+  getSignedSubmissionAssetUrls,
+  getSubmissionAssetKind,
+} from "@/lib/submissions/assets";
 import { createClient } from "@/lib/supabase/server";
 import type {
   BrandApplicationSummary,
   BrandCampaignSummary,
+  BrandCreatorDirectoryEntry,
   BrandDashboardData,
+  BrandFundingSummary,
+  BrandPayoutSummary,
+  BrandSubmissionSummary,
   Campaign,
   CampaignApplication,
+  CampaignFunding,
+  CampaignInvitation,
+  CampaignPayout,
+  CampaignSubmission,
   CreatorApplicationSummary,
   CreatorCampaignSummary,
   CreatorDashboardData,
+  CreatorProfileDetails,
+  CreatorInvitationSummary,
+  CreatorPayoutSummary,
+  CreatorPortfolioAsset,
+  CreatorSubmissionSummary,
+  FundingStatus,
+  InvitationStatus,
+  PayoutStatus,
   PublicProfile,
   Role,
+  SubmissionAsset,
+  SubmissionStatus,
   UserProfile,
 } from "@/lib/types";
 
@@ -27,148 +50,8 @@ type DashboardContext =
       data: CreatorDashboardData;
     };
 
-const brandCampaignFallback: Campaign[] = [
-  {
-    id: "demo-campaign-1",
-    brand_id: "brand-demo",
-    title: "Spring UGC Sprint",
-    description:
-      "Source short-form creator assets for a product launch across TikTok and Reels.",
-    budget: 4500,
-    status: "active",
-    platforms: ["TikTok", "Instagram Reels"],
-    deliverables: "3 videos, 6 hooks, raw footage handoff",
-    creator_slots: 4,
-    duration: "14 days",
-    payment_type: "Fixed",
-    created_at: "2026-03-18T10:00:00.000Z",
-  },
-  {
-    id: "demo-campaign-2",
-    brand_id: "brand-demo",
-    title: "Creator Seeding Program",
-    description:
-      "Find niche beauty creators who can produce organic unboxing and testimonial content.",
-    budget: 2600,
-    status: "open",
-    platforms: ["Instagram", "YouTube Shorts"],
-    deliverables: "2 videos, 1 story set, usage rights",
-    creator_slots: 6,
-    duration: "21 days",
-    payment_type: "Hybrid",
-    created_at: "2026-03-21T14:30:00.000Z",
-  },
-];
-
-const creatorCampaignFallback: Campaign[] = [
-  {
-    id: "market-campaign-1",
-    brand_id: "brand-demo",
-    title: "Premium Skincare Demo Content",
-    description:
-      "Shoot a clean, product-first walkthrough that feels native to creator-led skincare reviews.",
-    budget: 1800,
-    status: "open",
-    platforms: ["TikTok", "Instagram Reels"],
-    deliverables: "2 short-form videos + 5 stills",
-    creator_slots: 3,
-    duration: "10 days",
-    payment_type: "Fixed",
-    created_at: "2026-03-22T11:00:00.000Z",
-  },
-  {
-    id: "market-campaign-2",
-    brand_id: "brand-demo-2",
-    title: "Fitness App Testimonial Series",
-    description:
-      "Create punchy, story-led hooks around workouts, progress, and app-specific value props.",
-    budget: 2400,
-    status: "open",
-    platforms: ["TikTok", "YouTube Shorts"],
-    deliverables: "3 videos, 1 voiceover option",
-    creator_slots: 5,
-    duration: "14 days",
-    payment_type: "Performance bonus",
-    created_at: "2026-03-23T09:45:00.000Z",
-  },
-  {
-    id: "market-campaign-3",
-    brand_id: "brand-demo-3",
-    title: "Home Office Creator Pack",
-    description:
-      "Showcase a desk setup product line with premium framing, lifestyle context, and authentic talking points.",
-    budget: 3200,
-    status: "open",
-    platforms: ["Instagram Reels", "Pinterest"],
-    deliverables: "2 videos, 8 product photos",
-    creator_slots: 4,
-    duration: "18 days",
-    payment_type: "Fixed",
-    created_at: "2026-03-24T16:20:00.000Z",
-  },
-];
-
-const applicationFallback: CampaignApplication[] = [
-  {
-    id: "application-demo-1",
-    campaign_id: "demo-campaign-1",
-    creator_id: "creator-demo",
-    pitch:
-      "I can deliver testimonial-led hooks and raw variations with a premium beauty style.",
-    rate: 950,
-    status: "shortlisted",
-    created_at: "2026-03-20T08:00:00.000Z",
-  },
-  {
-    id: "application-demo-2",
-    campaign_id: "market-campaign-2",
-    creator_id: "creator-demo",
-    pitch:
-      "I focus on high-retention fitness storytelling and can ship edits quickly.",
-    rate: 1100,
-    status: "pending",
-    created_at: "2026-03-24T07:30:00.000Z",
-  },
-];
-
-const publicProfileFallback: Record<string, PublicProfile> = {
-  "brand-demo": {
-    id: "brand-demo",
-    role: "brand",
-    display_name: "Northstar Labs",
-    full_name: null,
-    company_name: "Northstar Labs",
-    headline: "UGC-focused product launches",
-    avatar_url: null,
-  },
-  "brand-demo-2": {
-    id: "brand-demo-2",
-    role: "brand",
-    display_name: "Pulse Studio",
-    full_name: null,
-    company_name: "Pulse Studio",
-    headline: "Mobile growth team",
-    avatar_url: null,
-  },
-  "brand-demo-3": {
-    id: "brand-demo-3",
-    role: "brand",
-    display_name: "Cascade Home",
-    full_name: null,
-    company_name: "Cascade Home",
-    headline: "Design-led consumer brand",
-    avatar_url: null,
-  },
-  "creator-demo": {
-    id: "creator-demo",
-    role: "creator",
-    display_name: "Riley Cole",
-    full_name: "Riley Cole",
-    company_name: null,
-    headline: "Beauty and lifestyle UGC creator",
-    avatar_url: null,
-  },
-};
+const campaignSelectFields =
+  "id, brand_id, title, description, product_name, product_details, content_type, budget, status, platforms, deliverables, creator_slots, duration, deadline, payment_type, usage_rights, creator_requirements, created_at";
 
 function isRole(value: unknown): value is Role {
   return value === "brand" || value === "creator";
@@ -180,6 +63,10 @@ function readString(value: unknown, fallback = "") {
 
 function readNullableString(value: unknown) {
   return typeof value === "string" ? value : null;
+}
+
+function readBoolean(value: unknown, fallback = false) {
+  return typeof value === "boolean" ? value : fallback;
 }
 
 function readNumber(value: unknown, fallback = 0) {
@@ -212,6 +99,14 @@ function normalizeProfile(row: Record<string, unknown>): UserProfile {
     headline: readNullableString(row.headline),
     avatar_url: readNullableString(row.avatar_url),
     stripe_account_id: readNullableString(row.stripe_account_id),
+    stripe_onboarding_complete: readBoolean(row.stripe_onboarding_complete),
+    stripe_details_submitted: readBoolean(row.stripe_details_submitted),
+    stripe_charges_enabled: readBoolean(row.stripe_charges_enabled),
+    stripe_payouts_enabled: readBoolean(row.stripe_payouts_enabled),
+    stripe_transfers_enabled: readBoolean(row.stripe_transfers_enabled),
+    stripe_onboarding_updated_at: readNullableString(
+      row.stripe_onboarding_updated_at,
+    ),
     created_at: readNullableString(row.created_at),
   };
 }
@@ -222,6 +117,9 @@ function normalizeCampaign(row: Record<string, unknown>): Campaign {
     brand_id: readString(row.brand_id),
     title: readString(row.title),
     description: readString(row.description),
+    product_name: readString(row.product_name),
+    product_details: readString(row.product_details),
+    content_type: readString(row.content_type, "UGC Video"),
     budget: readNumber(row.budget),
     status:
       row.status === "in_review" ||
@@ -233,7 +131,10 @@ function normalizeCampaign(row: Record<string, unknown>): Campaign {
     deliverables: readString(row.deliverables),
     creator_slots: readNumber(row.creator_slots, 1),
     duration: readString(row.duration, "14 days"),
+    deadline: readNullableString(row.deadline),
     payment_type: readString(row.payment_type, "Fixed"),
+    usage_rights: readString(row.usage_rights),
+    creator_requirements: readString(row.creator_requirements),
     created_at: readString(row.created_at, new Date().toISOString()),
   };
 }
@@ -255,6 +156,272 @@ function normalizeApplication(row: Record<string, unknown>): CampaignApplication
   };
 }
 
+function normalizeInvitation(row: Record<string, unknown>): CampaignInvitation {
+  return {
+    id: readString(row.id),
+    campaign_id: readString(row.campaign_id),
+    brand_id: readString(row.brand_id),
+    creator_id: readString(row.creator_id),
+    message: readNullableString(row.message),
+    offered_rate: readNumber(row.offered_rate),
+    status:
+      row.status === "accepted" || row.status === "declined"
+        ? (row.status as InvitationStatus)
+        : "pending",
+    created_at: readString(row.created_at, new Date().toISOString()),
+    updated_at: readString(
+      row.updated_at,
+      readString(row.created_at, new Date().toISOString()),
+    ),
+  };
+}
+
+function normalizeSubmission(row: Record<string, unknown>): CampaignSubmission {
+  return {
+    id: readString(row.id),
+    campaign_id: readString(row.campaign_id),
+    brand_id: readString(row.brand_id),
+    creator_id: readString(row.creator_id),
+    application_id: readNullableString(row.application_id),
+    revision_number: readNumber(row.revision_number, 1),
+    content_links: readStringArray(row.content_links),
+    notes: readNullableString(row.notes),
+    feedback: readNullableString(row.feedback),
+    status:
+      row.status === "revision_requested" ||
+      row.status === "approved" ||
+      row.status === "rejected"
+        ? (row.status as SubmissionStatus)
+        : "submitted",
+    assets: [],
+    created_at: readString(row.created_at, new Date().toISOString()),
+    updated_at: readString(
+      row.updated_at,
+      readString(row.created_at, new Date().toISOString()),
+    ),
+    submitted_at: readNullableString(row.submitted_at),
+    reviewed_at: readNullableString(row.reviewed_at),
+  };
+}
+
+function normalizeSubmissionAsset(
+  row: Record<string, unknown>,
+  signedUrlMap: Map<string, string | null>,
+): SubmissionAsset {
+  const storagePath = readString(row.storage_path);
+
+  return {
+    id: readString(row.id),
+    submission_id: readString(row.submission_id),
+    campaign_id: readString(row.campaign_id),
+    brand_id: readString(row.brand_id),
+    creator_id: readString(row.creator_id),
+    revision_number: readNumber(row.revision_number, 1),
+    file_name: readString(row.file_name, "Asset"),
+    storage_path: storagePath,
+    mime_type: readNullableString(row.mime_type),
+    size_bytes: readNumber(row.size_bytes),
+    kind: getSubmissionAssetKind(readNullableString(row.mime_type)),
+    signed_url: signedUrlMap.get(storagePath) ?? null,
+    created_at: readString(row.created_at, new Date().toISOString()),
+  };
+}
+
+function normalizeCreatorPortfolioAsset(
+  row: Record<string, unknown>,
+  signedUrlMap: Map<string, string | null>,
+): CreatorPortfolioAsset {
+  const storagePath = readString(row.storage_path);
+
+  return {
+    id: readString(row.id),
+    user_id: readString(row.user_id),
+    file_name: readString(row.file_name, "Portfolio asset"),
+    storage_path: storagePath,
+    mime_type: readNullableString(row.mime_type),
+    kind: getSubmissionAssetKind(readNullableString(row.mime_type)),
+    size_bytes: readNumber(row.size_bytes),
+    caption: readNullableString(row.caption),
+    sort_order: readNumber(row.sort_order),
+    signed_url: signedUrlMap.get(storagePath) ?? null,
+    created_at: readString(row.created_at, new Date().toISOString()),
+  };
+}
+
+async function getSubmissionAssetsBySubmissionId(
+  supabase: SupabaseServerClient,
+  submissionIds: string[],
+) {
+  if (!submissionIds.length) {
+    return new Map<string, SubmissionAsset[]>();
+  }
+
+  const { data, error } = await supabase
+    .from("campaign_submission_assets")
+    .select(
+      "id, submission_id, campaign_id, brand_id, creator_id, revision_number, file_name, storage_path, mime_type, size_bytes, created_at",
+    )
+    .in("submission_id", submissionIds)
+    .order("revision_number", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("getSubmissionAssetsBySubmissionId: asset lookup failed", {
+      submissionIds,
+      error,
+    });
+    return new Map<string, SubmissionAsset[]>();
+  }
+
+  const signedUrlMap = await getSignedSubmissionAssetUrls(
+    ((data ?? []) as Array<Record<string, unknown>>).map((row) =>
+      readString(row.storage_path),
+    ),
+  );
+
+  const assets = ((data ?? []) as Array<Record<string, unknown>>).map((row) =>
+    normalizeSubmissionAsset(row, signedUrlMap),
+  );
+
+  return assets.reduce((map, asset) => {
+    const existing = map.get(asset.submission_id) ?? [];
+    existing.push(asset);
+    map.set(asset.submission_id, existing);
+    return map;
+  }, new Map<string, SubmissionAsset[]>());
+}
+
+async function getCreatorPortfolioAssetsByUserId(
+  supabase: SupabaseServerClient,
+  userIds: string[],
+) {
+  if (!userIds.length) {
+    return new Map<string, CreatorPortfolioAsset[]>();
+  }
+
+  const { data, error } = await supabase
+    .from("creator_profile_assets")
+    .select(
+      "id, user_id, file_name, storage_path, mime_type, kind, size_bytes, caption, sort_order, created_at",
+    )
+    .in("user_id", userIds)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("getCreatorPortfolioAssetsByUserId: asset lookup failed", {
+      userIds,
+      error,
+    });
+    return new Map<string, CreatorPortfolioAsset[]>();
+  }
+
+  const signedUrlMap = await getSignedCreatorPortfolioAssetUrls(
+    ((data ?? []) as Array<Record<string, unknown>>).map((row) =>
+      readString(row.storage_path),
+    ),
+  );
+
+  const assets = ((data ?? []) as Array<Record<string, unknown>>).map((row) =>
+    normalizeCreatorPortfolioAsset(row, signedUrlMap),
+  );
+
+  return assets.reduce((map, asset) => {
+    const existing = map.get(asset.user_id) ?? [];
+    existing.push(asset);
+    map.set(asset.user_id, existing);
+    return map;
+  }, new Map<string, CreatorPortfolioAsset[]>());
+}
+
+function normalizeFunding(row: Record<string, unknown>): CampaignFunding {
+  return {
+    id: readString(row.id),
+    campaign_id: readNullableString(row.campaign_id),
+    brand_id: readString(row.brand_id),
+    stripe_checkout_session_id: readNullableString(row.stripe_checkout_session_id),
+    stripe_payment_intent_id: readNullableString(row.stripe_payment_intent_id),
+    stripe_charge_id: readNullableString(row.stripe_charge_id),
+    stripe_transfer_group: readNullableString(row.stripe_transfer_group),
+    amount: readNumber(row.amount),
+    currency: readString(row.currency, "usd"),
+    status:
+      row.status === "paid" ||
+      row.status === "cancelled" ||
+      row.status === "failed"
+        ? (row.status as FundingStatus)
+        : "pending",
+    created_at: readString(row.created_at, new Date().toISOString()),
+    paid_at: readNullableString(row.paid_at),
+  };
+}
+
+function normalizePayout(row: Record<string, unknown>): CampaignPayout {
+  return {
+    id: readString(row.id),
+    campaign_id: readString(row.campaign_id),
+    submission_id: readString(row.submission_id),
+    brand_id: readString(row.brand_id),
+    creator_id: readString(row.creator_id),
+    application_id: readNullableString(row.application_id),
+    source_funding_id: readNullableString(row.source_funding_id),
+    amount: readNumber(row.amount),
+    platform_fee_percent: readNumber(row.platform_fee_percent),
+    platform_fee_amount: readNumber(row.platform_fee_amount),
+    creator_amount: readNumber(row.creator_amount, readNumber(row.amount)),
+    currency: readString(row.currency, "usd"),
+    status:
+      row.status === "paid" || row.status === "failed" || row.status === "reversed"
+        ? (row.status as PayoutStatus)
+        : "payout_ready",
+    stripe_transfer_id: readNullableString(row.stripe_transfer_id),
+    stripe_account_id: readNullableString(row.stripe_account_id),
+    stripe_source_charge_id: readNullableString(row.stripe_source_charge_id),
+    stripe_transfer_group: readNullableString(row.stripe_transfer_group),
+    reversed_amount: readNumber(row.reversed_amount),
+    failure_reason: readNullableString(row.failure_reason),
+    created_at: readString(row.created_at, new Date().toISOString()),
+    updated_at: readString(
+      row.updated_at,
+      readString(row.created_at, new Date().toISOString()),
+    ),
+    paid_at: readNullableString(row.paid_at),
+    reversed_at: readNullableString(row.reversed_at),
+  };
+}
+
+function normalizeCreatorProfile(
+  row: Record<string, unknown>,
+): CreatorProfileDetails {
+  return {
+    user_id: readString(row.user_id),
+    bio: readNullableString(row.bio),
+    niches: readStringArray(row.niches),
+    platform_specialties: readStringArray(row.platform_specialties),
+    portfolio_url: readNullableString(row.portfolio_url),
+    instagram_url: readNullableString(row.instagram_url),
+    instagram_handle: readNullableString(row.instagram_handle),
+    instagram_followers: readNumber(row.instagram_followers),
+    tiktok_url: readNullableString(row.tiktok_url),
+    tiktok_handle: readNullableString(row.tiktok_handle),
+    tiktok_followers: readNumber(row.tiktok_followers),
+    youtube_url: readNullableString(row.youtube_url),
+    youtube_handle: readNullableString(row.youtube_handle),
+    youtube_subscribers: readNumber(row.youtube_subscribers),
+    website_url: readNullableString(row.website_url),
+    base_rate: readNumber(row.base_rate),
+    engagement_rate: readNumber(row.engagement_rate),
+    average_views: readNumber(row.average_views),
+    featured_brands: readStringArray(row.featured_brands),
+    featured_result: readNullableString(row.featured_result),
+    audience_summary: readNullableString(row.audience_summary),
+    past_work: readNullableString(row.past_work),
+    location: readNullableString(row.location),
+    created_at: readNullableString(row.created_at),
+    updated_at: readNullableString(row.updated_at),
+  };
+}
+
 async function getPublicProfiles(
   supabase: SupabaseServerClient,
   ids: string[],
@@ -272,12 +439,11 @@ async function getPublicProfiles(
     .in("id", uniqueIds);
 
   if (error || !data) {
-    return new Map(
-      uniqueIds
-        .map((id) => publicProfileFallback[id])
-        .filter(Boolean)
-        .map((profile) => [profile.id, profile]),
-    );
+    console.error("getPublicProfiles: public_profiles lookup failed", {
+      ids: uniqueIds,
+      error,
+    });
+    return new Map<string, PublicProfile>();
   }
 
   return new Map(
@@ -302,17 +468,20 @@ async function getBrandData(
 ): Promise<BrandDashboardData> {
   const { data: rawCampaigns, error: campaignError } = await supabase
     .from("campaigns")
-    .select(
-      "id, brand_id, title, description, budget, status, platforms, deliverables, creator_slots, duration, payment_type, created_at",
-    )
+    .select(campaignSelectFields)
     .eq("brand_id", userId)
     .order("created_at", { ascending: false });
 
-  const campaigns = campaignError
-    ? brandCampaignFallback
-    : ((rawCampaigns ?? []) as Array<Record<string, unknown>>).map(
-        normalizeCampaign,
-      );
+  if (campaignError) {
+    console.error("getBrandData: campaigns lookup failed", {
+      userId,
+      error: campaignError,
+    });
+  }
+
+  const campaigns = ((rawCampaigns ?? []) as Array<Record<string, unknown>>).map(
+    normalizeCampaign,
+  );
 
   const campaignIds = campaigns.map((campaign) => campaign.id);
 
@@ -324,17 +493,180 @@ async function getBrandData(
         .order("created_at", { ascending: false })
     : { data: [], error: null };
 
-  const applications = applicationError
-    ? applicationFallback.filter((application) =>
-        campaignIds.includes(application.campaign_id),
-      )
-    : ((rawApplications ?? []) as Array<Record<string, unknown>>).map(
-        normalizeApplication,
-      );
+  if (applicationError) {
+    console.error("getBrandData: applications lookup failed", {
+      userId,
+      campaignIds,
+      error: applicationError,
+    });
+  }
+
+  const applications = ((rawApplications ?? []) as Array<Record<string, unknown>>).map(
+    normalizeApplication,
+  );
+  const applicationKeyToRate = new Map(
+    applications.map((application) => [
+      `${application.campaign_id}:${application.creator_id}`,
+      application.rate,
+    ]),
+  );
+
+  const { data: rawInvitations, error: invitationError } = await supabase
+    .from("campaign_invitations")
+    .select(
+      "id, campaign_id, brand_id, creator_id, message, offered_rate, status, created_at, updated_at",
+    )
+    .eq("brand_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (invitationError) {
+    console.error("getBrandData: invitations lookup failed", {
+      userId,
+      error: invitationError,
+    });
+  }
+
+  const invitations = ((rawInvitations ?? []) as Array<Record<string, unknown>>).map(
+    normalizeInvitation,
+  );
+
+  const { data: rawSubmissions, error: submissionError } = campaignIds.length
+    ? await supabase
+        .from("campaign_submissions")
+        .select(
+          "id, campaign_id, brand_id, creator_id, application_id, revision_number, content_links, notes, feedback, status, created_at, updated_at, submitted_at, reviewed_at",
+        )
+        .in("campaign_id", campaignIds)
+        .order("submitted_at", { ascending: false, nullsFirst: false })
+    : { data: [], error: null };
+
+  if (submissionError) {
+    console.error("getBrandData: submissions lookup failed", {
+      userId,
+      campaignIds,
+      error: submissionError,
+    });
+  }
+
+  const submissions = ((rawSubmissions ?? []) as Array<Record<string, unknown>>).map(
+    normalizeSubmission,
+  );
+  const submissionAssetsById = await getSubmissionAssetsBySubmissionId(
+    supabase,
+    submissions.map((submission) => submission.id),
+  );
+  const submissionsWithAssets = submissions.map((submission) => ({
+    ...submission,
+    assets: submissionAssetsById.get(submission.id) ?? [],
+  }));
+
+  const { data: rawFundings, error: fundingError } = await supabase
+    .from("campaign_fundings")
+    .select(
+      "id, campaign_id, brand_id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_charge_id, stripe_transfer_group, amount, currency, status, created_at, paid_at",
+    )
+    .eq("brand_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (fundingError) {
+    console.error("getBrandData: fundings lookup failed", {
+      userId,
+      error: fundingError,
+    });
+  }
+
+  const fundings = ((rawFundings ?? []) as Array<Record<string, unknown>>).map(
+    normalizeFunding,
+  );
+
+  const { data: rawPayouts, error: payoutError } = await supabase
+    .from("campaign_payouts")
+    .select(
+      "id, campaign_id, submission_id, brand_id, creator_id, application_id, source_funding_id, amount, platform_fee_percent, platform_fee_amount, creator_amount, currency, status, stripe_transfer_id, stripe_account_id, stripe_source_charge_id, stripe_transfer_group, reversed_amount, failure_reason, created_at, updated_at, paid_at, reversed_at",
+    )
+    .eq("brand_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (payoutError) {
+    console.error("getBrandData: payouts lookup failed", {
+      userId,
+      error: payoutError,
+    });
+  }
+
+  const payouts = ((rawPayouts ?? []) as Array<Record<string, unknown>>).map(
+    normalizePayout,
+  );
 
   const profiles = await getPublicProfiles(
     supabase,
-    applications.map((application) => application.creator_id),
+    [
+      ...applications.map((application) => application.creator_id),
+      ...invitations.map((invitation) => invitation.creator_id),
+      ...submissions.map((submission) => submission.creator_id),
+      ...payouts.map((payout) => payout.creator_id),
+    ],
+  );
+
+  const { data: rawCreatorDirectory, error: creatorDirectoryError } = await supabase
+    .from("public_profiles")
+    .select(
+      "id, role, display_name, full_name, company_name, headline, avatar_url",
+    )
+    .eq("role", "creator");
+
+  if (creatorDirectoryError) {
+    console.error("getBrandData: creator directory lookup failed", {
+      userId,
+      error: creatorDirectoryError,
+    });
+  }
+
+  const creatorDirectoryProfiles = creatorDirectoryError
+    ? []
+    : ((rawCreatorDirectory ?? []) as Array<Record<string, unknown>>).map((row) => ({
+        id: readString(row.id),
+        role: isRole(row.role) ? row.role : "creator",
+        display_name: readNullableString(row.display_name),
+        full_name: readNullableString(row.full_name),
+        company_name: readNullableString(row.company_name),
+        headline: readNullableString(row.headline),
+        avatar_url: readNullableString(row.avatar_url),
+      }));
+
+  const creatorDirectoryIds = creatorDirectoryProfiles.length
+    ? creatorDirectoryProfiles.map((creator) => creator.id)
+    : [...profiles.values()]
+        .filter((profile) => profile.role === "creator")
+        .map((profile) => profile.id);
+
+  const { data: rawCreatorProfileDetails, error: creatorProfilesError } =
+    creatorDirectoryIds.length
+      ? await supabase
+          .from("creator_profiles")
+          .select(
+            "user_id, bio, niches, platform_specialties, portfolio_url, instagram_url, instagram_handle, instagram_followers, tiktok_url, tiktok_handle, tiktok_followers, youtube_url, youtube_handle, youtube_subscribers, website_url, base_rate, engagement_rate, average_views, featured_brands, featured_result, audience_summary, past_work, location, created_at, updated_at",
+          )
+          .in("user_id", [...new Set(creatorDirectoryIds)])
+      : { data: [], error: null };
+
+  if (creatorProfilesError) {
+    console.error("getBrandData: creator profile details lookup failed", {
+      userId,
+      error: creatorProfilesError,
+    });
+  }
+
+  const creatorProfileMap = new Map(
+    ((rawCreatorProfileDetails ?? []) as Array<Record<string, unknown>>).map((row) => {
+      const profile = normalizeCreatorProfile(row);
+      return [profile.user_id, profile] as const;
+    }),
+  );
+
+  const creatorPortfolioAssetMap = await getCreatorPortfolioAssetsByUserId(
+    supabase,
+    creatorDirectoryIds,
   );
 
   const campaignsWithCounts: BrandCampaignSummary[] = campaigns.map((campaign) => ({
@@ -346,9 +678,7 @@ async function getBrandData(
 
   const enrichedApplications: BrandApplicationSummary[] = applications.map(
     (application) => {
-      const creator =
-        profiles.get(application.creator_id) ??
-        publicProfileFallback[application.creator_id];
+      const creator = profiles.get(application.creator_id) ?? null;
       const campaign = campaigns.find(
         (campaignItem) => campaignItem.id === application.campaign_id,
       );
@@ -366,9 +696,161 @@ async function getBrandData(
     },
   );
 
+  const enrichedSubmissions: BrandSubmissionSummary[] = submissionsWithAssets.map(
+    (submission) => {
+      const creator = profiles.get(submission.creator_id) ?? null;
+      const campaign =
+        campaigns.find((campaignItem) => campaignItem.id === submission.campaign_id) ??
+        null;
+
+      return {
+        ...submission,
+        campaign_title: campaign?.title ?? "Campaign",
+        creator_name:
+          creator?.display_name ??
+          creator?.full_name ??
+          creator?.company_name ??
+          "Creator",
+        creator_headline: creator?.headline ?? null,
+        rate:
+          applicationKeyToRate.get(
+            `${submission.campaign_id}:${submission.creator_id}`,
+          ) ?? 0,
+      };
+    },
+  );
+
+  const enrichedFundings: BrandFundingSummary[] = fundings.map((funding) => ({
+    ...funding,
+    campaign_title: funding.campaign_id
+      ? campaigns.find((campaign) => campaign.id === funding.campaign_id)?.title ?? null
+      : null,
+  }));
+
+  const enrichedPayouts: BrandPayoutSummary[] = payouts.map((payout) => {
+    const creator = profiles.get(payout.creator_id) ?? null;
+    const campaign = campaigns.find((item) => item.id === payout.campaign_id) ?? null;
+
+    return {
+      ...payout,
+      campaign_title: campaign?.title ?? "Campaign",
+      creator_name:
+        creator?.display_name ??
+        creator?.full_name ??
+        creator?.company_name ??
+        "Creator",
+      creator_headline: creator?.headline ?? null,
+    };
+  });
+
+  const creatorDirectory = (
+    creatorDirectoryProfiles.length
+      ? creatorDirectoryProfiles
+      : [...profiles.values()].filter((profile) => profile.role === "creator")
+  )
+    .map((creator): BrandCreatorDirectoryEntry => {
+      const creatorApplications = applications.filter(
+        (application) => application.creator_id === creator.id,
+      );
+      const creatorInvitations = invitations.filter(
+        (invitation) => invitation.creator_id === creator.id,
+      );
+      const latestApplication = creatorApplications[0] ?? null;
+      const matchedCampaign = latestApplication
+        ? campaigns.find((campaign) => campaign.id === latestApplication.campaign_id)
+        : null;
+      const creatorProfile = creatorProfileMap.get(creator.id) ?? null;
+      const highestApplicationRate = creatorApplications.reduce(
+        (highest, application) => Math.max(highest, application.rate),
+        0,
+      );
+      const displayRate = Math.max(
+        highestApplicationRate,
+        creatorProfile?.base_rate ?? 0,
+      );
+      const primaryNiche = creatorProfile?.niches[0] ?? null;
+      const primaryPlatform = creatorProfile?.platform_specialties[0] ?? null;
+
+      return {
+        id: creator.id,
+        name:
+          creator.display_name ??
+          creator.full_name ??
+          creator.company_name ??
+          "Creator",
+        headline: creator.headline ?? null,
+        avatar_url: creator.avatar_url ?? null,
+        applications: creatorApplications.length,
+        accepted: creatorApplications.filter(
+          (application) => application.status === "accepted",
+        ).length,
+        rate: displayRate,
+        base_rate: creatorProfile?.base_rate ?? 0,
+        focus:
+          primaryNiche ??
+          primaryPlatform ??
+          creator.headline ??
+          matchedCampaign?.title ??
+          "Open to short-form collaborations",
+        bio: creatorProfile?.bio ?? null,
+        niches: creatorProfile?.niches ?? [],
+        platform_specialties: creatorProfile?.platform_specialties ?? [],
+        portfolio_url: creatorProfile?.portfolio_url ?? null,
+        instagram_url: creatorProfile?.instagram_url ?? null,
+        instagram_handle: creatorProfile?.instagram_handle ?? null,
+        instagram_followers: creatorProfile?.instagram_followers ?? 0,
+        tiktok_url: creatorProfile?.tiktok_url ?? null,
+        tiktok_handle: creatorProfile?.tiktok_handle ?? null,
+        tiktok_followers: creatorProfile?.tiktok_followers ?? 0,
+        youtube_url: creatorProfile?.youtube_url ?? null,
+        youtube_handle: creatorProfile?.youtube_handle ?? null,
+        youtube_subscribers: creatorProfile?.youtube_subscribers ?? 0,
+        website_url: creatorProfile?.website_url ?? null,
+        engagement_rate: creatorProfile?.engagement_rate ?? 0,
+        average_views: creatorProfile?.average_views ?? 0,
+        featured_brands: creatorProfile?.featured_brands ?? [],
+        featured_result: creatorProfile?.featured_result ?? null,
+        portfolio_assets: creatorPortfolioAssetMap.get(creator.id) ?? [],
+        audience_summary: creatorProfile?.audience_summary ?? null,
+        past_work: creatorProfile?.past_work ?? null,
+        location: creatorProfile?.location ?? null,
+        latest_campaign_title: matchedCampaign?.title ?? null,
+        latest_application_at: latestApplication?.created_at ?? null,
+        invitations: creatorInvitations.length,
+        pending_invitations: creatorInvitations.filter(
+          (invitation) => invitation.status === "pending",
+        ).length,
+        invited_campaign_ids: [
+          ...new Set(
+            creatorInvitations
+              .filter((invitation) => invitation.status !== "declined")
+              .map((invitation) => invitation.campaign_id),
+          ),
+        ],
+        last_invited_at: creatorInvitations[0]?.created_at ?? null,
+      };
+    })
+    .sort((left, right) => {
+      const scoreLeft =
+        left.accepted * 5 + left.applications * 3 + left.pending_invitations * 2;
+      const scoreRight =
+        right.accepted * 5 + right.applications * 3 + right.pending_invitations * 2;
+
+      if (scoreRight !== scoreLeft) {
+        return scoreRight - scoreLeft;
+      }
+
+      return left.name.localeCompare(right.name);
+    });
+
   return {
     campaigns: campaignsWithCounts,
     applications: enrichedApplications,
+    submissions: enrichedSubmissions,
+    creators: creatorDirectory,
+    invitations,
+    fundings: enrichedFundings,
+    payouts: enrichedPayouts,
   };
 }
 
@@ -378,18 +860,21 @@ async function getCreatorData(
 ): Promise<CreatorDashboardData> {
   const { data: rawCampaigns, error: campaignError } = await supabase
     .from("campaigns")
-    .select(
-      "id, brand_id, title, description, budget, status, platforms, deliverables, creator_slots, duration, payment_type, created_at",
-    )
+    .select(campaignSelectFields)
     .eq("status", "open")
     .neq("brand_id", userId)
     .order("created_at", { ascending: false });
 
-  const campaigns = campaignError
-    ? creatorCampaignFallback
-    : ((rawCampaigns ?? []) as Array<Record<string, unknown>>).map(
-        normalizeCampaign,
-      );
+  if (campaignError) {
+    console.error("getCreatorData: open campaigns lookup failed", {
+      userId,
+      error: campaignError,
+    });
+  }
+
+  const campaigns = ((rawCampaigns ?? []) as Array<Record<string, unknown>>).map(
+    normalizeCampaign,
+  );
 
   const { data: rawApplications, error: applicationError } = await supabase
     .from("campaign_applications")
@@ -397,59 +882,340 @@ async function getCreatorData(
     .eq("creator_id", userId)
     .order("created_at", { ascending: false });
 
-  const applications = applicationError
-    ? applicationFallback.filter((application) => application.creator_id === userId)
-    : ((rawApplications ?? []) as Array<Record<string, unknown>>).map(
-        normalizeApplication,
-      );
+  if (applicationError) {
+    console.error("getCreatorData: applications lookup failed", {
+      userId,
+      error: applicationError,
+    });
+  }
+
+  const applications = ((rawApplications ?? []) as Array<Record<string, unknown>>).map(
+    normalizeApplication,
+  );
+  const applicationMap = new Map(
+    applications.map((application) => [
+      `${application.campaign_id}:${application.creator_id}`,
+      application,
+    ]),
+  );
+
+  const { data: rawInvitations, error: invitationError } = await supabase
+    .from("campaign_invitations")
+    .select(
+      "id, campaign_id, brand_id, creator_id, message, offered_rate, status, created_at, updated_at",
+    )
+    .eq("creator_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (invitationError) {
+    console.error("getCreatorData: invitations lookup failed", {
+      userId,
+      error: invitationError,
+    });
+  }
+
+  const invitations = ((rawInvitations ?? []) as Array<Record<string, unknown>>).map(
+    normalizeInvitation,
+  );
+
+  const { data: rawSubmissions, error: submissionError } = await supabase
+    .from("campaign_submissions")
+    .select(
+      "id, campaign_id, brand_id, creator_id, application_id, revision_number, content_links, notes, feedback, status, created_at, updated_at, submitted_at, reviewed_at",
+    )
+    .eq("creator_id", userId)
+    .order("submitted_at", { ascending: false, nullsFirst: false });
+
+  if (submissionError) {
+    console.error("getCreatorData: submissions lookup failed", {
+      userId,
+      error: submissionError,
+    });
+  }
+
+  const submissions = ((rawSubmissions ?? []) as Array<Record<string, unknown>>).map(
+    normalizeSubmission,
+  );
+  const submissionAssetsById = await getSubmissionAssetsBySubmissionId(
+    supabase,
+    submissions.map((submission) => submission.id),
+  );
+  const submissionsWithAssets = submissions.map((submission) => ({
+    ...submission,
+    assets: submissionAssetsById.get(submission.id) ?? [],
+  }));
+
+  const { data: rawPayouts, error: payoutError } = await supabase
+    .from("campaign_payouts")
+    .select(
+      "id, campaign_id, submission_id, brand_id, creator_id, application_id, source_funding_id, amount, platform_fee_percent, platform_fee_amount, creator_amount, currency, status, stripe_transfer_id, stripe_account_id, stripe_source_charge_id, stripe_transfer_group, reversed_amount, failure_reason, created_at, updated_at, paid_at, reversed_at",
+    )
+    .eq("creator_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (payoutError) {
+    console.error("getCreatorData: payouts lookup failed", {
+      userId,
+      error: payoutError,
+    });
+  }
+
+  const payouts = ((rawPayouts ?? []) as Array<Record<string, unknown>>).map(
+    normalizePayout,
+  );
+
+  const { data: rawCreatorProfile, error: creatorProfileError } = await supabase
+    .from("creator_profiles")
+    .select(
+      "user_id, bio, niches, platform_specialties, portfolio_url, instagram_url, instagram_handle, instagram_followers, tiktok_url, tiktok_handle, tiktok_followers, youtube_url, youtube_handle, youtube_subscribers, website_url, base_rate, engagement_rate, average_views, featured_brands, featured_result, audience_summary, past_work, location, created_at, updated_at",
+    )
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (creatorProfileError) {
+    console.error("getCreatorData: creator profile lookup failed", {
+      userId,
+      error: creatorProfileError,
+    });
+  }
+
+  const creatorProfile =
+    rawCreatorProfile && !Array.isArray(rawCreatorProfile)
+      ? normalizeCreatorProfile(rawCreatorProfile as Record<string, unknown>)
+      : null;
+
+  const creatorPortfolioAssetMap = await getCreatorPortfolioAssetsByUserId(
+    supabase,
+    [userId],
+  );
+  const creatorPortfolioAssets = creatorPortfolioAssetMap.get(userId) ?? [];
+
+  const appliedCampaignIds = [...new Set(applications.map((application) => application.campaign_id))];
+  const missingCampaignIds = appliedCampaignIds.filter(
+    (campaignId) => !campaigns.some((campaign) => campaign.id === campaignId),
+  );
+
+  const invitationCampaignIds = [
+    ...new Set(invitations.map((invitation) => invitation.campaign_id)),
+  ];
+  const submissionCampaignIds = [
+    ...new Set(submissions.map((submission) => submission.campaign_id)),
+  ];
+  const missingInvitationCampaignIds = invitationCampaignIds.filter(
+    (campaignId) =>
+      !campaigns.some((campaign) => campaign.id === campaignId) &&
+      !missingCampaignIds.includes(campaignId),
+  );
+  const missingSubmissionCampaignIds = submissionCampaignIds.filter(
+    (campaignId) =>
+      !campaigns.some((campaign) => campaign.id === campaignId) &&
+      !missingCampaignIds.includes(campaignId) &&
+      !missingInvitationCampaignIds.includes(campaignId),
+  );
+
+  const { data: rawAppliedCampaigns, error: appliedCampaignsError } = missingCampaignIds.length
+    ? await supabase
+        .from("campaigns")
+        .select(campaignSelectFields)
+        .in("id", missingCampaignIds)
+    : { data: [], error: null };
+
+  if (appliedCampaignsError) {
+    console.error("getCreatorData: applied campaigns lookup failed", {
+      userId,
+      campaignIds: missingCampaignIds,
+      error: appliedCampaignsError,
+    });
+  }
+
+  const applicationCampaigns = ((rawAppliedCampaigns ?? []) as Array<Record<string, unknown>>).map(
+    normalizeCampaign,
+  );
+  const { data: rawInvitationCampaigns, error: invitationCampaignsError } =
+    missingInvitationCampaignIds.length
+      ? await supabase
+          .from("campaigns")
+          .select(campaignSelectFields)
+          .in("id", missingInvitationCampaignIds)
+      : { data: [], error: null };
+
+  if (invitationCampaignsError) {
+    console.error("getCreatorData: invitation campaigns lookup failed", {
+      userId,
+      campaignIds: missingInvitationCampaignIds,
+      error: invitationCampaignsError,
+    });
+  }
+
+  const invitationCampaigns = ((rawInvitationCampaigns ?? []) as Array<Record<string, unknown>>).map(
+    normalizeCampaign,
+  );
+  const { data: rawSubmissionCampaigns, error: submissionCampaignsError } =
+    missingSubmissionCampaignIds.length
+      ? await supabase
+          .from("campaigns")
+          .select(campaignSelectFields)
+          .in("id", missingSubmissionCampaignIds)
+      : { data: [], error: null };
+
+  if (submissionCampaignsError) {
+    console.error("getCreatorData: submission campaigns lookup failed", {
+      userId,
+      campaignIds: missingSubmissionCampaignIds,
+      error: submissionCampaignsError,
+    });
+  }
+
+  const submissionCampaigns = ((rawSubmissionCampaigns ?? []) as Array<Record<string, unknown>>).map(
+    normalizeCampaign,
+  );
+  const campaignMap = new Map(
+    [
+      ...campaigns,
+      ...applicationCampaigns,
+      ...invitationCampaigns,
+      ...submissionCampaigns,
+    ].map((campaign) => [campaign.id, campaign]),
+  );
 
   const profiles = await getPublicProfiles(
     supabase,
-    campaigns.map((campaign) => campaign.brand_id),
+    [
+      ...new Set([
+        ...[...campaignMap.values()].map((campaign) => campaign.brand_id),
+        ...invitations.map((invitation) => invitation.brand_id),
+        ...submissions.map((submission) => submission.brand_id),
+        ...payouts.map((payout) => payout.brand_id),
+      ]),
+    ],
   );
-  const appliedCampaignIds = new Set(
-    applications.map((application) => application.campaign_id),
-  );
+  const appliedCampaignIdSet = new Set(appliedCampaignIds);
 
   const campaignsWithBrand: CreatorCampaignSummary[] = campaigns.map((campaign) => {
-    const brand =
-      profiles.get(campaign.brand_id) ?? publicProfileFallback[campaign.brand_id];
+    const brand = profiles.get(campaign.brand_id) ?? null;
 
     return {
       ...campaign,
       brand_name:
         brand?.display_name ?? brand?.company_name ?? brand?.full_name ?? "Brand",
       brand_headline: brand?.headline ?? null,
-      has_applied: appliedCampaignIds.has(campaign.id),
+      has_applied: appliedCampaignIdSet.has(campaign.id),
     };
   });
 
   const enrichedApplications: CreatorApplicationSummary[] = applications.map(
     (application) => {
-      const campaign =
-        campaigns.find((campaignItem) => campaignItem.id === application.campaign_id) ??
-        creatorCampaignFallback.find(
-          (campaignItem) => campaignItem.id === application.campaign_id,
-        );
-      const brand =
-        (campaign &&
-          (profiles.get(campaign.brand_id) ??
-            publicProfileFallback[campaign.brand_id])) ||
-        null;
+      const campaign = campaignMap.get(application.campaign_id) ?? null;
+      const brand = campaign ? profiles.get(campaign.brand_id) ?? null : null;
 
       return {
         ...application,
         campaign_title: campaign?.title ?? "Campaign",
         campaign_budget: campaign?.budget ?? 0,
+        campaign_description: campaign?.description ?? "",
+        product_name: campaign?.product_name ?? "",
+        product_details: campaign?.product_details ?? "",
+        content_type: campaign?.content_type ?? "UGC Video",
+        deliverables: campaign?.deliverables ?? "",
+        duration: campaign?.duration ?? "14 days",
+        deadline: campaign?.deadline ?? null,
+        payment_type: campaign?.payment_type ?? "Fixed",
+        usage_rights: campaign?.usage_rights ?? "",
+        creator_requirements: campaign?.creator_requirements ?? "",
+        platforms: campaign?.platforms ?? [],
+        brand_id: campaign?.brand_id ?? "",
         brand_name:
           brand?.display_name ?? brand?.company_name ?? brand?.full_name ?? "Brand",
+        brand_headline: brand?.headline ?? null,
       };
     },
   );
 
+  const enrichedInvitations: CreatorInvitationSummary[] = invitations.map(
+    (invitation) => {
+      const campaign = campaignMap.get(invitation.campaign_id) ?? null;
+      const brand =
+        profiles.get(invitation.brand_id) ??
+        (campaign ? profiles.get(campaign.brand_id) ?? null : null);
+
+      return {
+        ...invitation,
+        campaign_title: campaign?.title ?? "Campaign",
+        campaign_budget: campaign?.budget ?? 0,
+        campaign_description: campaign?.description ?? "",
+        product_name: campaign?.product_name ?? "",
+        product_details: campaign?.product_details ?? "",
+        content_type: campaign?.content_type ?? "UGC Video",
+        deliverables: campaign?.deliverables ?? "",
+        duration: campaign?.duration ?? "14 days",
+        deadline: campaign?.deadline ?? null,
+        payment_type: campaign?.payment_type ?? "Fixed",
+        usage_rights: campaign?.usage_rights ?? "",
+        creator_requirements: campaign?.creator_requirements ?? "",
+        platforms: campaign?.platforms ?? [],
+        brand_name:
+          brand?.display_name ?? brand?.company_name ?? brand?.full_name ?? "Brand",
+        brand_headline: brand?.headline ?? null,
+      };
+    },
+  );
+
+  const enrichedSubmissions: CreatorSubmissionSummary[] = submissionsWithAssets.map(
+    (submission) => {
+      const campaign = campaignMap.get(submission.campaign_id) ?? null;
+      const brand =
+        profiles.get(submission.brand_id) ??
+        (campaign ? profiles.get(campaign.brand_id) ?? null : null);
+      const application =
+        applicationMap.get(`${submission.campaign_id}:${submission.creator_id}`) ??
+        null;
+
+      return {
+        ...submission,
+        campaign_title: campaign?.title ?? "Campaign",
+        campaign_budget: campaign?.budget ?? 0,
+        campaign_description: campaign?.description ?? "",
+        product_name: campaign?.product_name ?? "",
+        product_details: campaign?.product_details ?? "",
+        content_type: campaign?.content_type ?? "UGC Video",
+        deliverables: campaign?.deliverables ?? "",
+        duration: campaign?.duration ?? "14 days",
+        deadline: campaign?.deadline ?? null,
+        payment_type: campaign?.payment_type ?? "Fixed",
+        usage_rights: campaign?.usage_rights ?? "",
+        creator_requirements: campaign?.creator_requirements ?? "",
+        platforms: campaign?.platforms ?? [],
+        brand_name:
+          brand?.display_name ?? brand?.company_name ?? brand?.full_name ?? "Brand",
+        brand_headline: brand?.headline ?? null,
+        rate: application?.rate ?? 0,
+      };
+    },
+  );
+
+  const enrichedPayouts: CreatorPayoutSummary[] = payouts.map((payout) => {
+    const campaign = campaignMap.get(payout.campaign_id) ?? null;
+    const brand =
+      profiles.get(payout.brand_id) ??
+      (campaign ? profiles.get(campaign.brand_id) ?? null : null);
+
+    return {
+      ...payout,
+      campaign_title: campaign?.title ?? "Campaign",
+      brand_name:
+        brand?.display_name ?? brand?.company_name ?? brand?.full_name ?? "Brand",
+      brand_headline: brand?.headline ?? null,
+    };
+  });
+
   return {
     campaigns: campaignsWithBrand,
     applications: enrichedApplications,
+    invitations: enrichedInvitations,
+    submissions: enrichedSubmissions,
+    payouts: enrichedPayouts,
+    profile_details: creatorProfile,
+    profile_assets: creatorPortfolioAssets,
   };
 }
 

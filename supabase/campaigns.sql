@@ -5,16 +5,30 @@ create table if not exists public.campaigns (
   brand_id uuid not null references public.users(id) on delete cascade,
   title text not null,
   description text not null,
+  product_name text not null default '',
+  product_details text not null default '',
+  content_type text not null default 'UGC Video',
   budget numeric(10, 2) not null default 0,
   status text not null default 'open' check (status in ('open', 'in_review', 'active', 'completed')),
   platforms text[] not null default '{}',
   deliverables text not null default '',
   creator_slots integer not null default 1 check (creator_slots > 0),
   duration text not null default '14 days',
+  deadline date,
   payment_type text not null default 'Fixed',
+  usage_rights text not null default '',
+  creator_requirements text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.campaigns
+  add column if not exists product_name text not null default '',
+  add column if not exists product_details text not null default '',
+  add column if not exists content_type text not null default 'UGC Video',
+  add column if not exists deadline date,
+  add column if not exists usage_rights text not null default '',
+  add column if not exists creator_requirements text not null default '';
 
 create table if not exists public.campaign_applications (
   id uuid primary key default gen_random_uuid(),
@@ -40,6 +54,54 @@ begin
   new.updated_at = now();
   return new;
 end;
+$$;
+
+create or replace function public.has_campaign_application(
+  target_campaign_id uuid,
+  target_creator_id uuid
+)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.campaign_applications
+    where campaign_id = target_campaign_id
+      and creator_id = target_creator_id
+  );
+$$;
+
+create or replace function public.is_brand_campaign(
+  target_campaign_id uuid,
+  target_brand_id uuid
+)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.campaigns
+    where id = target_campaign_id
+      and brand_id = target_brand_id
+  );
+$$;
+
+create or replace function public.is_open_campaign(target_campaign_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.campaigns
+    where id = target_campaign_id
+      and status = 'open'
+  );
 $$;
 
 drop trigger if exists set_campaigns_updated_at on public.campaigns;
@@ -82,14 +144,7 @@ create policy "Creators can view applied campaigns"
 on public.campaigns
 for select
 to authenticated
-using (
-  exists (
-    select 1
-    from public.campaign_applications
-    where campaign_id = public.campaigns.id
-      and creator_id = auth.uid()
-  )
-);
+using (public.has_campaign_application(public.campaigns.id, auth.uid()));
 
 create policy "Brands can insert campaigns"
 on public.campaigns
@@ -133,14 +188,7 @@ create policy "Brands can view campaign applications"
 on public.campaign_applications
 for select
 to authenticated
-using (
-  exists (
-    select 1
-    from public.campaigns
-    where id = public.campaign_applications.campaign_id
-      and brand_id = auth.uid()
-  )
-);
+using (public.is_brand_campaign(public.campaign_applications.campaign_id, auth.uid()));
 
 create policy "Creators can insert applications"
 on public.campaign_applications
@@ -154,31 +202,12 @@ with check (
     where id = auth.uid()
       and role = 'creator'
   )
-  and exists (
-    select 1
-    from public.campaigns
-    where id = public.campaign_applications.campaign_id
-      and status = 'open'
-  )
+  and public.is_open_campaign(public.campaign_applications.campaign_id)
 );
 
 create policy "Brands can update application status"
 on public.campaign_applications
 for update
 to authenticated
-using (
-  exists (
-    select 1
-    from public.campaigns
-    where id = public.campaign_applications.campaign_id
-      and brand_id = auth.uid()
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.campaigns
-    where id = public.campaign_applications.campaign_id
-      and brand_id = auth.uid()
-  )
-);
+using (public.is_brand_campaign(public.campaign_applications.campaign_id, auth.uid()))
+with check (public.is_brand_campaign(public.campaign_applications.campaign_id, auth.uid()));

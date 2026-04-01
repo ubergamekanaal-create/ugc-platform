@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useState } from "react";
+import { BrandMetaPanel } from "@/components/dashboard/brand-meta-panel";
 import { MotionScale } from "@/components/shared/motion";
 import type {
   BrandStoreConnectionSummary,
@@ -490,26 +491,7 @@ export function BrandIntegrationsPanel() {
         )}
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-              Meta Ads Connection
-            </h2>
-            <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-500">
-              Connect your Meta ad account to sync ad performance data and map
-              product attribution back to creator content.
-            </p>
-          </div>
-          <button
-            type="button"
-            disabled
-            className="rounded-[1.75rem] bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-400"
-          >
-            Connect Meta Account
-          </button>
-        </div>
-      </section>
+      <BrandMetaPanel mode="integrations" />
     </div>
   );
 }
