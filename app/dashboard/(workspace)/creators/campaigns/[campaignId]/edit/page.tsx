@@ -15,7 +15,7 @@ export default async function EditBrandCampaignPage({
 }: EditBrandCampaignPageProps) {
   const [{ campaignId }, context] = await Promise.all([
     params,
-    getDashboardContext(),
+    getDashboardContext("creators"),
   ]);
 
   if (!context) {

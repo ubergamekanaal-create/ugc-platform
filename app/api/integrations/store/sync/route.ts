@@ -45,7 +45,7 @@ export async function POST() {
   const { data: rawConnection } = await admin
     .from("brand_store_connections")
     .select(
-      "id, brand_id, provider, store_name, store_url, store_domain, access_token, storefront_access_token, api_version, status, product_count, connected_at, last_synced_at",
+      "id, brand_id, provider, store_name, store_url, store_domain, access_token, storefront_access_token, api_version, status, analytics_webhook_status, analytics_webhooks_registered_at, last_webhook_at, last_webhook_error, product_count, connected_at, last_synced_at",
     )
     .eq("brand_id", user.id)
     .maybeSingle();
@@ -118,7 +118,7 @@ export async function POST() {
       })
       .eq("id", connection.id)
       .select(
-        "id, brand_id, provider, store_name, store_url, store_domain, access_token, storefront_access_token, api_version, status, product_count, connected_at, last_synced_at",
+        "id, brand_id, provider, store_name, store_url, store_domain, access_token, storefront_access_token, api_version, status, analytics_webhook_status, analytics_webhooks_registered_at, last_webhook_at, last_webhook_error, product_count, connected_at, last_synced_at",
       )
       .single();
 

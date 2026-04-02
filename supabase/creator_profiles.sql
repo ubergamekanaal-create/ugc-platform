@@ -5,6 +5,7 @@ create table if not exists public.creator_profiles (
   bio text,
   niches text[] not null default '{}',
   platform_specialties text[] not null default '{}',
+  birth_year integer,
   portfolio_url text,
   instagram_url text,
   instagram_handle text,
@@ -19,11 +20,14 @@ create table if not exists public.creator_profiles (
   base_rate numeric(10, 2) not null default 0,
   engagement_rate numeric(5, 2) not null default 0,
   average_views integer not null default 0,
+  monthly_ugc_videos integer not null default 0,
+  featured_content_links text[] not null default '{}',
   featured_brands text[] not null default '{}',
   featured_result text,
   audience_summary text,
   past_work text,
   location text,
+  onboarding_completed_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -32,6 +36,7 @@ alter table public.creator_profiles
   add column if not exists bio text,
   add column if not exists niches text[] not null default '{}',
   add column if not exists platform_specialties text[] not null default '{}',
+  add column if not exists birth_year integer,
   add column if not exists portfolio_url text,
   add column if not exists instagram_url text,
   add column if not exists instagram_handle text,
@@ -46,13 +51,29 @@ alter table public.creator_profiles
   add column if not exists base_rate numeric(10, 2) not null default 0,
   add column if not exists engagement_rate numeric(5, 2) not null default 0,
   add column if not exists average_views integer not null default 0,
+  add column if not exists monthly_ugc_videos integer not null default 0,
+  add column if not exists featured_content_links text[] not null default '{}',
   add column if not exists featured_brands text[] not null default '{}',
   add column if not exists featured_result text,
   add column if not exists audience_summary text,
   add column if not exists past_work text,
   add column if not exists location text,
+  add column if not exists onboarding_completed_at timestamptz,
   add column if not exists created_at timestamptz not null default now(),
   add column if not exists updated_at timestamptz not null default now();
+
+alter table public.creator_profiles
+  drop constraint if exists creator_profiles_birth_year_check,
+  drop constraint if exists creator_profiles_monthly_ugc_videos_check,
+  drop constraint if exists creator_profiles_featured_content_links_check;
+
+alter table public.creator_profiles
+  add constraint creator_profiles_birth_year_check
+    check (birth_year is null or birth_year between 1991 and 2018),
+  add constraint creator_profiles_monthly_ugc_videos_check
+    check (monthly_ugc_videos >= 0),
+  add constraint creator_profiles_featured_content_links_check
+    check (coalesce(array_length(featured_content_links, 1), 0) <= 5);
 
 create index if not exists creator_profiles_base_rate_idx
   on public.creator_profiles (base_rate);

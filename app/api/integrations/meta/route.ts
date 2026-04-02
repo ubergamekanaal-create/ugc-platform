@@ -161,6 +161,8 @@ export async function DELETE() {
     connection: null,
     adAccounts: [],
     campaigns: [],
+    adSets: [],
+    ads: [],
     message: "Meta connection removed.",
   });
 }

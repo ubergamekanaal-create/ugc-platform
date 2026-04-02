@@ -17,6 +17,15 @@ type ShopifyCatalogResult = {
   >;
 };
 
+type ShopifyGraphQLError = {
+  message?: string;
+};
+
+type ShopifyGraphQLResponse<T> = {
+  data?: T;
+  errors?: ShopifyGraphQLError[];
+};
+
 function safeString(value: unknown) {
   return typeof value === "string" ? value : null;
 }
@@ -70,6 +79,141 @@ export function normalizeStoreUrl(input: string, provider: StoreProvider) {
   };
 }
 
+export async function runShopifyAdminGraphql<T>(params: {
+  storeDomain: string;
+  accessToken: string;
+  query: string;
+  variables?: Record<string, unknown>;
+}) {
+  const response = await fetch(
+    `https://${params.storeDomain}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": params.accessToken,
+      },
+      body: JSON.stringify({
+        query: params.query,
+        variables: params.variables ?? {},
+      }),
+      cache: "no-store",
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as
+    | ShopifyGraphQLResponse<T>
+    | null;
+
+  if (!response.ok) {
+    throw new Error(
+      payload?.errors?.[0]?.message ??
+        "Unable to connect to Shopify. Check your admin API token.",
+    );
+  }
+
+  if (payload?.errors?.length) {
+    throw new Error(
+      payload.errors[0]?.message ??
+        "Shopify returned an error while processing the request.",
+    );
+  }
+
+  if (!payload?.data) {
+    throw new Error("Shopify did not return any data.");
+  }
+
+  return payload.data;
+}
+
+export async function registerShopifyAnalyticsWebhooks(params: {
+  storeDomain: string;
+  accessToken: string;
+  callbackUrl: string;
+}) {
+  const mutation = `#graphql
+    mutation RegisterWebhook($topic: WebhookSubscriptionTopic!, $webhookSubscription: WebhookSubscriptionInput!) {
+      webhookSubscriptionCreate(topic: $topic, webhookSubscription: $webhookSubscription) {
+        webhookSubscription {
+          id
+          topic
+          uri
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+
+  const includeFields = [
+    "id",
+    "admin_graphql_api_id",
+    "name",
+    "created_at",
+    "currency",
+    "current_subtotal_price",
+    "current_total_price",
+    "current_total_tax",
+    "total_shipping_price_set",
+    "total_discounts",
+    "financial_status",
+    "fulfillment_status",
+    "contact_email",
+    "landing_site",
+    "referring_site",
+    "source_name",
+    "browser_ip",
+  ];
+
+  const topics = ["ORDERS_CREATE", "ORDERS_PAID", "ORDERS_UPDATED"] as const;
+  const subscriptions: Array<{ id: string; topic: string; uri: string }> = [];
+
+  for (const topic of topics) {
+    const data = await runShopifyAdminGraphql<{
+      webhookSubscriptionCreate?: {
+        webhookSubscription?: {
+          id?: string;
+          topic?: string;
+          uri?: string;
+        } | null;
+        userErrors?: Array<{ message?: string }>;
+      };
+    }>({
+      storeDomain: params.storeDomain,
+      accessToken: params.accessToken,
+      query: mutation,
+      variables: {
+        topic,
+        webhookSubscription: {
+          uri: params.callbackUrl,
+          includeFields,
+        },
+      },
+    });
+
+    const result = data.webhookSubscriptionCreate;
+    const errorMessage = result?.userErrors?.find((error) => error.message)?.message;
+
+    if (errorMessage) {
+      throw new Error(errorMessage);
+    }
+
+    if (!result?.webhookSubscription?.id) {
+      throw new Error(`Shopify did not return a webhook id for ${topic}.`);
+    }
+
+    subscriptions.push({
+      id: result.webhookSubscription.id,
+      topic: result.webhookSubscription.topic ?? topic,
+      uri: result.webhookSubscription.uri ?? params.callbackUrl,
+    });
+  }
+
+  return subscriptions;
+}
+
 export async function fetchShopifyCatalog(params: {
   provider: StoreProvider;
   storeUrl: string;
@@ -106,48 +250,20 @@ export async function fetchShopifyCatalog(params: {
     }
   `;
 
-  const response = await fetch(
-    `https://${normalized.storeDomain}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Access-Token": accessToken,
-      },
-      body: JSON.stringify({ query }),
-      cache: "no-store",
-    },
-  );
+  const payload = await runShopifyAdminGraphql<{
+    shop?: { name?: string; myshopifyDomain?: string };
+    products?: {
+      nodes?: Array<Record<string, unknown>>;
+    };
+  }>({
+    storeDomain: normalized.storeDomain,
+    accessToken,
+    query,
+  });
 
-  const payload = (await response.json().catch(() => null)) as
-    | {
-        errors?: Array<{ message?: string }>;
-        data?: {
-          shop?: { name?: string; myshopifyDomain?: string };
-          products?: {
-            nodes?: Array<Record<string, unknown>>;
-          };
-        };
-      }
-    | null;
-
-  if (!response.ok) {
-    throw new Error(
-      payload?.errors?.[0]?.message ??
-        "Unable to connect to Shopify. Check your domain and admin API token.",
-    );
-  }
-
-  if (payload?.errors?.length) {
-    throw new Error(
-      payload.errors[0]?.message ??
-        "Shopify returned an error while reading your products.",
-    );
-  }
-
-  const storeName = payload?.data?.shop?.name?.trim();
+  const storeName = payload.shop?.name?.trim();
   const storeDomain =
-    payload?.data?.shop?.myshopifyDomain?.trim() ?? normalized.storeDomain;
+    payload.shop?.myshopifyDomain?.trim() ?? normalized.storeDomain;
 
   if (!storeName) {
     throw new Error(
@@ -155,7 +271,7 @@ export async function fetchShopifyCatalog(params: {
     );
   }
 
-  const products = (payload?.data?.products?.nodes ?? []).map((node) => ({
+  const products = (payload.products?.nodes ?? []).map((node) => ({
     external_product_id: safeString(node.id) ?? crypto.randomUUID(),
     title: safeString(node.title) ?? "Untitled product",
     handle: safeString(node.handle),
