@@ -66,3 +66,12 @@ body {
 .animate-pulse {
   animation: pulse 1.5s ease-in-out infinite;
 }
+
+.no-scrollbar::-webkit-scrollbar {
+  display: hidden;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: hidden;
+  scrollbar-width: hidden;
+}

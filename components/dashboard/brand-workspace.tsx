@@ -15,6 +15,7 @@ import { BrandSubmissionsPanel } from "@/components/dashboard/brand-submissions-
 import { NotificationsCenter } from "@/components/dashboard/notifications-center";
 import { RealtimeChatPanel } from "@/components/dashboard/realtime-chat-panel";
 import { SignOutButton } from "@/components/dashboard/sign-out-button";
+import { EarningsChart } from "../charts/earnings-chart";
 import {
   WorkspaceMainContent,
   WorkspacePanel,
@@ -55,7 +56,10 @@ import AnalyticsSettingsCard from "../brandSettings/analytics-settings-card";
 import SampleRequestsCard from "../brandSettings/sample-requests-card";
 import ProductCatalogCard from "../brandSettings/product-catalog-card";
 import BrandMenu from "./brand-menus";
-
+import { CountUp } from "../shared/count-up";
+import { motion } from "framer-motion";
+import { useInView } from "framer-motion";
+import { useRef } from "react";
 type BrandWorkspaceProps = {
   profile: UserProfile & { role: "brand" };
   data: BrandDashboardData;
@@ -459,6 +463,7 @@ export function BrandWorkspace({
     brandWorkspaceSections.find((item) => item.slug === section) ??
     brandWorkspaceSections[0];
   const displayName = getDisplayName(profile.company_name, "CIRCL Brand");
+
   const welcomeName = getDisplayName(
     profile.full_name || profile.company_name,
     "team",
@@ -806,13 +811,20 @@ export function BrandWorkspace({
   }, [data.payouts]);
   const campaignMomentum = campaignPerformance.slice(0, 4);
 
-  function renderDashboardSection() {
+  function DashboardSection() {
+    const payoutRef = useRef(null);
+
+    const isPayoutInView = useInView(payoutRef, {
+      once: true,
+      amount: 0.6,
+    });
     return (
       <div className="space-y-6">
-        <div className="grid gap-6 xl:grid-cols-[0.95fr_1.35fr]">
+        <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
           <FadeIn>
-            <SectionPanel className="h-full">
-              <div className="flex items-center justify-between gap-4">
+            <SectionPanel className="relative h-full">
+
+              <div className="relative flex sm:grid sm:grid-cols-[1fr_auto] items-center sm:items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-accent">
                     <SparkIcon className="h-5 w-5" />
@@ -828,15 +840,23 @@ export function BrandWorkspace({
                     </p>
                   </div>
                 </div>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-500">
+                <span className="hidden sm:block rounded-full px-3 py-1 text-sm font-medium text-slate-500 border border-[rgba(7,107,210,0.14)] bg-[rgba(7,107,210,0.08)] !text-[#076BD2] text-accent">
                   {hasWorkspaceActivity
                     ? `${activeCampaigns.length} live campaigns`
                     : `${completedSteps}/${onboardingSteps.length}`}
                 </span>
+                <div className="absolute right-0 -bottom-8 flex items-end justify-end">
+                  <span className="sm:hidden rounded-full px-3 py-1 text-[12px] font-medium text-slate-500 border border-[rgba(7,107,210,0.14)] bg-[rgba(7,107,210,0.08)] !text-[#076BD2] text-accent">
+                    {hasWorkspaceActivity
+                      ? `${activeCampaigns.length} live campaigns`
+                      : `${completedSteps}/${onboardingSteps.length}`}
+                  </span>
+                </div>
               </div>
+
               {hasWorkspaceActivity ? (
                 <>
-                  <div className="mt-8 grid gap-4 md:grid-cols-2">
+                  <div className="mt-12 sm:mt-8 grid gap-4 md:grid-cols-2">
                     {pipelineSnapshot.map((item) => (
                       <div
                         key={item.label}
@@ -919,59 +939,62 @@ export function BrandWorkspace({
           </FadeIn>
 
           <FadeIn delay={0.08}>
-            <SectionPanel className="h-full">
-              <div className="flex items-start justify-between gap-4">
+            <SectionPanel className="relative h-full">
+              <div className="relative flex sm:grid sm:grid-cols-[1fr_auto] items-center sm:items-start gap-2">
                 <div>
-                  <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
+                  <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950 ">
                     Creator Earnings
                   </h2>
-                  <p className="mt-2 text-sm text-slate-500">
+                  <p className="text-sm text-slate-500">
                     Real payout activity from the last four weekly windows.
                   </p>
                 </div>
-                <span className="text-sm text-slate-400">Supabase payouts</span>
+                <span className="hidden sm:block rounded-full px-3 py-1 text-sm font-medium text-slate-500 border border-[rgba(7,107,210,0.14)] bg-[rgba(7,107,210,0.08)] !text-[#076BD2] text-accent">Supabase payouts</span>
+                <div className="absolute right-0 -bottom-10 flex items-end justify-end">
+                  <span className="sm:hidden rounded-full px-3 py-1 text-[12px] font-medium text-slate-500 border border-[rgba(7,107,210,0.14)] bg-[rgba(7,107,210,0.08)] !text-[#076BD2] text-accent">
+                    Supabase payouts
+                  </span>
+                </div>
               </div>
-              <div className="mt-10 flex min-h-[250px] flex-col items-center justify-center rounded-[1.75rem] bg-slate-50">
+
+              <div ref={payoutRef} className="mt-16 sm:mt-8 flex min-h-[250px] flex-col items-center justify-center rounded-[1.75rem] bg-slate-50">
                 {recentPayoutActivity.maxValue > 0 ? (
-                  <div className="w-full px-4 sm:px-8">
-                    <div className="mb-6 flex flex-wrap items-center gap-3">
+                  <div className="w-full px-4 py-4 sm:py-8 sm:px-8">
+                    <div className="mb-4 flex flex-wrap items-center gap-3">
                       <span className="rounded-full bg-[rgba(7,107,210,0.1)] px-3 py-1 text-sm font-medium text-accent">
-                        {formatCompactCurrency(recentPayoutActivity.committedTotal)} committed
+                        {/* {formatCompactCurrency(recentPayoutActivity.committedTotal)} committed */}
+                        <CountUp
+                          value={recentPayoutActivity.committedTotal}
+                          formatter={formatCompactCurrency}
+                          start={isPayoutInView}
+                          duration={1000}
+                        />{" "}
+                        committed
                       </span>
                       <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
-                        {formatCompactCurrency(recentPayoutActivity.releasedTotal)} released
+                        {/* {formatCompactCurrency(recentPayoutActivity.releasedTotal)}  */}
+                        <CountUp
+                          value={recentPayoutActivity.releasedTotal}
+                          formatter={formatCompactCurrency}
+                          start={isPayoutInView}
+                          duration={1000}
+                        />{" "}
+
+                        released
                       </span>
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-500">
-                        {formatCompactCurrency(payoutReadyTotal)} ready
+                        {/* {formatCompactCurrency(payoutReadyTotal)} ready */}
+                        <CountUp
+                          value={payoutReadyTotal}
+                          formatter={formatCompactCurrency}
+                          start={isPayoutInView}
+                          duration={1000}
+                        />{" "}
+                        ready
                       </span>
                     </div>
-                    <div className="grid grid-cols-4 items-end gap-4">
-                      {recentPayoutActivity.buckets.map((point) => (
-                        <div
-                          key={point.label}
-                          className="flex flex-col items-center gap-3"
-                        >
-                          <div className="flex h-40 w-full items-end rounded-full bg-white p-2 shadow-[inset_0_0_0_1px_rgba(226,232,240,0.9)]">
-                            <div
-                              className="w-full rounded-full bg-[linear-gradient(180deg,_#5BA7F7,_#076BD2)]"
-                              style={{
-                                height:
-                                  point.value > 0
-                                    ? `${clampPercent(
-                                      (point.value / recentPayoutActivity.maxValue) * 100,
-                                    )}%`
-                                    : "0%",
-                              }}
-                            />
-                          </div>
-                          <span className="text-xs font-semibold text-slate-700">
-                            {formatCompactCurrency(point.value || 0)}
-                          </span>
-                          <span className="text-xs font-medium text-slate-500">
-                            {point.label}
-                          </span>
-                        </div>
-                      ))}
+                    <div className="">
+                      <EarningsChart data={recentPayoutActivity.buckets} formatCurrency={formatCompactCurrency} />
                     </div>
                     <p className="mt-6 text-center text-sm text-slate-500">
                       Creator payouts totaling{" "}
@@ -982,7 +1005,7 @@ export function BrandWorkspace({
                 ) : (
                   <>
                     <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-slate-400 shadow-[inset_0_0_0_1px_rgba(226,232,240,0.9)]">
-                      <ArrowUpRightIcon className="h-8 w-8" />
+                      <ArrowUpRightIcon className="h-6 w-6" />
                     </span>
                     <p className="mt-6 text-xl font-medium text-slate-500">
                       No payout activity in the last four weeks
@@ -994,11 +1017,11 @@ export function BrandWorkspace({
           </FadeIn>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-2">
+        <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
           <FadeIn>
-            <SectionPanel>
-              <div className="flex items-center justify-between gap-4">
-                <div>
+            <SectionPanel className="h-full flex flex-col">
+              <div className="relative flex sm:grid sm:grid-cols-[1fr_auto] items-start justify-between gap-2">
+                <div className="relative">
                   <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
                     Campaign Momentum
                   </h2>
@@ -1006,11 +1029,16 @@ export function BrandWorkspace({
                     Real pipeline conversion pulled from current campaign activity.
                   </p>
                 </div>
-                <span className="rounded-full bg-[rgba(7,107,210,0.1)] px-3 py-1 text-sm font-medium text-accent">
+                <span className="hidden sm:block rounded-full bg-[rgba(7,107,210,0.1)] px-3 py-1 text-sm font-medium text-accent">
                   Supabase live
                 </span>
+                <div className="absolute right-0 -bottom-8 flex items-end justify-end">
+                  <span className="sm:hidden rounded-full px-3 py-1 text-[12px] font-medium text-slate-500 border border-[rgba(7,107,210,0.14)] bg-[rgba(7,107,210,0.08)] !text-[#076BD2] text-accent">
+                    Supabase live
+                  </span>
+                </div>
               </div>
-              <div className="mt-8 space-y-5">
+              <div className="mt-12 sm:mt-8 flex-1 overflow-y-auto max-h-[360px] space-y-5 no-scrollbar">
                 {campaignMomentum.length ? (
                   campaignMomentum.map((campaign) => (
                     <div
@@ -1047,14 +1075,20 @@ export function BrandWorkspace({
                             </p>
                           </div>
                           <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-100">
-                            <div
-                              className="h-full rounded-full bg-[linear-gradient(90deg,_#076BD2,_#60A5FA)]"
-                              style={{
+                            <motion.div
+                              initial={{ width: 0 }}
+                              whileInView={{
                                 width:
                                   campaign.slotFillRate > 0
                                     ? `${clampPercent(campaign.slotFillRate)}%`
                                     : "0%",
                               }}
+                              viewport={{ once: true, amount: 0.6 }}
+                              transition={{
+                                duration: 0.8,
+                                ease: "easeOut",
+                              }}
+                              className="h-full rounded-full bg-[linear-gradient(90deg,_#076BD2,_#60A5FA)]"
                             />
                           </div>
                         </div>
@@ -1068,14 +1102,21 @@ export function BrandWorkspace({
                             </p>
                           </div>
                           <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-100">
-                            <div
-                              className="h-full rounded-full bg-[linear-gradient(90deg,_#10B981,_#34D399)]"
-                              style={{
+                            <motion.div
+                              initial={{ width: 0 }}
+                              whileInView={{
                                 width:
                                   campaign.approvalRate > 0
                                     ? `${clampPercent(campaign.approvalRate)}%`
                                     : "0%",
                               }}
+                              viewport={{ once: true, amount: 0.6 }}
+                              transition={{
+                                duration: 0.8,
+                                ease: "easeOut",
+                                delay: 0.1,
+                              }}
+                              className="h-full rounded-full bg-[linear-gradient(90deg,_#10B981,_#34D399)]"
                             />
                           </div>
                         </div>
@@ -1098,8 +1139,8 @@ export function BrandWorkspace({
           </FadeIn>
 
           <FadeIn delay={0.08}>
-            <SectionPanel>
-              <div className="flex items-center justify-between gap-4">
+            <SectionPanel className="relative h-full flex flex-col">
+              <div className="relative flex sm:grid sm:grid-cols-[1fr_auto] items-start justify-between gap-4">
                 <div>
                   <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
                     Top Creators
@@ -1110,12 +1151,17 @@ export function BrandWorkspace({
                 </div>
                 <Link
                   href="/dashboard/creators"
-                  className="text-sm font-medium text-accent transition hover:text-blue-500"
+                  className="hidden sm:block text-sm font-medium text-accent transition hover:text-blue-500"
                 >
                   View roster
                 </Link>
+                <div className="absolute right-0 -bottom-10 flex items-end justify-end">
+                  <Link href="/dashboard/creators" className="sm:hidden rounded-full px-3 py-1 text-sm font-medium text-slate-500 !text-[#076BD2] text-accent">
+                    View roster
+                  </Link>
+                </div>
               </div>
-              <div className="mt-8 space-y-4">
+              <div className="mt-14 sm:mt-8 flex-1 overflow-y-auto space-y-4 h-[360px] no-scrollbar">
                 {topCreators.length ? (
                   topCreators.map((creator) => (
                     <div
@@ -1156,10 +1202,10 @@ export function BrandWorkspace({
           </FadeIn>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="relative grid gap-6 xl:grid-cols-[1fr_1fr] ">
           <FadeIn>
-            <SectionPanel>
-              <div className="flex items-center justify-between gap-4">
+            <SectionPanel className="flex-1 h-full">
+              <div className="relative flex sm:grid sm:grid-cols-[1fr_auto] items-start justify-between gap-4">
                 <div>
                   <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
                     Create Campaign
@@ -1169,11 +1215,16 @@ export function BrandWorkspace({
                     campaign traction and creator response.
                   </p>
                 </div>
-                <span className="rounded-full bg-[rgba(7,107,210,0.1)] px-3 py-1 text-sm font-medium text-accent">
+                <span className="hidden sm:block rounded-full bg-[rgba(7,107,210,0.1)] px-3 py-1 text-sm font-medium text-accent">
                   Workspace flow
                 </span>
+                <div className="sm:hidden absolute right-0 -bottom-10 flex items-end justify-end">
+                  <span className=" rounded-full px-3 py-1 text-[12px] font-medium text-slate-500 border border-[rgba(7,107,210,0.14)] bg-[rgba(7,107,210,0.08)] !text-[#076BD2] text-accent">
+                    Workspace flow
+                  </span>
+                </div>
               </div>
-              <div className="mt-8 rounded-[1.75rem] bg-[linear-gradient(135deg,_rgba(231,242,255,0.95),_rgba(255,255,255,0.98))] p-6">
+              <div className="mt-14 sm:mt-8 rounded-[1.75rem] bg-[linear-gradient(135deg,_rgba(231,242,255,0.95),_rgba(255,255,255,0.98))] p-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                   Campaign setup
                 </p>
@@ -1212,7 +1263,7 @@ export function BrandWorkspace({
                   </p>
                 </div>
               </div>
-              <div className="mt-8 space-y-4">
+              <div className="mt-8 space-y-4 flex-1 overflow-y-auto max-h-[330px] no-scrollbar">
                 {data.campaigns.map((campaign) => (
                   <div
                     key={campaign.id}
@@ -1743,7 +1794,7 @@ export function BrandWorkspace({
   function renderSectionContent() {
     switch (section) {
       case "dashboard":
-        return renderDashboardSection();
+        return <DashboardSection />;
       case "submissions":
         return renderSubmissionsSection();
       case "chat":
@@ -1776,7 +1827,7 @@ export function BrandWorkspace({
             href: getBrandWorkspaceHref(item.slug),
             label: item.label,
             active: item.slug === section,
-            icon: <Icon className="h-5 w-5" />,
+            icon: <Icon className="h-6 w-6" />,
             badge:
               item.slug === "submissions" && pendingReviews > 0
                 ? String(pendingReviews)
@@ -1795,7 +1846,7 @@ export function BrandWorkspace({
             href: getBrandWorkspaceHref(item.slug),
             label: item.label,
             active: item.slug === section,
-            icon: <Icon className="h-5 w-5" />,
+            icon: <Icon className="h-6 w-6" />,
           };
         }),
     },
@@ -1968,7 +2019,7 @@ export function BrandWorkspaceChrome({
             href: getBrandWorkspaceHref(item.slug),
             label: item.label,
             active: item.slug === section,
-            icon: <Icon className="h-5 w-5" />,
+            icon: <Icon className="h-6 w-6" />,
             badge:
               item.slug === "submissions" && pendingReviews > 0
                 ? String(pendingReviews)
@@ -1987,13 +2038,13 @@ export function BrandWorkspaceChrome({
             href: getBrandWorkspaceHref(item.slug),
             label: item.label,
             active: item.slug === section,
-            icon: <Icon className="h-5 w-5" />,
+            icon: <Icon className="h-6 w-6" />,
           };
         }),
     },
   ];
   const sidebarFooter = (
-    <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(239,246,255,0.96))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+    <div className="relative rounded-[2rem] border border-white/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(239,246,255,0.96))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
       <div className="absolute -right-10 top-0 h-20 w-20 rounded-full bg-[radial-gradient(circle,_rgba(7,107,210,0.18),_transparent_70%)]" />
       <div className="relative">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
