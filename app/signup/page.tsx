@@ -34,16 +34,6 @@ export default function SignupPage() {
               <SignupRoleTabs activeRole="brand" />
             </div>
 
-            <div className="mx-auto max-w-3xl space-y-3 text-center">
-              <h1 className="font-display text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
-                Create your brand account
-              </h1>
-              <p className="text-base leading-7 text-slate-600 sm:text-lg">
-                Start with a clean brand signup flow and move directly into your
-                workspace.
-              </p>
-            </div>
-
             <SignupForm />
           </div>
         </div>
