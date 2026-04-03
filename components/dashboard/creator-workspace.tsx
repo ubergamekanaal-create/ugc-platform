@@ -2013,6 +2013,7 @@ export function CreatorWorkspaceChrome({
     },
   ];
   const displayName = getDisplayName(profile.full_name, "Creator");
+  const userName= profile?.full_name;
   const sidebarFooter = (
     <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(254,242,242,0.9))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
       <div className="absolute -right-8 top-0 h-20 w-20 rounded-full bg-[radial-gradient(circle,_rgba(244,114,182,0.18),_transparent_70%)]" />
@@ -2039,7 +2040,7 @@ export function CreatorWorkspaceChrome({
   );
 
   return (
-    <WorkspaceViewport tone="creator">
+    <WorkspaceViewport tone="creator" name={userName} roleLabel="Creator studio">
       <WorkspaceSidebar
         tone="creator"
         displayName={displayName}
