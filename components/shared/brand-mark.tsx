@@ -30,7 +30,7 @@ export function BrandMark({
       <span className="flex flex-col">
         <span
           className={cn(
-            "font-display text-base tracking-tight",
+            "font-display text-lg tracking-tight",
             tone === "light" ? "text-slate-950" : "text-white",
           )}
         >

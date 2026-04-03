@@ -219,7 +219,7 @@ export function NotificationsCenter({ profile }: NotificationsCenterProps) {
       </button>
 
       {isOpen ? (
-        <div className="absolute right-0 z-40 mt-3 w-[24rem] max-w-[calc(100vw-2rem)] rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-[0_24px_60px_rgba(15,23,42,0.16)]">
+        <div className="absolute lg:right-0 z-40 mt-3 w-[24rem] max-w-[calc(100vw-2rem)] rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-[0_24px_60px_rgba(15,23,42,0.16)]">
           <div className="flex items-center justify-between gap-4 px-1 pb-3">
             <div>
               <p className="text-lg font-semibold text-slate-950">Notifications</p>

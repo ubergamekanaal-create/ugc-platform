@@ -25,6 +25,15 @@ const config: Config = {
         glow: "0 0 0 1px rgba(7, 107, 210, 0.18), 0 30px 80px rgba(7, 107, 210, 0.22)",
         panel: "0 40px 120px rgba(2, 6, 23, 0.42)",
       },
+      keyframes: {
+        growBar: {
+          "0%": { height: "0%" },
+          "100%": { height: "var(--target-height)" },
+        },
+      },
+      animation: {
+        growBar: "growBar 1s ease-out forwards",
+      },
     },
   },
   plugins: [],

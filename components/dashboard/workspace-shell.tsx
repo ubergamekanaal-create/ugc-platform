@@ -95,7 +95,7 @@ export function WorkspacePanel({ className, children }: WorkspacePanelProps) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/82 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl",
+        "relative rounded-[2rem] border border-white/80 bg-white/82 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]",
         className,
       )}
     >
@@ -133,39 +133,45 @@ export function WorkspaceSidebar({
   const theme = toneClasses[tone];
 
   return (
-    <aside className="overflow-hidden rounded-[2.25rem] border border-white/80 bg-white/76 p-5 shadow-[0_26px_90px_rgba(15,23,42,0.08)] backdrop-blur-xl">
-      <div className="flex items-center justify-between gap-3">
+    <aside className=" lg:sticky lg:top-0 h-fit overflow-hidden rounded-[2.25rem] border border-white/80 bg-white/76 py-5 px-4 shadow-[0_26px_90px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+      <div className="flex items-start justify-between pb-6 border-b border-b-white/80">
         <BrandMark tone="light" />
         <span
           className={cn(
-            "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]",
+            "flex items-center justify-center rounded-full border px-2 py-1 text-[11px] font-semibold capitalize",
             theme.pill,
           )}
         >
           {roleLabel}
         </span>
       </div>
-
       <div
         className={cn(
-          "relative mt-6 overflow-hidden rounded-[2rem] border border-slate-200/20 p-5 text-white shadow-[0_24px_55px_rgba(15,23,42,0.18)]",
-          theme.avatar,
+          "relative mt-6 overflow-hidden rounded-3xl px-3 py-3 text-black bg-white", // Slightly smaller radius
+          "border border-white/10 bg-slate-950", // Clean base
+          "shadow-[0_20px_40px_-12px_rgba(0,0,0,0.3)]", // Deeper shadow
+          // theme.avatar,
         )}
+
       >
-        <div className={cn("absolute inset-0", theme.sidebarAccent)} />
-        <div className="relative flex items-center gap-4">
-          <span className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] border border-white/12 bg-white/10 text-sm font-semibold backdrop-blur">
-            {initials}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-lg font-semibold">{displayName}</p>
-            <p className="mt-1 text-sm text-slate-300">
-              Everything operational lives here.
-            </p>
+        <div className="absolute -right-10 -top-10 h-32 w-32 bg-blue-500/10 blur-3xl" />
+        <div className="flex justify-between items-center justify-center">
+          <div className="relative flex items-center gap-2">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black text-white text-sm font-semibold backdrop-blur-md">
+              {initials}
+            </span>
+
+            <div className="min-w-0">
+              <p className="text-[16px] font-semibold tracking-tight leading-tight">
+                {displayName}
+              </p>
+              <p className="mt-1 text-[13px] text-slate-600 font-medium leading-snug">
+                Everything operational <br /> lives here.
+              </p>
+            </div>
           </div>
         </div>
       </div>
-
       <nav className="mt-8 space-y-5">
         {navGroups.map((group) => (
           <div key={group.label ?? "primary"}>
@@ -181,13 +187,13 @@ export function WorkspaceSidebar({
                   href={item.href}
                   aria-current={item.active ? "page" : undefined}
                   className={cn(
-                    "group flex items-center justify-between rounded-[1.35rem] border px-4 py-3.5 transition",
+                    "group flex items-center justify-between rounded-[1.35rem] border px-2 py-2 transition",
                     item.active
                       ? "border-[rgba(7,107,210,0.16)] bg-[rgba(7,107,210,0.08)] text-accent shadow-[0_14px_30px_rgba(7,107,210,0.12)]"
                       : "border-transparent text-slate-600 hover:border-white hover:bg-white/58 hover:text-slate-950",
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <span
                       className={cn(
                         "flex h-10 w-10 items-center justify-center rounded-[1rem] transition",
@@ -236,19 +242,19 @@ export function WorkspaceMainContent({
       {showTopBanner ? topBanner : null}
 
       {showHeroSection ? (
-        <section className="relative overflow-hidden rounded-[2.5rem] border border-white/80 bg-[linear-gradient(135deg,_rgba(255,255,255,0.88),_rgba(244,248,255,0.9))] px-6 py-6 shadow-[0_28px_90px_rgba(15,23,42,0.09)] backdrop-blur-xl sm:px-8 sm:py-8">
+        <section className="relative overflow-hidden rounded-[2.5rem] border border-white/80 bg-[linear-gradient(135deg,_rgba(255,255,255,0.88),_rgba(244,248,255,0.9))] px-6 py-6 shadow-[0_28px_90px_rgba(15,23,42,0.09)] sm:px-8 sm:py-8">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(7,107,210,0.5),transparent)]" />
           <div className={cn("pointer-events-none absolute -right-16 -top-16 h-48 w-48", theme.heroAccent)} />
 
-          <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <div className=" flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-4xl">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
                 {eyebrow}
               </p>
-              <h1 className="mt-4 font-display text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
+              <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
                 {title}
               </h1>
-              <p className="mt-4 max-w-3xl text-base leading-8 text-slate-600 sm:text-lg">
+              <p className="mt-4 max-w-3xl text-sm leading-8 text-slate-600 sm:text-base">
                 {description}
               </p>
 
@@ -270,7 +276,7 @@ export function WorkspaceMainContent({
             </div>
 
             {headerActions ? (
-              <div className="relative flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 {headerActions}
               </div>
             ) : null}
