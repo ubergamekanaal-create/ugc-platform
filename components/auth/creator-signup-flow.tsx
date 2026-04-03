@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   type ClipboardEvent,
   type KeyboardEvent,
@@ -14,7 +15,7 @@ type StepIconProps = {
   className?: string;
 };
 
-function NameStepIcon({ className }: StepIconProps) {
+function AccountStepIcon({ className }: StepIconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -28,42 +29,6 @@ function NameStepIcon({ className }: StepIconProps) {
     >
       <path d="M20 21a8 8 0 0 0-16 0" />
       <circle cx="12" cy="8" r="4" />
-    </svg>
-  );
-}
-
-function EmailStepIcon({ className }: StepIconProps) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={className}
-    >
-      <rect x="3" y="5" width="18" height="14" rx="2" />
-      <path d="m4 7 8 6 8-6" />
-    </svg>
-  );
-}
-
-function PasswordStepIcon({ className }: StepIconProps) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={className}
-    >
-      <rect x="4" y="11" width="16" height="9" rx="2" />
-      <path d="M8 11V8a4 4 0 1 1 8 0v3" />
     </svg>
   );
 }
@@ -144,7 +109,7 @@ function SocialStepIcon({ className }: StepIconProps) {
   );
 }
 
-function VolumeStepIcon({ className }: StepIconProps) {
+function PortfolioStepIcon({ className }: StepIconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -156,26 +121,8 @@ function VolumeStepIcon({ className }: StepIconProps) {
       aria-hidden="true"
       className={className}
     >
-      <rect x="3" y="6" width="18" height="12" rx="2" />
+      <rect x="3" y="4" width="18" height="16" rx="2" />
       <path d="m10 9 5 3-5 3Z" />
-    </svg>
-  );
-}
-
-function BestWorkStepIcon({ className }: StepIconProps) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={className}
-    >
-      <path d="M10 13a5 5 0 0 0 7.1 0l2.1-2.1a5 5 0 0 0-7.1-7.1l-1.4 1.4" />
-      <path d="M14 11a5 5 0 0 0-7.1 0l-2.1 2.1a5 5 0 1 0 7.1 7.1l1.4-1.4" />
     </svg>
   );
 }
@@ -201,38 +148,22 @@ const CREATOR_SIGNUP_STEPS: Array<{
 }> = [
   {
     id: 1,
-    label: "Name",
-    title: "What should brands call you?",
+    label: "Account",
+    title: "Create your creator account",
     description:
-      "Use the full name you want attached to your creator profile and submissions.",
-    icon: NameStepIcon,
+      "Enter your name, email, and password before we send your verification code.",
+    icon: AccountStepIcon,
   },
   {
     id: 2,
-    label: "Email",
-    title: "Where should we send your code?",
-    description:
-      "We’ll send a 6-digit verification code to confirm the email before profile setup continues.",
-    icon: EmailStepIcon,
-  },
-  {
-    id: 3,
-    label: "Password",
-    title: "Set your password",
-    description:
-      "Create the password you’ll use after your email is verified. You can resend the email code from here.",
-    icon: PasswordStepIcon,
-  },
-  {
-    id: 4,
-    label: "OTP",
+    label: "Verify",
     title: "Verify the 6-digit code",
     description:
-      "Enter the email code to confirm ownership of the inbox and activate the account.",
+      "Enter the code from your email to confirm the account before profile setup continues.",
     icon: VerifyStepIcon,
   },
   {
-    id: 5,
+    id: 3,
     label: "Birth year",
     title: "What is your birth year?",
     description:
@@ -240,7 +171,7 @@ const CREATOR_SIGNUP_STEPS: Array<{
     icon: CalendarStepIcon,
   },
   {
-    id: 6,
+    id: 4,
     label: "Interests",
     title: "What are you interested in?",
     description:
@@ -248,28 +179,20 @@ const CREATOR_SIGNUP_STEPS: Array<{
     icon: InterestStepIcon,
   },
   {
-    id: 7,
+    id: 5,
     label: "Socials",
-    title: "What are your socials?",
+    title: "Add your socials",
     description:
-      "Add the Instagram and TikTok usernames brands will recognize immediately.",
+      "Share the handles brands recognize and how many UGC videos you create each month.",
     icon: SocialStepIcon,
   },
   {
-    id: 8,
-    label: "Volume",
-    title: "How many UGC videos do you create per month?",
-    description:
-      "Give brands a realistic sense of your delivery rhythm and production capacity.",
-    icon: VolumeStepIcon,
-  },
-  {
-    id: 9,
-    label: "Best work",
-    title: "Add up to 5 of your best videos or links",
+    id: 6,
+    label: "Portfolio",
+    title: "Add up to 5 of your best links",
     description:
       "Share your strongest links so the profile is useful the moment it goes live.",
-    icon: BestWorkStepIcon,
+    icon: PortfolioStepIcon,
   },
 ];
 
@@ -280,10 +203,8 @@ const DEFAULT_CREATOR_HEADLINE = "Available for UGC collaborations";
 const BIRTH_YEAR_OPTIONS = Array.from({ length: 2018 - 1991 + 1 }, (_, index) =>
   String(1991 + index),
 );
-
-type CreatorSignupFlowProps = {
-  onSwitchToBrand?: () => void;
-};
+const inputClassName =
+  "h-14 w-full rounded-2xl border border-[#2f2b27] bg-[#2f2b27] px-4 text-base text-white outline-none transition placeholder:text-white/45 focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)]";
 
 function normalizeHandle(value: string) {
   const trimmed = value.trim();
@@ -355,9 +276,7 @@ function createEmptyOtp() {
   return Array.from({ length: OTP_LENGTH }, () => "");
 }
 
-export function CreatorSignupFlow({
-  onSwitchToBrand,
-}: CreatorSignupFlowProps) {
+export function CreatorSignupFlow() {
   const supabase = useMemo(() => createClient(), []);
   const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [step, setStep] = useState(1);
@@ -380,7 +299,6 @@ export function CreatorSignupFlow({
   const [isWorking, setIsWorking] = useState(false);
 
   const currentStep = CREATOR_SIGNUP_STEPS.find((item) => item.id === step)!;
-  const progress = (step / CREATOR_SIGNUP_TOTAL_STEPS) * 100;
   const otpValue = otpDigits.join("");
 
   function resetFeedback() {
@@ -392,7 +310,7 @@ export function CreatorSignupFlow({
     resetFeedback();
     setStep((current) => {
       if (isOtpVerified) {
-        return Math.max(5, current - 1);
+        return Math.max(3, current - 1);
       }
 
       return Math.max(1, current - 1);
@@ -464,12 +382,31 @@ export function CreatorSignupFlow({
 
   async function handleSendOtpAndContinue() {
     resetFeedback();
+
+    const normalizedFullName = fullName.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedFullName || !normalizedEmail) {
+      setError("Full name and email are required.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Use a password with at least 6 characters.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Password and confirm password must match.");
+      return;
+    }
+
     setIsWorking(true);
 
     try {
       await sendOtp();
-      setSuccess(`We sent a 6-digit code to ${email.trim().toLowerCase()}.`);
-      setStep(3);
+      setSuccess(`We sent a 6-digit code to ${normalizedEmail}.`);
+      setStep(2);
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -516,50 +453,39 @@ export function CreatorSignupFlow({
   async function verifyOtpAndApplyPassword() {
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (password.length < 6) {
-      throw new Error("Use a password with at least 6 characters.");
+    if (otpValue.length !== OTP_LENGTH) {
+      throw new Error("Enter the full 6-digit code from your email.");
     }
 
-    if (password !== confirmPassword) {
-      throw new Error("Password and confirm password must match.");
+    let verifyError: Error | null = null;
+
+    for (const verificationType of ["email", "signup"] as const) {
+      const result = await supabase.auth.verifyOtp({
+        email: normalizedEmail,
+        token: otpValue,
+        type: verificationType,
+      });
+
+      if (!result.error) {
+        verifyError = null;
+        setIsOtpVerified(true);
+        break;
+      }
+
+      verifyError = result.error;
     }
 
-    if (!isOtpVerified) {
-      if (otpValue.length !== OTP_LENGTH) {
-        throw new Error("Enter the full 6-digit code from your email.");
-      }
-
-      let verifyError: Error | null = null;
-
-      for (const verificationType of ["email", "signup"] as const) {
-        const result = await supabase.auth.verifyOtp({
-          email: normalizedEmail,
-          token: otpValue,
-          type: verificationType,
-        });
-
-        if (!result.error) {
-          verifyError = null;
-          setIsOtpVerified(true);
-          break;
-        }
-
-        verifyError = result.error;
-      }
-
-      if (verifyError) {
-        throw verifyError;
-      }
+    if (verifyError) {
+      throw verifyError;
     }
 
     if (!hasPasswordApplied) {
-      const creatorHeadline = buildCreatorHeadline(interests);
       const { error: updateUserError } = await supabase.auth.updateUser({
         password,
         data: {
           role: "creator",
           full_name: fullName.trim(),
-          headline: creatorHeadline,
+          headline: buildCreatorHeadline(interests),
         },
       });
 
@@ -580,7 +506,7 @@ export function CreatorSignupFlow({
         .from("users")
         .update({
           full_name: fullName.trim(),
-          headline: creatorHeadline,
+          headline: buildCreatorHeadline(interests),
         })
         .eq("id", user.id);
 
@@ -598,8 +524,8 @@ export function CreatorSignupFlow({
 
     try {
       await verifyOtpAndApplyPassword();
-      setSuccess("Email verified. Your creator account is ready for profile setup.");
-      setStep(5);
+      setSuccess("Email verified. Continue with your creator profile.");
+      setStep(3);
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -647,7 +573,9 @@ export function CreatorSignupFlow({
         throw new Error("Use valid http or https links for your featured videos.");
       }
 
-      const uniqueLinks = [...new Set(normalizedLinks.filter((link): link is string => Boolean(link)))];
+      const uniqueLinks = [
+        ...new Set(normalizedLinks.filter((link): link is string => Boolean(link))),
+      ];
       const creatorHeadline = buildCreatorHeadline(interests);
       const {
         data: { user },
@@ -716,111 +644,24 @@ export function CreatorSignupFlow({
     }
   }
 
-  function handleStepAdvance() {
-    resetFeedback();
-
-    if (step === 1) {
-      if (!fullName.trim()) {
-        setError("Full name is required to continue.");
-        return;
-      }
-
-      setStep(2);
-      return;
-    }
-
-    if (step === 2) {
-      void handleSendOtpAndContinue();
-      return;
-    }
-
-    if (step === 3) {
-      if (password.length < 6) {
-        setError("Use a password with at least 6 characters.");
-        return;
-      }
-
-      if (password !== confirmPassword) {
-        setError("Password and confirm password must match.");
-        return;
-      }
-
-      setStep(4);
-      return;
-    }
-
-    if (step === 4) {
-      void handleVerifyOtpAndContinue();
-      return;
-    }
-
-    if (step === 5) {
-      if (!birthYear) {
-        setError("Choose your birth year to continue.");
-        return;
-      }
-
-      setStep(6);
-      return;
-    }
-
-    if (step === 6) {
-      if (!interests.length) {
-        setError("Choose at least one interest to continue.");
-        return;
-      }
-
-      setStep(7);
-      return;
-    }
-
-    if (step === 7) {
-      if (!normalizeHandle(instagramUsername) && !normalizeHandle(tiktokUsername)) {
-        setError("Add at least one social username to continue.");
-        return;
-      }
-
-      setStep(8);
-      return;
-    }
-
-    if (step === 8) {
-      const monthlyVideoCount = Number.parseInt(monthlyVideos, 10);
-
-      if (!Number.isFinite(monthlyVideoCount) || monthlyVideoCount <= 0) {
-        setError("Enter how many UGC videos you create per month.");
-        return;
-      }
-
-      setStep(9);
-      return;
-    }
-
-    if (step === 9) {
-      void handleCompleteSignup();
-    }
-  }
-
   function handleOtpDigitChange(index: number, value: string) {
-    const digit = value.replace(/\D/g, "").slice(-1);
+    const nextValue = value.replace(/\D/g, "").slice(-1);
 
     setOtpDigits((current) =>
-      current.map((currentDigit, currentIndex) =>
-        currentIndex === index ? digit : currentDigit,
+      current.map((digit, currentIndex) =>
+        currentIndex === index ? nextValue : digit,
       ),
     );
 
-    if (digit && index < OTP_LENGTH - 1) {
+    if (nextValue && index < OTP_LENGTH - 1) {
       otpInputRefs.current[index + 1]?.focus();
       otpInputRefs.current[index + 1]?.select();
     }
   }
 
-  function handleOtpKeyDown(
-    index: number,
-    event: KeyboardEvent<HTMLInputElement>,
-  ) {
+  function handleOtpKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Backspace" && !otpDigits[index] && index > 0) {
+      event.preventDefault();
       otpInputRefs.current[index - 1]?.focus();
       return;
     }
@@ -859,446 +700,386 @@ export function CreatorSignupFlow({
     otpInputRefs.current[lastIndex]?.select();
   }
 
+  function handlePrimaryAction() {
+    resetFeedback();
+
+    if (step === 1) {
+      void handleSendOtpAndContinue();
+      return;
+    }
+
+    if (step === 2) {
+      void handleVerifyOtpAndContinue();
+      return;
+    }
+
+    if (step === 3) {
+      if (!birthYear) {
+        setError("Choose your birth year to continue.");
+        return;
+      }
+
+      setStep(4);
+      return;
+    }
+
+    if (step === 4) {
+      if (!interests.length) {
+        setError("Select at least one interest to continue.");
+        return;
+      }
+
+      setStep(5);
+      return;
+    }
+
+    if (step === 5) {
+      const normalizedInstagram = normalizeHandle(instagramUsername);
+      const normalizedTiktok = normalizeHandle(tiktokUsername);
+      const monthlyVideoCount = Number.parseInt(monthlyVideos, 10);
+
+      if (!normalizedInstagram && !normalizedTiktok) {
+        setError("Add at least one social username to continue.");
+        return;
+      }
+
+      if (!Number.isFinite(monthlyVideoCount) || monthlyVideoCount <= 0) {
+        setError("Enter how many UGC videos you create per month.");
+        return;
+      }
+
+      setStep(6);
+      return;
+    }
+
+    void handleCompleteSignup();
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-              Creator onboarding
-            </p>
-            <p className="mt-3 text-lg font-semibold text-slate-950">
-              Step {step} of {CREATOR_SIGNUP_TOTAL_STEPS}
-            </p>
-            <p className="mt-2 text-sm leading-7 text-slate-500">
-              Guided creator setup with email verification, profile structure, and
-              initial portfolio links.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <span
-              className={cn(
-                "inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]",
-                isOtpVerified
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-amber-100 text-amber-700",
-              )}
-            >
-              {isOtpVerified ? "Email verified" : "Email pending"}
-            </span>
-            {onSwitchToBrand ? (
-              <button
-                type="button"
-                onClick={onSwitchToBrand}
-                className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-              >
-                Switch to brand
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="mt-5 h-2 rounded-full bg-white">
-          <div
-            className="h-full rounded-full bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] transition-all duration-300"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-
-        <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-9">
-          {CREATOR_SIGNUP_STEPS.map((item) => {
-            const isActive = item.id === step;
-            const isComplete = item.id < step;
-            const StepIcon = item.icon;
-
-            return (
-              <div
-                key={item.id}
-                className={cn(
-                  "rounded-2xl border px-3 py-3 text-center transition",
-                  isActive
-                    ? "border-accent/20 bg-white text-accent shadow-[0_10px_24px_rgba(7,107,210,0.08)]"
-                    : isComplete
-                      ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-                      : "border-transparent bg-white/70 text-slate-400",
-                )}
-              >
-                <div className="flex justify-center">
-                  <span
-                    className={cn(
-                      "inline-flex h-9 w-9 items-center justify-center rounded-full",
-                      isActive
-                        ? "bg-[rgba(7,107,210,0.1)]"
-                        : isComplete
-                          ? "bg-white/80"
-                          : "bg-white/60",
-                    )}
-                  >
-                    <StepIcon className="h-4 w-4" />
-                  </span>
-                </div>
-                <p className="mt-2 text-xs font-medium">{item.label}</p>
-              </div>
-            );
-          })}
-        </div>
+    <section className="rounded-[2rem] border border-black/5 bg-white/84 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8">
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+          Creator signup
+        </span>
+        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+          Step {step} of {CREATOR_SIGNUP_TOTAL_STEPS}
+        </span>
       </div>
 
-      <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">
-          {currentStep.label}
-        </p>
-        <h3 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
-          {currentStep.title}
-        </h3>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500">
-          {currentStep.description}
-        </p>
+      <div className="mt-8 grid grid-cols-6 gap-2">
+        {CREATOR_SIGNUP_STEPS.map((item, index) => {
+          const StepIcon = item.icon;
+          const isActive = item.id === step;
+          const isComplete = item.id < step;
 
-        <div className="mt-6 space-y-5">
-          {step === 1 ? (
-            <div>
-              <label
-                htmlFor="creator-full-name"
-                className="mb-2 block text-sm font-medium text-slate-600"
+          return (
+            <div key={item.id} className="relative text-center">
+              <p
+                className={cn(
+                  "text-[10px] font-semibold uppercase tracking-[0.16em]",
+                  isActive || isComplete ? "text-slate-700" : "text-slate-400",
+                )}
               >
-                Full name
-              </label>
-              <input
-                id="creator-full-name"
-                type="text"
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                placeholder="Riley Cole"
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-              />
-            </div>
-          ) : null}
+                {item.label}
+              </p>
 
-          {step === 2 ? (
-            <div className="space-y-4">
-              <div>
-                <label
-                  htmlFor="creator-email"
-                  className="mb-2 block text-sm font-medium text-slate-600"
-                >
-                  Email address
-                </label>
-                <input
-                  id="creator-email"
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="creator@example.com"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+              {index < CREATOR_SIGNUP_STEPS.length - 1 ? (
+                <span
+                  className={cn(
+                    "absolute left-1/2 top-[2.1rem] h-px w-full translate-x-1/2",
+                    isComplete ? "bg-[#076BD2]" : "bg-black/10",
+                  )}
                 />
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-500">
-                We&apos;ll send a 6-digit verification code to this inbox so you can
-                continue the creator setup.
-              </div>
-            </div>
-          ) : null}
+              ) : null}
 
-          {step === 3 ? (
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                Code destination:{" "}
-                <span className="font-semibold text-slate-900">
-                  {email.trim().toLowerCase()}
+              <div className="relative mt-3 flex justify-center">
+                <span
+                  className={cn(
+                    "relative z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border",
+                    isActive
+                      ? "border-[#076BD2] bg-[#076BD2] text-white shadow-[0_12px_25px_rgba(7,107,210,0.22)]"
+                      : isComplete
+                        ? "border-[#076BD2]/30 bg-[#dcecff] text-[#076BD2]"
+                        : "border-black/10 bg-[#f1ede7] text-slate-400",
+                  )}
+                >
+                  <StepIcon className="h-4 w-4" />
                 </span>
               </div>
-              <div className="grid gap-5 sm:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="creator-password"
-                    className="mb-2 block text-sm font-medium text-slate-600"
-                  >
-                    Password
-                  </label>
-                  <input
-                    id="creator-password"
-                    type="password"
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Minimum 6 characters"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="creator-confirm-password"
-                    className="mb-2 block text-sm font-medium text-slate-600"
-                  >
-                    Confirm password
-                  </label>
-                  <input
-                    id="creator-confirm-password"
-                    type="password"
-                    autoComplete="new-password"
-                    value={confirmPassword}
-                    onChange={(event) => setConfirmPassword(event.target.value)}
-                    placeholder="Re-enter password"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                  />
-                </div>
-              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-6">
+        <p className="text-center text-sm font-medium text-slate-900">
+          {currentStep.title}
+        </p>
+        <p className="mt-2 text-center text-sm leading-7 text-slate-500">
+          {currentStep.description}
+        </p>
+      </div>
+
+      <div className="mt-8 space-y-5">
+        {step === 1 ? (
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={fullName}
+              onChange={(event) => setFullName(event.target.value)}
+              placeholder="Full name"
+              className={inputClassName}
+            />
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Email address"
+              className={inputClassName}
+            />
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Password"
+              className={inputClassName}
+            />
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              placeholder="Confirm password"
+              className={inputClassName}
+            />
+          </div>
+        ) : null}
+
+        {step === 2 ? (
+          <div className="space-y-4">
+            <p className="text-center text-sm leading-7 text-slate-500">
+              Enter the 6-digit code sent to{" "}
+              <span className="font-semibold text-slate-900">
+                {email.trim().toLowerCase()}
+              </span>
+              .
+            </p>
+
+            <div className="flex justify-center gap-3">
+              {otpDigits.map((digit, index) => (
+                <input
+                  key={index}
+                  ref={(node) => {
+                    otpInputRefs.current[index] = node;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(event) =>
+                    handleOtpDigitChange(index, event.target.value)
+                  }
+                  onKeyDown={(event) => handleOtpKeyDown(index, event)}
+                  onPaste={handleOtpPaste}
+                  className="h-14 w-12 rounded-2xl border border-[#2f2b27] bg-[#2f2b27] text-center text-lg font-semibold text-white outline-none transition focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)] sm:w-14"
+                />
+              ))}
+            </div>
+
+            <div className="flex justify-center">
               <button
                 type="button"
                 onClick={() => void handleResendOtp()}
                 disabled={isWorking}
-                className="inline-flex rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="text-sm font-medium text-[#076BD2] transition hover:text-[#0558ad] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isWorking ? "Sending..." : "Resend code"}
               </button>
             </div>
-          ) : null}
+          </div>
+        ) : null}
 
-          {step === 4 ? (
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                Enter the code sent to{" "}
-                <span className="font-semibold text-slate-900">
-                  {email.trim().toLowerCase()}
-                </span>
-                .
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {otpDigits.map((digit, index) => (
-                  <input
-                    key={index}
-                    ref={(node) => {
-                      otpInputRefs.current[index] = node;
-                    }}
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(event) =>
-                      handleOtpDigitChange(index, event.target.value)
-                    }
-                    onKeyDown={(event) => handleOtpKeyDown(index, event)}
-                    onPaste={handleOtpPaste}
-                    className="h-14 w-12 rounded-2xl border border-slate-200 bg-white text-center text-lg font-semibold text-slate-950 outline-none transition focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)] sm:w-14"
-                  />
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-3">
+        {step === 3 ? (
+          <select
+            value={birthYear}
+            onChange={(event) => setBirthYear(event.target.value)}
+            className={cn(inputClassName, "appearance-none")}
+          >
+            <option value="" className="text-slate-500">
+              Select birth year
+            </option>
+            {BIRTH_YEAR_OPTIONS.map((year) => (
+              <option key={year} value={year} className="text-slate-900">
+                {year}
+              </option>
+            ))}
+          </select>
+        ) : null}
+
+        {step === 4 ? (
+          <div className="flex flex-wrap gap-3">
+            {CREATOR_INTEREST_OPTIONS.map((option) => {
+              const isSelected = interests.includes(option);
+
+              return (
                 <button
+                  key={option}
                   type="button"
-                  onClick={() => void handleResendOtp()}
-                  disabled={isWorking}
-                  className="inline-flex rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={() => handleInterestToggle(option)}
+                  className={cn(
+                    "rounded-full border px-4 py-3 text-sm font-semibold transition",
+                    isSelected
+                      ? "border-[#076BD2] bg-[#076BD2] text-white shadow-[0_12px_24px_rgba(7,107,210,0.18)]"
+                      : "border-black/8 bg-white text-slate-600 hover:border-black/15 hover:text-slate-900",
+                  )}
                 >
-                  {isWorking ? "Sending..." : "Resend code"}
+                  {option}
                 </button>
-                {isOtpVerified ? (
-                  <span className="inline-flex rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-                    Code accepted
-                  </span>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {step === 5 ? (
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={instagramUsername}
+              onChange={(event) => setInstagramUsername(event.target.value)}
+              placeholder="Instagram username"
+              className={inputClassName}
+            />
+            <input
+              type="text"
+              value={tiktokUsername}
+              onChange={(event) => setTiktokUsername(event.target.value)}
+              placeholder="TikTok username"
+              className={inputClassName}
+            />
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={monthlyVideos}
+              onChange={(event) => setMonthlyVideos(event.target.value)}
+              placeholder="UGC videos per month"
+              className={inputClassName}
+            />
+          </div>
+        ) : null}
+
+        {step === 6 ? (
+          <div className="space-y-3">
+            {featuredLinks.map((link, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <input
+                  type="url"
+                  value={link}
+                  onChange={(event) =>
+                    handleFeaturedLinkChange(index, event.target.value)
+                  }
+                  placeholder={`Best video or portfolio link ${index + 1}`}
+                  className={cn(inputClassName, "flex-1")}
+                />
+                {featuredLinks.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFeaturedLink(index)}
+                    className="rounded-2xl border border-black/8 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-black/15 hover:text-slate-900"
+                  >
+                    Remove
+                  </button>
                 ) : null}
               </div>
-            </div>
-          ) : null}
+            ))}
 
-          {step === 5 ? (
-            <div>
-              <label
-                htmlFor="creator-birth-year"
-                className="mb-2 block text-sm font-medium text-slate-600"
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={handleAddFeaturedLink}
+                disabled={featuredLinks.length >= MAX_FEATURED_LINKS}
+                className="rounded-2xl border border-black/8 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-black/15 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Birth year
-              </label>
-              <select
-                id="creator-birth-year"
-                value={birthYear}
-                onChange={(event) => setBirthYear(event.target.value)}
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-              >
-                <option value="">Select birth year</option>
-                {BIRTH_YEAR_OPTIONS.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
+                Add another link
+              </button>
+              <span className="text-sm text-slate-500">
+                Up to {MAX_FEATURED_LINKS} links
+              </span>
             </div>
-          ) : null}
-
-          {step === 6 ? (
-            <div className="space-y-4">
-              <p className="text-sm text-slate-500">
-                Select all categories that fit your creator profile.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                {CREATOR_INTEREST_OPTIONS.map((option) => {
-                  const isSelected = interests.includes(option);
-
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => handleInterestToggle(option)}
-                      className={cn(
-                        "rounded-full border px-4 py-3 text-sm font-semibold transition",
-                        isSelected
-                          ? "border-accent/20 bg-[rgba(7,107,210,0.09)] text-accent shadow-[0_10px_24px_rgba(7,107,210,0.08)]"
-                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900",
-                      )}
-                    >
-                      {option}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
-
-          {step === 7 ? (
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="creator-instagram"
-                  className="mb-2 block text-sm font-medium text-slate-600"
-                >
-                  Instagram username
-                </label>
-                <input
-                  id="creator-instagram"
-                  type="text"
-                  value={instagramUsername}
-                  onChange={(event) => setInstagramUsername(event.target.value)}
-                  placeholder="@creatorname"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="creator-tiktok"
-                  className="mb-2 block text-sm font-medium text-slate-600"
-                >
-                  TikTok username
-                </label>
-                <input
-                  id="creator-tiktok"
-                  type="text"
-                  value={tiktokUsername}
-                  onChange={(event) => setTiktokUsername(event.target.value)}
-                  placeholder="@creatorname"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                />
-              </div>
-            </div>
-          ) : null}
-
-          {step === 8 ? (
-            <div>
-              <label
-                htmlFor="creator-monthly-videos"
-                className="mb-2 block text-sm font-medium text-slate-600"
-              >
-                UGC videos per month
-              </label>
-              <input
-                id="creator-monthly-videos"
-                type="number"
-                min="1"
-                step="1"
-                value={monthlyVideos}
-                onChange={(event) => setMonthlyVideos(event.target.value)}
-                placeholder="12"
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-              />
-            </div>
-          ) : null}
-
-          {step === 9 ? (
-            <div className="space-y-4">
-              {featuredLinks.map((link, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <input
-                    type="url"
-                    value={link}
-                    onChange={(event) =>
-                      handleFeaturedLinkChange(index, event.target.value)
-                    }
-                    placeholder={`Best video or portfolio link ${index + 1}`}
-                    className="h-12 flex-1 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                  />
-                  {featuredLinks.length > 1 ? (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveFeaturedLink(index)}
-                      className="inline-flex rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
-                    >
-                      Remove
-                    </button>
-                  ) : null}
-                </div>
-              ))}
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={handleAddFeaturedLink}
-                  disabled={featuredLinks.length >= MAX_FEATURED_LINKS}
-                  className="inline-flex rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Add another link
-                </button>
-                <span className="inline-flex rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                  Up to {MAX_FEATURED_LINKS} links
-                </span>
-              </div>
-            </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
         </div>
       ) : null}
 
       {success ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           {success}
         </div>
       ) : null}
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <button
+        type="button"
+        onClick={handlePrimaryAction}
+        disabled={isWorking}
+        className="mt-6 h-14 w-full rounded-2xl bg-[#2f2b27] text-base font-semibold text-white transition hover:bg-[#25221f] disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {isWorking
+          ? step === 6
+            ? "Finishing..."
+            : "Please wait..."
+          : step === 1
+            ? "Create account"
+            : step === 2
+              ? "Verify code"
+              : step === 6
+                ? "Open dashboard"
+                : "Continue"}
+      </button>
+
+      <div className="mt-4 flex justify-center">
         <button
           type="button"
           onClick={handleBack}
-          disabled={step === 1 || isWorking || (isOtpVerified && step === 5)}
-          className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={step === 1 || isWorking || (isOtpVerified && step === 3)}
+          className="text-sm font-medium text-slate-500 transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Back
         </button>
-        <button
-          type="button"
-          onClick={handleStepAdvance}
-          disabled={isWorking}
-          className="inline-flex h-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 text-sm font-semibold text-white shadow-[0_24px_60px_rgba(7,107,210,0.2)] transition hover:translate-y-[-1px] hover:shadow-[0_28px_70px_rgba(7,107,210,0.24)] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isWorking
-            ? step === 9
-              ? "Creating profile..."
-              : step === 4
-                ? "Verifying..."
-                : "Working..."
-            : step === 2
-              ? "Send OTP and continue"
-              : step === 4
-                ? "Verify email and continue"
-                : step === 9
-                  ? "Create creator account"
-                  : "Continue"}
-        </button>
       </div>
-    </div>
+
+      <div className="mt-6 border-t border-black/6 pt-6 text-center text-sm text-slate-500">
+        <p>
+          By continuing, you agree to our{" "}
+          <Link href="/terms" className="text-[#076BD2] transition hover:text-[#0558ad]">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/privacy"
+            className="text-[#076BD2] transition hover:text-[#0558ad]"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </p>
+        <p className="mt-4">
+          Already have an account?{" "}
+          <Link
+            href="/login?role=creator"
+            className="font-medium text-[#076BD2] transition hover:text-[#0558ad]"
+          >
+            Sign in
+          </Link>
+        </p>
+      </div>
+    </section>
   );
 }

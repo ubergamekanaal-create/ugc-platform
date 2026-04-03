@@ -5,13 +5,11 @@ import { BrandMark } from "@/components/shared/brand-mark";
 
 export default function SignupPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#f5f8fc] text-slate-900">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(7,107,210,0.14),_transparent_28%),radial-gradient(circle_at_84%_18%,_rgba(59,130,246,0.12),_transparent_18%),linear-gradient(180deg,_#ffffff,_#f5f8fc_45%,_#eef4fb_100%)]" />
-      <div className="absolute inset-0 opacity-50 [background-image:radial-gradient(rgba(148,163,184,0.12)_1px,transparent_1px)] [background-size:24px_24px]" />
+    <div className="relative min-h-screen overflow-hidden bg-[#f6f2ec] text-slate-900">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(7,107,210,0.1),_transparent_28%),radial-gradient(circle_at_84%_18%,_rgba(15,23,42,0.04),_transparent_18%),linear-gradient(180deg,_#faf7f2,_#f6f2ec_50%,_#f1ece5_100%)]" />
 
-      <div className="relative z-10 flex min-h-screen flex-col px-6 py-8 sm:px-8">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4">
-          <BrandMark tone="light" />
+      <div className="relative z-10 flex min-h-screen flex-col px-6 py-6 sm:px-8">
+        <div className="mx-auto flex w-full max-w-[34rem] items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
               href="/"
@@ -28,10 +26,26 @@ export default function SignupPage() {
           </div>
         </div>
 
-        <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col py-8">
-          <div className="space-y-6">
+        <div className="mx-auto flex w-full max-w-[34rem] flex-1 flex-col justify-center py-10">
+          <div className="space-y-8">
             <div className="flex justify-center">
-              <SignupRoleTabs activeRole="brand" />
+              <BrandMark tone="light" />
+            </div>
+
+            <div className="space-y-3 text-center">
+              <h1 className="font-display text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
+                Create your brand account
+              </h1>
+              <p className="text-base leading-7 text-slate-500 sm:text-lg">
+                Sign up to manage your brand on CIRCL.
+              </p>
+            </div>
+
+            <div className="flex justify-center">
+              <SignupRoleTabs
+                activeRole="brand"
+                className="max-w-[18.75rem]"
+              />
             </div>
 
             <SignupForm />
