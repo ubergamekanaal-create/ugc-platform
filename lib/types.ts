@@ -6,6 +6,13 @@ export type StoreConnectionStatus = "connected" | "pending" | "error";
 
 export type MetaConnectionStatus = "connected" | "pending" | "error";
 
+export type StoreAnalyticsEventName =
+  | "page_viewed"
+  | "product_viewed"
+  | "product_added_to_cart"
+  | "checkout_started"
+  | "checkout_completed";
+
 export type CampaignStatus = "open" | "in_review" | "active" | "completed";
 
 export type ApplicationStatus =
@@ -225,6 +232,7 @@ export type CreatorProfileDetails = {
   bio: string | null;
   niches: string[];
   platform_specialties: string[];
+  birth_year: number | null;
   portfolio_url: string | null;
   instagram_url: string | null;
   instagram_handle: string | null;
@@ -239,11 +247,14 @@ export type CreatorProfileDetails = {
   base_rate: number;
   engagement_rate: number;
   average_views: number;
+  monthly_ugc_videos: number;
+  featured_content_links: string[];
   featured_brands: string[];
   featured_result: string | null;
   audience_summary: string | null;
   past_work: string | null;
   location: string | null;
+  onboarding_completed_at: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -261,6 +272,7 @@ export type BrandCreatorDirectoryEntry = {
   bio: string | null;
   niches: string[];
   platform_specialties: string[];
+  birth_year: number | null;
   portfolio_url: string | null;
   instagram_url: string | null;
   instagram_handle: string | null;
@@ -274,12 +286,15 @@ export type BrandCreatorDirectoryEntry = {
   website_url: string | null;
   engagement_rate: number;
   average_views: number;
+  monthly_ugc_videos: number;
+  featured_content_links: string[];
   featured_brands: string[];
   featured_result: string | null;
   portfolio_assets: CreatorPortfolioAsset[];
   audience_summary: string | null;
   past_work: string | null;
   location: string | null;
+  onboarding_completed_at: string | null;
   latest_campaign_title: string | null;
   latest_application_at: string | null;
   invitations: number;
@@ -407,6 +422,10 @@ export type BrandStoreConnectionSummary = {
   store_domain: string;
   api_version: string;
   status: StoreConnectionStatus;
+  analytics_webhook_status: "not_configured" | "configured" | "error";
+  analytics_webhooks_registered_at: string | null;
+  last_webhook_at: string | null;
+  last_webhook_error: string | null;
   product_count: number;
   connected_at: string;
   last_synced_at: string | null;
@@ -468,6 +487,13 @@ export type BrandMetaCampaignSummary = {
   ad_account_id: string;
   meta_campaign_id: string;
   source_submission_id: string | null;
+  destination_url: string | null;
+  tracking_url: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_content: string | null;
+  utm_term: string | null;
   name: string;
   objective: string | null;
   status: string | null;
@@ -481,6 +507,153 @@ export type BrandMetaCampaignSummary = {
   cpc: number | null;
   cpm: number | null;
   synced_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BrandMetaAdSetSummary = {
+  id: string;
+  connection_id: string;
+  campaign_id: string;
+  brand_id: string;
+  source_submission_id: string | null;
+  meta_campaign_id: string;
+  meta_ad_set_id: string;
+  name: string;
+  status: string | null;
+  effective_status: string | null;
+  destination_type: string | null;
+  billing_event: string | null;
+  optimization_goal: string | null;
+  daily_budget: number | null;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  cpc: number | null;
+  cpm: number | null;
+  targeting_countries: string[];
+  synced_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BrandMetaAdSummary = {
+  id: string;
+  connection_id: string;
+  campaign_id: string;
+  ad_set_id: string;
+  brand_id: string;
+  source_submission_id: string | null;
+  selected_asset_id: string | null;
+  meta_campaign_id: string;
+  meta_ad_set_id: string;
+  meta_ad_id: string;
+  meta_creative_id: string | null;
+  name: string;
+  status: string | null;
+  effective_status: string | null;
+  page_id: string | null;
+  source_asset_kind: string | null;
+  source_asset_url: string | null;
+  destination_url: string | null;
+  tracking_url: string | null;
+  primary_text: string | null;
+  headline: string | null;
+  description: string | null;
+  call_to_action_type: string | null;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  cpc: number | null;
+  cpm: number | null;
+  synced_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BrandStoreAnalyticsSettings = {
+  id: string;
+  brand_id: string;
+  connection_id: string | null;
+  public_tracking_token: string;
+  utm_source_default: string;
+  utm_medium_default: string;
+  utm_campaign_prefix: string;
+  utm_term_default: string | null;
+  enable_page_view: boolean;
+  enable_product_view: boolean;
+  enable_add_to_cart: boolean;
+  enable_checkout_started: boolean;
+  enable_checkout_completed: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BrandStoreAnalyticsEvent = {
+  id: string;
+  brand_id: string;
+  connection_id: string | null;
+  event_name: StoreAnalyticsEventName;
+  event_id: string | null;
+  client_id: string | null;
+  session_id: string | null;
+  shop_domain: string | null;
+  shop_order_id: string | null;
+  campaign_id: string | null;
+  submission_id: string | null;
+  meta_campaign_id: string | null;
+  page_url: string | null;
+  landing_url: string | null;
+  referrer_url: string | null;
+  referral_code: string | null;
+  currency: string | null;
+  value: number | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_content: string | null;
+  utm_term: string | null;
+  fbclid: string | null;
+  fbc: string | null;
+  fbp: string | null;
+  created_at: string;
+};
+
+export type BrandStoreAttributedOrder = {
+  id: string;
+  brand_id: string;
+  connection_id: string | null;
+  shop_domain: string;
+  shop_order_id: string;
+  shopify_order_gid: string | null;
+  order_name: string | null;
+  customer_email: string | null;
+  financial_status: string | null;
+  fulfillment_status: string | null;
+  source_name: string | null;
+  currency: string | null;
+  subtotal: number | null;
+  discount_total: number | null;
+  shipping_total: number | null;
+  tax_total: number | null;
+  total: number | null;
+  landing_url: string | null;
+  referrer_url: string | null;
+  referral_code: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_content: string | null;
+  utm_term: string | null;
+  fbclid: string | null;
+  fbc: string | null;
+  fbp: string | null;
+  campaign_id: string | null;
+  submission_id: string | null;
+  meta_campaign_id: string | null;
+  ordered_at: string | null;
   created_at: string;
   updated_at: string;
 };

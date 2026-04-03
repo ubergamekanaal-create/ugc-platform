@@ -16,6 +16,10 @@ export type StoreConnectionRow = {
   storefront_access_token: string | null;
   api_version: string;
   status: StoreConnectionStatus;
+  analytics_webhook_status: "not_configured" | "configured" | "error";
+  analytics_webhooks_registered_at: string | null;
+  last_webhook_at: string | null;
+  last_webhook_error: string | null;
   product_count: number;
   connected_at: string;
   last_synced_at: string | null;
@@ -42,6 +46,12 @@ function readNumber(value: unknown, fallback = 0) {
   return fallback;
 }
 
+function readWebhookStatus(value: unknown) {
+  return value === "configured" || value === "error"
+    ? value
+    : "not_configured";
+}
+
 export function sanitizeStoreConnection(
   row: Record<string, unknown>,
 ): BrandStoreConnectionSummary {
@@ -63,6 +73,12 @@ export function sanitizeStoreConnection(
       row.status === "error"
         ? row.status
         : "pending",
+    analytics_webhook_status: readWebhookStatus(row.analytics_webhook_status),
+    analytics_webhooks_registered_at: readNullableString(
+      row.analytics_webhooks_registered_at,
+    ),
+    last_webhook_at: readNullableString(row.last_webhook_at),
+    last_webhook_error: readNullableString(row.last_webhook_error),
     product_count: readNumber(row.product_count),
     connected_at: readString(row.connected_at),
     last_synced_at: readNullableString(row.last_synced_at),

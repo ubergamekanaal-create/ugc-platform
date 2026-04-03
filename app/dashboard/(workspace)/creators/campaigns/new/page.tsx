@@ -5,7 +5,7 @@ import { getDashboardContext } from "@/lib/data/platform";
 export const dynamic = "force-dynamic";
 
 export default async function NewBrandCampaignPage() {
-  const context = await getDashboardContext();
+  const context = await getDashboardContext("creators");
 
   if (!context) {
     redirect("/login");

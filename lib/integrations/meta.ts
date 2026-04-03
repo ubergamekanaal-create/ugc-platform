@@ -40,6 +40,36 @@ type MetaCampaignResponse = {
   updated_time?: string;
 };
 
+type MetaAdSetResponse = {
+  id?: string;
+  name?: string;
+  status?: string;
+  effective_status?: string;
+  daily_budget?: string;
+  billing_event?: string;
+  optimization_goal?: string;
+  destination_type?: string;
+  targeting?: {
+    geo_locations?: {
+      countries?: string[];
+    } | null;
+  } | null;
+  created_time?: string;
+  updated_time?: string;
+};
+
+type MetaAdResponse = {
+  id?: string;
+  name?: string;
+  status?: string;
+  effective_status?: string;
+  creative?: {
+    id?: string;
+  } | null;
+  created_time?: string;
+  updated_time?: string;
+};
+
 type MetaInsightResponse = {
   spend?: string;
   impressions?: string;
@@ -81,6 +111,46 @@ export type MetaCampaignSnapshot = {
   updated_at: string;
 };
 
+export type MetaAdSetSnapshot = {
+  meta_ad_set_id: string;
+  name: string;
+  status: string | null;
+  effective_status: string | null;
+  destination_type: string | null;
+  billing_event: string | null;
+  optimization_goal: string | null;
+  daily_budget: number | null;
+  targeting_countries: string[];
+  spend: number;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  cpc: number | null;
+  cpm: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MetaAdSnapshot = {
+  meta_ad_id: string;
+  meta_creative_id: string | null;
+  name: string;
+  status: string | null;
+  effective_status: string | null;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  cpc: number | null;
+  cpm: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type MetaCreateResponse = {
+  id?: string;
+} & MetaGraphErrorPayload;
+
 function readNumber(value: string | number | null | undefined) {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : null;
@@ -96,6 +166,18 @@ function readNumber(value: string | number | null | undefined) {
 
 function getMetaGraphApiVersion() {
   return process.env.META_GRAPH_API_VERSION ?? "v21.0";
+}
+
+function normalizeMetaAdAccountId(adAccountId: string) {
+  return adAccountId.startsWith("act_") ? adAccountId : `act_${adAccountId}`;
+}
+
+function readCountries(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((country): country is string => typeof country === "string");
 }
 
 function getMetaAppId() {
@@ -326,9 +408,7 @@ export async function fetchMetaCampaigns({
   accessToken: string;
   adAccountId: string;
 }) {
-  const accountId = adAccountId.startsWith("act_")
-    ? adAccountId
-    : `act_${adAccountId}`;
+  const accountId = normalizeMetaAdAccountId(adAccountId);
 
   const payload = await requestMetaGraph<MetaListResponse<MetaCampaignResponse>>(
     `${accountId}/campaigns`,
@@ -417,11 +497,9 @@ export async function createMetaCampaign({
   objective: string;
   status: "ACTIVE" | "PAUSED";
 }) {
-  const accountId = adAccountId.startsWith("act_")
-    ? adAccountId
-    : `act_${adAccountId}`;
+  const accountId = normalizeMetaAdAccountId(adAccountId);
 
-  const payload = await requestMetaGraph<{ id?: string } & MetaGraphErrorPayload>(
+  const payload = await requestMetaGraph<MetaCreateResponse>(
     `${accountId}/campaigns`,
     {
       accessToken,
@@ -442,6 +520,358 @@ export async function createMetaCampaign({
   return payload.id;
 }
 
+export async function fetchMetaAdSets({
+  accessToken,
+  campaignId,
+}: {
+  accessToken: string;
+  campaignId: string;
+}) {
+  const payload = await requestMetaGraph<MetaListResponse<MetaAdSetResponse>>(
+    `${campaignId}/adsets`,
+    {
+      accessToken,
+      searchParams: {
+        fields:
+          "id,name,status,effective_status,daily_budget,billing_event,optimization_goal,destination_type,targeting,created_time,updated_time",
+        limit: "50",
+      },
+    },
+  );
+
+  const adSets = payload.data ?? [];
+  const insightMap = new Map<string, MetaInsightResponse>();
+
+  await Promise.all(
+    adSets.map(async (adSet) => {
+      if (!adSet.id) {
+        return;
+      }
+
+      try {
+        const insights = await requestMetaGraph<MetaListResponse<MetaInsightResponse>>(
+          `${adSet.id}/insights`,
+          {
+            accessToken,
+            searchParams: {
+              fields: "spend,impressions,clicks,ctr,cpc,cpm",
+              date_preset: "last_30d",
+              limit: "1",
+            },
+          },
+        );
+
+        insightMap.set(adSet.id, insights.data?.[0] ?? {});
+      } catch {
+        insightMap.set(adSet.id, {});
+      }
+    }),
+  );
+
+  return adSets
+    .map((adSet): MetaAdSetSnapshot | null => {
+      if (!adSet.id) {
+        return null;
+      }
+
+      const insight = insightMap.get(adSet.id) ?? {};
+
+      return {
+        meta_ad_set_id: adSet.id,
+        name: adSet.name?.trim() || "Meta ad set",
+        status: adSet.status ?? null,
+        effective_status: adSet.effective_status ?? null,
+        destination_type: adSet.destination_type ?? null,
+        billing_event: adSet.billing_event ?? null,
+        optimization_goal: adSet.optimization_goal ?? null,
+        daily_budget: readNumber(adSet.daily_budget),
+        targeting_countries: readCountries(
+          adSet.targeting?.geo_locations?.countries ?? [],
+        ),
+        spend: readNumber(insight.spend) ?? 0,
+        impressions: readNumber(insight.impressions) ?? 0,
+        clicks: readNumber(insight.clicks) ?? 0,
+        ctr: readNumber(insight.ctr) ?? 0,
+        cpc: readNumber(insight.cpc),
+        cpm: readNumber(insight.cpm),
+        created_at: adSet.created_time ?? new Date().toISOString(),
+        updated_at:
+          adSet.updated_time ?? adSet.created_time ?? new Date().toISOString(),
+      };
+    })
+    .filter((adSet): adSet is MetaAdSetSnapshot => adSet !== null);
+}
+
+export async function fetchMetaAds({
+  accessToken,
+  adSetId,
+}: {
+  accessToken: string;
+  adSetId: string;
+}) {
+  const payload = await requestMetaGraph<MetaListResponse<MetaAdResponse>>(
+    `${adSetId}/ads`,
+    {
+      accessToken,
+      searchParams: {
+        fields: "id,name,status,effective_status,creative{id},created_time,updated_time",
+        limit: "50",
+      },
+    },
+  );
+
+  const ads = payload.data ?? [];
+  const insightMap = new Map<string, MetaInsightResponse>();
+
+  await Promise.all(
+    ads.map(async (ad) => {
+      if (!ad.id) {
+        return;
+      }
+
+      try {
+        const insights = await requestMetaGraph<MetaListResponse<MetaInsightResponse>>(
+          `${ad.id}/insights`,
+          {
+            accessToken,
+            searchParams: {
+              fields: "spend,impressions,clicks,ctr,cpc,cpm",
+              date_preset: "last_30d",
+              limit: "1",
+            },
+          },
+        );
+
+        insightMap.set(ad.id, insights.data?.[0] ?? {});
+      } catch {
+        insightMap.set(ad.id, {});
+      }
+    }),
+  );
+
+  return ads
+    .map((ad): MetaAdSnapshot | null => {
+      if (!ad.id) {
+        return null;
+      }
+
+      const insight = insightMap.get(ad.id) ?? {};
+
+      return {
+        meta_ad_id: ad.id,
+        meta_creative_id: ad.creative?.id ?? null,
+        name: ad.name?.trim() || "Meta ad",
+        status: ad.status ?? null,
+        effective_status: ad.effective_status ?? null,
+        spend: readNumber(insight.spend) ?? 0,
+        impressions: readNumber(insight.impressions) ?? 0,
+        clicks: readNumber(insight.clicks) ?? 0,
+        ctr: readNumber(insight.ctr) ?? 0,
+        cpc: readNumber(insight.cpc),
+        cpm: readNumber(insight.cpm),
+        created_at: ad.created_time ?? new Date().toISOString(),
+        updated_at: ad.updated_time ?? ad.created_time ?? new Date().toISOString(),
+      };
+    })
+    .filter((ad): ad is MetaAdSnapshot => ad !== null);
+}
+
+export async function createMetaAdSet(params: {
+  accessToken: string;
+  adAccountId: string;
+  campaignId: string;
+  name: string;
+  status: "ACTIVE" | "PAUSED";
+  dailyBudgetMinorUnits: number;
+  countries: string[];
+  billingEvent?: string;
+  optimizationGoal?: string;
+  destinationType?: string;
+}) {
+  const accountId = normalizeMetaAdAccountId(params.adAccountId);
+
+  const payload = await requestMetaGraph<MetaCreateResponse>(`${accountId}/adsets`, {
+    accessToken: params.accessToken,
+    method: "POST",
+    body: {
+      name: params.name,
+      campaign_id: params.campaignId,
+      daily_budget: String(Math.max(100, Math.round(params.dailyBudgetMinorUnits))),
+      billing_event: params.billingEvent ?? "IMPRESSIONS",
+      optimization_goal: params.optimizationGoal ?? "LINK_CLICKS",
+      destination_type: params.destinationType ?? "WEBSITE",
+      bid_strategy: "LOWEST_COST_WITHOUT_CAP",
+      targeting: JSON.stringify({
+        geo_locations: {
+          countries: params.countries,
+        },
+      }),
+      status: params.status,
+    },
+  });
+
+  if (!payload.id) {
+    throw new Error("Meta did not return an ad set id.");
+  }
+
+  return payload.id;
+}
+
+export async function uploadMetaVideoFromUrl(params: {
+  accessToken: string;
+  adAccountId: string;
+  name: string;
+  videoUrl: string;
+}) {
+  const accountId = normalizeMetaAdAccountId(params.adAccountId);
+
+  const payload = await requestMetaGraph<MetaCreateResponse>(
+    `${accountId}/advideos`,
+    {
+      accessToken: params.accessToken,
+      method: "POST",
+      body: {
+        name: params.name,
+        file_url: params.videoUrl,
+      },
+    },
+  );
+
+  if (!payload.id) {
+    throw new Error("Meta did not return a video id.");
+  }
+
+  return payload.id;
+}
+
+export async function createMetaImageAdCreative(params: {
+  accessToken: string;
+  adAccountId: string;
+  name: string;
+  pageId: string;
+  linkUrl: string;
+  imageUrl: string;
+  headline: string;
+  message: string;
+  description?: string | null;
+  callToActionType?: string | null;
+}) {
+  const accountId = normalizeMetaAdAccountId(params.adAccountId);
+  const objectStorySpec = {
+    page_id: params.pageId,
+    link_data: {
+      link: params.linkUrl,
+      image_url: params.imageUrl,
+      message: params.message,
+      name: params.headline,
+      description: params.description ?? undefined,
+      call_to_action: {
+        type: params.callToActionType ?? "LEARN_MORE",
+        value: {
+          link: params.linkUrl,
+        },
+      },
+    },
+  };
+
+  const payload = await requestMetaGraph<MetaCreateResponse>(
+    `${accountId}/adcreatives`,
+    {
+      accessToken: params.accessToken,
+      method: "POST",
+      body: {
+        name: params.name,
+        object_story_spec: JSON.stringify(objectStorySpec),
+      },
+    },
+  );
+
+  if (!payload.id) {
+    throw new Error("Meta did not return a creative id.");
+  }
+
+  return payload.id;
+}
+
+export async function createMetaVideoAdCreative(params: {
+  accessToken: string;
+  adAccountId: string;
+  name: string;
+  pageId: string;
+  linkUrl: string;
+  videoId: string;
+  headline: string;
+  message: string;
+  description?: string | null;
+  callToActionType?: string | null;
+}) {
+  const accountId = normalizeMetaAdAccountId(params.adAccountId);
+  const objectStorySpec = {
+    page_id: params.pageId,
+    video_data: {
+      video_id: params.videoId,
+      message: params.message,
+      title: params.headline,
+      link_description: params.description ?? undefined,
+      call_to_action: {
+        type: params.callToActionType ?? "LEARN_MORE",
+        value: {
+          link: params.linkUrl,
+        },
+      },
+      link: params.linkUrl,
+    },
+  };
+
+  const payload = await requestMetaGraph<MetaCreateResponse>(
+    `${accountId}/adcreatives`,
+    {
+      accessToken: params.accessToken,
+      method: "POST",
+      body: {
+        name: params.name,
+        object_story_spec: JSON.stringify(objectStorySpec),
+      },
+    },
+  );
+
+  if (!payload.id) {
+    throw new Error("Meta did not return a creative id.");
+  }
+
+  return payload.id;
+}
+
+export async function createMetaAd(params: {
+  accessToken: string;
+  adAccountId: string;
+  adSetId: string;
+  creativeId: string;
+  name: string;
+  status: "ACTIVE" | "PAUSED";
+}) {
+  const accountId = normalizeMetaAdAccountId(params.adAccountId);
+
+  const payload = await requestMetaGraph<MetaCreateResponse>(`${accountId}/ads`, {
+    accessToken: params.accessToken,
+    method: "POST",
+    body: {
+      name: params.name,
+      adset_id: params.adSetId,
+      creative: JSON.stringify({
+        creative_id: params.creativeId,
+      }),
+      status: params.status,
+    },
+  });
+
+  if (!payload.id) {
+    throw new Error("Meta did not return an ad id.");
+  }
+
+  return payload.id;
+}
+
 export async function updateMetaCampaignStatus({
   accessToken,
   campaignId,
@@ -452,6 +882,42 @@ export async function updateMetaCampaignStatus({
   status: "ACTIVE" | "PAUSED";
 }) {
   await requestMetaGraph<MetaGraphErrorPayload>(campaignId, {
+    accessToken,
+    method: "POST",
+    body: {
+      status,
+    },
+  });
+}
+
+export async function updateMetaAdSetStatus({
+  accessToken,
+  adSetId,
+  status,
+}: {
+  accessToken: string;
+  adSetId: string;
+  status: "ACTIVE" | "PAUSED";
+}) {
+  await requestMetaGraph<MetaGraphErrorPayload>(adSetId, {
+    accessToken,
+    method: "POST",
+    body: {
+      status,
+    },
+  });
+}
+
+export async function updateMetaAdStatus({
+  accessToken,
+  adId,
+  status,
+}: {
+  accessToken: string;
+  adId: string;
+  status: "ACTIVE" | "PAUSED";
+}) {
+  await requestMetaGraph<MetaGraphErrorPayload>(adId, {
     accessToken,
     method: "POST",
     body: {

@@ -11,6 +11,10 @@ create table if not exists public.brand_store_connections (
   storefront_access_token text,
   api_version text not null default '2026-01',
   status text not null default 'pending' check (status in ('connected', 'pending', 'error')),
+  analytics_webhook_status text not null default 'not_configured' check (analytics_webhook_status in ('not_configured', 'configured', 'error')),
+  analytics_webhooks_registered_at timestamptz,
+  last_webhook_at timestamptz,
+  last_webhook_error text,
   product_count integer not null default 0,
   connected_at timestamptz not null default now(),
   last_synced_at timestamptz,
@@ -18,6 +22,32 @@ create table if not exists public.brand_store_connections (
   updated_at timestamptz not null default now(),
   unique (brand_id)
 );
+
+alter table public.brand_store_connections
+  add column if not exists storefront_access_token text,
+  add column if not exists api_version text not null default '2026-01',
+  add column if not exists status text not null default 'pending',
+  add column if not exists analytics_webhook_status text not null default 'not_configured',
+  add column if not exists analytics_webhooks_registered_at timestamptz,
+  add column if not exists last_webhook_at timestamptz,
+  add column if not exists last_webhook_error text,
+  add column if not exists product_count integer not null default 0,
+  add column if not exists connected_at timestamptz not null default now(),
+  add column if not exists last_synced_at timestamptz,
+  add column if not exists created_at timestamptz not null default now(),
+  add column if not exists updated_at timestamptz not null default now();
+
+do $$
+begin
+  begin
+    alter table public.brand_store_connections
+      add constraint brand_store_connections_analytics_webhook_status_check
+      check (analytics_webhook_status in ('not_configured', 'configured', 'error'));
+  exception
+    when duplicate_object then null;
+  end;
+end
+$$;
 
 create table if not exists public.brand_store_products (
   id uuid primary key default gen_random_uuid(),

@@ -1332,7 +1332,14 @@ export function BrandWorkspace({
   }
 
   function renderAdsSection() {
-    return <BrandMetaPanel mode="ads" />;
+    return (
+      <BrandMetaPanel
+        mode="ads"
+        approvedSubmissions={data.submissions.filter(
+          (submission) => submission.status === "approved",
+        )}
+      />
+    );
   }
 
   function renderAnalyticsSection() {

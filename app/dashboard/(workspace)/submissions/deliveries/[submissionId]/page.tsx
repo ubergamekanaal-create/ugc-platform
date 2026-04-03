@@ -20,7 +20,7 @@ export default async function DeliverySubmissionDetailPage({
 }: DeliverySubmissionDetailPageProps) {
   const [{ submissionId }, context] = await Promise.all([
     params,
-    getDashboardContext(),
+    getDashboardContext("submissions"),
   ]);
 
   if (!context) {

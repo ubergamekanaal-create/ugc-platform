@@ -74,6 +74,13 @@ create table if not exists public.brand_meta_campaigns (
   ad_account_id text not null,
   meta_campaign_id text not null unique,
   source_submission_id uuid references public.campaign_submissions(id) on delete set null,
+  destination_url text,
+  tracking_url text,
+  utm_source text,
+  utm_medium text,
+  utm_campaign text,
+  utm_content text,
+  utm_term text,
   name text not null,
   objective text,
   status text,
@@ -98,12 +105,143 @@ alter table public.brand_meta_campaigns
   add column if not exists ad_account_id text,
   add column if not exists meta_campaign_id text,
   add column if not exists source_submission_id uuid references public.campaign_submissions(id) on delete set null,
+  add column if not exists destination_url text,
+  add column if not exists tracking_url text,
+  add column if not exists utm_source text,
+  add column if not exists utm_medium text,
+  add column if not exists utm_campaign text,
+  add column if not exists utm_content text,
+  add column if not exists utm_term text,
   add column if not exists name text,
   add column if not exists objective text,
   add column if not exists status text,
   add column if not exists effective_status text,
   add column if not exists daily_budget numeric(12, 2),
   add column if not exists lifetime_budget numeric(12, 2),
+  add column if not exists spend numeric(12, 2) not null default 0,
+  add column if not exists impressions bigint not null default 0,
+  add column if not exists clicks bigint not null default 0,
+  add column if not exists ctr numeric(8, 4) not null default 0,
+  add column if not exists cpc numeric(12, 4),
+  add column if not exists cpm numeric(12, 4),
+  add column if not exists raw_payload jsonb not null default '{}'::jsonb,
+  add column if not exists synced_at timestamptz not null default now(),
+  add column if not exists created_at timestamptz not null default now(),
+  add column if not exists updated_at timestamptz not null default now();
+
+create table if not exists public.brand_meta_ad_sets (
+  id uuid primary key default gen_random_uuid(),
+  connection_id uuid not null references public.brand_meta_connections(id) on delete cascade,
+  campaign_id uuid not null references public.brand_meta_campaigns(id) on delete cascade,
+  brand_id uuid not null references public.users(id) on delete cascade,
+  source_submission_id uuid references public.campaign_submissions(id) on delete set null,
+  meta_campaign_id text not null,
+  meta_ad_set_id text not null unique,
+  name text not null,
+  status text,
+  effective_status text,
+  destination_type text,
+  billing_event text,
+  optimization_goal text,
+  daily_budget numeric(12, 2),
+  spend numeric(12, 2) not null default 0,
+  impressions bigint not null default 0,
+  clicks bigint not null default 0,
+  ctr numeric(8, 4) not null default 0,
+  cpc numeric(12, 4),
+  cpm numeric(12, 4),
+  targeting_countries text[] not null default '{}',
+  raw_payload jsonb not null default '{}'::jsonb,
+  synced_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.brand_meta_ad_sets
+  add column if not exists connection_id uuid references public.brand_meta_connections(id) on delete cascade,
+  add column if not exists campaign_id uuid references public.brand_meta_campaigns(id) on delete cascade,
+  add column if not exists brand_id uuid references public.users(id) on delete cascade,
+  add column if not exists source_submission_id uuid references public.campaign_submissions(id) on delete set null,
+  add column if not exists meta_campaign_id text,
+  add column if not exists meta_ad_set_id text,
+  add column if not exists name text,
+  add column if not exists status text,
+  add column if not exists effective_status text,
+  add column if not exists destination_type text,
+  add column if not exists billing_event text,
+  add column if not exists optimization_goal text,
+  add column if not exists daily_budget numeric(12, 2),
+  add column if not exists spend numeric(12, 2) not null default 0,
+  add column if not exists impressions bigint not null default 0,
+  add column if not exists clicks bigint not null default 0,
+  add column if not exists ctr numeric(8, 4) not null default 0,
+  add column if not exists cpc numeric(12, 4),
+  add column if not exists cpm numeric(12, 4),
+  add column if not exists targeting_countries text[] not null default '{}',
+  add column if not exists raw_payload jsonb not null default '{}'::jsonb,
+  add column if not exists synced_at timestamptz not null default now(),
+  add column if not exists created_at timestamptz not null default now(),
+  add column if not exists updated_at timestamptz not null default now();
+
+create table if not exists public.brand_meta_ads (
+  id uuid primary key default gen_random_uuid(),
+  connection_id uuid not null references public.brand_meta_connections(id) on delete cascade,
+  campaign_id uuid not null references public.brand_meta_campaigns(id) on delete cascade,
+  ad_set_id uuid not null references public.brand_meta_ad_sets(id) on delete cascade,
+  brand_id uuid not null references public.users(id) on delete cascade,
+  source_submission_id uuid references public.campaign_submissions(id) on delete set null,
+  selected_asset_id uuid references public.campaign_submission_assets(id) on delete set null,
+  meta_campaign_id text not null,
+  meta_ad_set_id text not null,
+  meta_ad_id text not null unique,
+  meta_creative_id text,
+  name text not null,
+  status text,
+  effective_status text,
+  page_id text,
+  source_asset_kind text,
+  source_asset_url text,
+  destination_url text,
+  tracking_url text,
+  primary_text text,
+  headline text,
+  description text,
+  call_to_action_type text,
+  spend numeric(12, 2) not null default 0,
+  impressions bigint not null default 0,
+  clicks bigint not null default 0,
+  ctr numeric(8, 4) not null default 0,
+  cpc numeric(12, 4),
+  cpm numeric(12, 4),
+  raw_payload jsonb not null default '{}'::jsonb,
+  synced_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.brand_meta_ads
+  add column if not exists connection_id uuid references public.brand_meta_connections(id) on delete cascade,
+  add column if not exists campaign_id uuid references public.brand_meta_campaigns(id) on delete cascade,
+  add column if not exists ad_set_id uuid references public.brand_meta_ad_sets(id) on delete cascade,
+  add column if not exists brand_id uuid references public.users(id) on delete cascade,
+  add column if not exists source_submission_id uuid references public.campaign_submissions(id) on delete set null,
+  add column if not exists selected_asset_id uuid references public.campaign_submission_assets(id) on delete set null,
+  add column if not exists meta_campaign_id text,
+  add column if not exists meta_ad_set_id text,
+  add column if not exists meta_ad_id text,
+  add column if not exists meta_creative_id text,
+  add column if not exists name text,
+  add column if not exists status text,
+  add column if not exists effective_status text,
+  add column if not exists page_id text,
+  add column if not exists source_asset_kind text,
+  add column if not exists source_asset_url text,
+  add column if not exists destination_url text,
+  add column if not exists tracking_url text,
+  add column if not exists primary_text text,
+  add column if not exists headline text,
+  add column if not exists description text,
+  add column if not exists call_to_action_type text,
   add column if not exists spend numeric(12, 2) not null default 0,
   add column if not exists impressions bigint not null default 0,
   add column if not exists clicks bigint not null default 0,
@@ -127,6 +265,24 @@ create index if not exists brand_meta_campaigns_connection_id_idx
   on public.brand_meta_campaigns (connection_id);
 create index if not exists brand_meta_campaigns_ad_account_id_idx
   on public.brand_meta_campaigns (ad_account_id, synced_at desc);
+create index if not exists brand_meta_ad_sets_brand_id_idx
+  on public.brand_meta_ad_sets (brand_id, synced_at desc);
+create unique index if not exists brand_meta_ad_sets_meta_ad_set_id_idx
+  on public.brand_meta_ad_sets (meta_ad_set_id);
+create index if not exists brand_meta_ad_sets_campaign_id_idx
+  on public.brand_meta_ad_sets (campaign_id);
+create index if not exists brand_meta_ad_sets_connection_id_idx
+  on public.brand_meta_ad_sets (connection_id);
+create index if not exists brand_meta_ads_brand_id_idx
+  on public.brand_meta_ads (brand_id, synced_at desc);
+create unique index if not exists brand_meta_ads_meta_ad_id_idx
+  on public.brand_meta_ads (meta_ad_id);
+create index if not exists brand_meta_ads_campaign_id_idx
+  on public.brand_meta_ads (campaign_id);
+create index if not exists brand_meta_ads_ad_set_id_idx
+  on public.brand_meta_ads (ad_set_id);
+create index if not exists brand_meta_ads_connection_id_idx
+  on public.brand_meta_ads (connection_id);
 
 create or replace function public.set_brand_meta_updated_at()
 returns trigger
@@ -153,9 +309,21 @@ create trigger set_brand_meta_campaigns_updated_at
 before update on public.brand_meta_campaigns
 for each row execute procedure public.set_brand_meta_updated_at();
 
+drop trigger if exists set_brand_meta_ad_sets_updated_at on public.brand_meta_ad_sets;
+create trigger set_brand_meta_ad_sets_updated_at
+before update on public.brand_meta_ad_sets
+for each row execute procedure public.set_brand_meta_updated_at();
+
+drop trigger if exists set_brand_meta_ads_updated_at on public.brand_meta_ads;
+create trigger set_brand_meta_ads_updated_at
+before update on public.brand_meta_ads
+for each row execute procedure public.set_brand_meta_updated_at();
+
 alter table public.brand_meta_connections enable row level security;
 alter table public.brand_meta_ad_accounts enable row level security;
 alter table public.brand_meta_campaigns enable row level security;
+alter table public.brand_meta_ad_sets enable row level security;
+alter table public.brand_meta_ads enable row level security;
 
 drop policy if exists "Brands can view own meta connections" on public.brand_meta_connections;
 drop policy if exists "Brands can insert own meta connections" on public.brand_meta_connections;
@@ -251,6 +419,66 @@ with check (brand_id = auth.uid());
 
 create policy "Brands can delete own meta campaigns"
 on public.brand_meta_campaigns
+for delete
+to authenticated
+using (brand_id = auth.uid());
+
+drop policy if exists "Brands can view own meta ad sets" on public.brand_meta_ad_sets;
+drop policy if exists "Brands can insert own meta ad sets" on public.brand_meta_ad_sets;
+drop policy if exists "Brands can update own meta ad sets" on public.brand_meta_ad_sets;
+drop policy if exists "Brands can delete own meta ad sets" on public.brand_meta_ad_sets;
+
+create policy "Brands can view own meta ad sets"
+on public.brand_meta_ad_sets
+for select
+to authenticated
+using (brand_id = auth.uid());
+
+create policy "Brands can insert own meta ad sets"
+on public.brand_meta_ad_sets
+for insert
+to authenticated
+with check (brand_id = auth.uid());
+
+create policy "Brands can update own meta ad sets"
+on public.brand_meta_ad_sets
+for update
+to authenticated
+using (brand_id = auth.uid())
+with check (brand_id = auth.uid());
+
+create policy "Brands can delete own meta ad sets"
+on public.brand_meta_ad_sets
+for delete
+to authenticated
+using (brand_id = auth.uid());
+
+drop policy if exists "Brands can view own meta ads" on public.brand_meta_ads;
+drop policy if exists "Brands can insert own meta ads" on public.brand_meta_ads;
+drop policy if exists "Brands can update own meta ads" on public.brand_meta_ads;
+drop policy if exists "Brands can delete own meta ads" on public.brand_meta_ads;
+
+create policy "Brands can view own meta ads"
+on public.brand_meta_ads
+for select
+to authenticated
+using (brand_id = auth.uid());
+
+create policy "Brands can insert own meta ads"
+on public.brand_meta_ads
+for insert
+to authenticated
+with check (brand_id = auth.uid());
+
+create policy "Brands can update own meta ads"
+on public.brand_meta_ads
+for update
+to authenticated
+using (brand_id = auth.uid())
+with check (brand_id = auth.uid());
+
+create policy "Brands can delete own meta ads"
+on public.brand_meta_ads
 for delete
 to authenticated
 using (brand_id = auth.uid());

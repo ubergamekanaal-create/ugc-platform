@@ -48,7 +48,7 @@ async function readConnectionPayload(admin: NonNullable<ReturnType<typeof create
   const { data: connection } = await admin
     .from("brand_store_connections")
     .select(
-      "id, brand_id, provider, store_name, store_url, store_domain, access_token, storefront_access_token, api_version, status, product_count, connected_at, last_synced_at",
+      "id, brand_id, provider, store_name, store_url, store_domain, access_token, storefront_access_token, api_version, status, analytics_webhook_status, analytics_webhooks_registered_at, last_webhook_at, last_webhook_error, product_count, connected_at, last_synced_at",
     )
     .eq("brand_id", brandId)
     .maybeSingle();
@@ -169,6 +169,10 @@ export async function POST(request: Request) {
             provider === "headless_shopify" ? storefrontAccessToken : null,
           api_version: syncedCatalog?.apiVersion ?? "custom",
           status: syncedCatalog?.status ?? "pending",
+          analytics_webhook_status: "not_configured",
+          analytics_webhooks_registered_at: null,
+          last_webhook_at: null,
+          last_webhook_error: null,
           product_count: syncedCatalog?.products.length ?? 0,
           last_synced_at: syncedCatalog ? new Date().toISOString() : null,
         },
@@ -177,7 +181,7 @@ export async function POST(request: Request) {
         },
       )
       .select(
-        "id, brand_id, provider, store_name, store_url, store_domain, access_token, storefront_access_token, api_version, status, product_count, connected_at, last_synced_at",
+        "id, brand_id, provider, store_name, store_url, store_domain, access_token, storefront_access_token, api_version, status, analytics_webhook_status, analytics_webhooks_registered_at, last_webhook_at, last_webhook_error, product_count, connected_at, last_synced_at",
       )
       .single();
 

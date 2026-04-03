@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { BrandMetaPanel } from "@/components/dashboard/brand-meta-panel";
+import { BrandStoreAnalyticsPanel } from "@/components/dashboard/brand-store-analytics-panel";
 import { MotionScale } from "@/components/shared/motion";
 import type {
   BrandStoreConnectionSummary,
@@ -490,6 +491,8 @@ export function BrandIntegrationsPanel() {
           </div>
         )}
       </section>
+
+      <BrandStoreAnalyticsPanel connection={connection} />
 
       <BrandMetaPanel mode="integrations" />
     </div>

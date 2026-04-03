@@ -23,7 +23,7 @@ export default async function QueueSubmissionDetailPage({
 }: QueueSubmissionDetailPageProps) {
   const [{ applicationId }, context] = await Promise.all([
     params,
-    getDashboardContext(),
+    getDashboardContext("submissions"),
   ]);
 
   if (!context) {

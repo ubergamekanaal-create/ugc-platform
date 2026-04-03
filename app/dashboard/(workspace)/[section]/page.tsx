@@ -22,10 +22,8 @@ type DashboardSectionPageProps = {
 export default async function DashboardSectionPage({
   params,
 }: DashboardSectionPageProps) {
-  const [{ section }, context] = await Promise.all([
-    params,
-    getDashboardContext(),
-  ]);
+  const { section } = await params;
+  const context = await getDashboardContext(section);
 
   if (!context) {
     redirect("/login");
