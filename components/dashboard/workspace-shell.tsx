@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BrandMark } from "@/components/shared/brand-mark";
 import { PageTransition } from "@/components/shared/motion";
 import { cn } from "@/lib/utils";
+import Header from "../shared/header";
+// import Header from "../shared/header";
 
 export type WorkspaceShellTone = "brand" | "creator";
 
@@ -52,10 +54,17 @@ type WorkspaceMainContentProps = {
 type WorkspaceViewportProps = {
   tone: WorkspaceShellTone;
   children: ReactNode;
+  name?: string | null;
+  roleLabel: string;
 };
 
 type WorkspaceShellProps = WorkspaceSidebarProps &
   WorkspaceMainContentProps;
+
+type Props = {
+  name?: string;
+  roleLabel?: string;
+};
 
 const toneClasses: Record<
   WorkspaceShellTone,
@@ -108,12 +117,14 @@ export function WorkspacePanel({ className, children }: WorkspacePanelProps) {
 export function WorkspaceViewport({
   tone,
   children,
+  name,
+  roleLabel,
 }: WorkspaceViewportProps) {
   const theme = toneClasses[tone];
-
   return (
     <div className={cn("relative min-h-screen text-slate-950", theme.shell)}>
       <div className="absolute inset-0 opacity-50 [background-image:radial-gradient(rgba(148,163,184,0.14)_1px,transparent_1px)] [background-size:22px_22px]" />
+      <Header tone={tone} name={name} roleLabel={roleLabel} />
 
       <div className="relative mx-auto grid max-w-[1720px] gap-4 p-4 lg:min-h-screen lg:grid-cols-[320px_minmax(0,1fr)] lg:p-6">
         {children}
@@ -121,6 +132,10 @@ export function WorkspaceViewport({
     </div>
   );
 }
+
+
+
+
 
 export function WorkspaceSidebar({
   tone,
@@ -133,8 +148,8 @@ export function WorkspaceSidebar({
   const theme = toneClasses[tone];
 
   return (
-    <aside className=" lg:sticky lg:top-0 h-fit overflow-hidden rounded-[2.25rem] border border-white/80 bg-white/76 py-5 px-4 shadow-[0_26px_90px_rgba(15,23,42,0.08)] backdrop-blur-xl">
-      <div className="flex items-start justify-between pb-6 border-b border-b-white/80">
+    <aside className=" lg:sticky lg:top-0 h-fit lg:min-h-screen overflow-hidden rounded-[2.25rem] border border-white/80 bg-white/76 py-5 px-4 shadow-[0_26px_90px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+      {/* <div className="flex items-start justify-between pb-6 border-b border-b-white/80">
         <BrandMark tone="light" />
         <span
           className={cn(
@@ -144,35 +159,38 @@ export function WorkspaceSidebar({
         >
           {roleLabel}
         </span>
-      </div>
-      <div
-        className={cn(
-          "relative mt-6 overflow-hidden rounded-3xl px-3 py-3 text-black bg-white", // Slightly smaller radius
-          "border border-white/10 bg-slate-950", // Clean base
-          "shadow-[0_20px_40px_-12px_rgba(0,0,0,0.3)]", // Deeper shadow
-          // theme.avatar,
-        )}
+      </div> */}
+      <div className="border-b border-b-white/80">
+        <div
+          className={cn(
+            "relative overflow-hidden rounded-3xl px-3 py-3 mb-6 text-black bg-white", // Slightly smaller radius
+            "border border-white/10 bg-slate-950", // Clean base
+            "shadow-[0_20px_40px_-12px_rgba(0,0,0,0.3)]", // Deeper shadow
+            // theme.avatar,
+          )}
 
-      >
-        <div className="absolute -right-10 -top-10 h-32 w-32 bg-blue-500/10 blur-3xl" />
-        <div className="flex justify-between items-center justify-center">
-          <div className="relative flex items-center gap-2">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black text-white text-sm font-semibold backdrop-blur-md">
-              {initials}
-            </span>
+        >
+          <div className="absolute -right-10 -top-10 h-32 w-32 bg-blue-500/10 blur-3xl" />
+          <div className="flex justify-between items-center justify-center">
+            <div className="relative flex items-center gap-2">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black text-white text-sm font-semibold backdrop-blur-md">
+                {initials}
+              </span>
 
-            <div className="min-w-0">
-              <p className="text-[16px] font-semibold tracking-tight leading-tight">
-                {displayName}
-              </p>
-              <p className="mt-1 text-[13px] text-slate-600 font-medium leading-snug">
-                Everything operational <br /> lives here.
-              </p>
+              <div className="min-w-0">
+                <p className="text-[16px] font-semibold tracking-tight leading-tight">
+                  {displayName}
+                </p>
+                <p className="mt-1 text-[13px] text-slate-600 font-medium leading-snug">
+                  Everything operational <br /> lives here.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      <nav className="mt-8 space-y-5">
+
+      <nav className="mt-6 space-y-3">
         {navGroups.map((group) => (
           <div key={group.label ?? "primary"}>
             {group.label ? (
@@ -180,14 +198,14 @@ export function WorkspaceSidebar({
                 {group.label}
               </p>
             ) : null}
-            <div className={cn("space-y-2", group.label ? "mt-3" : "")}>
+            <div className={cn("space-y-0", group.label ? "mt-3" : "")}>
               {group.items.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   aria-current={item.active ? "page" : undefined}
                   className={cn(
-                    "group flex items-center justify-between rounded-[1.35rem] border px-2 py-2 transition",
+                    "group flex items-center justify-between rounded-[1.35rem] border px-1 py-1 transition",
                     item.active
                       ? "border-[rgba(7,107,210,0.16)] bg-[rgba(7,107,210,0.08)] text-accent shadow-[0_14px_30px_rgba(7,107,210,0.12)]"
                       : "border-transparent text-slate-600 hover:border-white hover:bg-white/58 hover:text-slate-950",
@@ -196,7 +214,7 @@ export function WorkspaceSidebar({
                   <div className="flex items-center gap-2">
                     <span
                       className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-[1rem] transition",
+                        "flex h-8 w-8 items-center justify-center rounded-[1rem] transition",
                         item.active
                           ? "bg-[color:#076BD2] text-white shadow-[0_12px_24px_rgba(7,107,210,0.24)]"
                           : "bg-white/88 text-slate-500 group-hover:bg-[color:#076BD2] group-hover:text-white",
@@ -241,7 +259,7 @@ export function WorkspaceMainContent({
     <main className="min-w-0 space-y-4">
       {showTopBanner ? topBanner : null}
 
-      {showHeroSection ? (
+      {/* {showHeroSection ? (
         <section className="relative overflow-hidden rounded-[2.5rem] border border-white/80 bg-[linear-gradient(135deg,_rgba(255,255,255,0.88),_rgba(244,248,255,0.9))] px-6 py-6 shadow-[0_28px_90px_rgba(15,23,42,0.09)] sm:px-8 sm:py-8">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(7,107,210,0.5),transparent)]" />
           <div className={cn("pointer-events-none absolute -right-16 -top-16 h-48 w-48", theme.heroAccent)} />
@@ -282,7 +300,7 @@ export function WorkspaceMainContent({
             ) : null}
           </div>
         </section>
-      ) : null}
+      ) : null} */}
 
       {children}
     </main>
@@ -312,9 +330,14 @@ export function WorkspaceShell({
   showHeroSection = true,
   children,
 }: WorkspaceShellProps) {
+
   return (
     <PageTransition>
-      <WorkspaceViewport tone={tone}>
+      <WorkspaceViewport
+        tone={tone}
+        name={displayName}
+        roleLabel={roleLabel}
+      >
         <WorkspaceSidebar
           tone={tone}
           displayName={displayName}

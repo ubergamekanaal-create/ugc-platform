@@ -3,8 +3,6 @@
 import { useState, FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
-import { option } from "framer-motion/client";
-import { redirect } from "next/dist/server/api-utils";
 
 export function ForgotPasswordForm() {
   const supabase = createClient();

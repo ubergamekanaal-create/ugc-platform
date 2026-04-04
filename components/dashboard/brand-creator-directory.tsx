@@ -520,7 +520,7 @@ export function BrandCreatorDirectory({
         </div>
       ) : null}
 
-      <div className="grid min-w-0 gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid min-w-0 gap-6 md:grid-cols-2 xl:grid-cols-2">
         {filteredCreators.map((creator) => {
           const availableCampaigns = inviteableCampaigns.filter(
             (campaign) => !creator.invited_campaign_ids.includes(campaign.id),

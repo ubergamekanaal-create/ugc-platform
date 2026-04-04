@@ -709,18 +709,22 @@ export function BrandWorkspace({
     {
       label: "Connect your store",
       complete: Boolean(profile.company_name),
+      href: "/dashboard/integrations",
     },
     {
       label: "Connect Meta",
       complete: activeCampaigns.length > 0,
+      href: "/dashboard/integrations",
     },
     {
       label: "Create your first program",
       complete: data.campaigns.length > 0,
+      href: "/dashboard/creators/campaigns/new",
     },
     {
       label: "Invite creators",
       complete: data.applications.length > 0,
+      href: "/dashboard/creators",
     },
   ];
   const completedSteps = onboardingSteps.filter((step) => step.complete).length;
@@ -810,7 +814,8 @@ export function BrandWorkspace({
     };
   }, [data.payouts]);
   const campaignMomentum = campaignPerformance.slice(0, 4);
-
+  console.log(onboardingSteps, "faskljfdasfjkdsa");
+  
   function DashboardSection() {
     const payoutRef = useRef(null);
 
@@ -900,9 +905,10 @@ export function BrandWorkspace({
               ) : (
                 <div className="mt-8 space-y-4">
                   {onboardingSteps.map((step) => (
-                    <div
+                    <Link
+                      href={step.href}
                       key={step.label}
-                      className="flex items-center justify-between rounded-[1.5rem] border border-slate-200 px-4 py-4"
+                      className="flex items-center justify-between rounded-[1.5rem] border border-slate-200 px-4 py-4 hover:bg-slate-50 transition"
                     >
                       <div className="flex items-center gap-4">
                         <span
@@ -913,12 +919,9 @@ export function BrandWorkspace({
                               : "border-slate-300 bg-white text-slate-400",
                           )}
                         >
-                          {step.complete ? (
-                            <CheckIcon className="h-4 w-4" />
-                          ) : (
-                            <span> </span>
-                          )}
+                          {step.complete ? <CheckIcon className="h-4 w-4" /> : null}
                         </span>
+
                         <span
                           className={cn(
                             "text-lg font-medium",
@@ -930,8 +933,9 @@ export function BrandWorkspace({
                           {step.label}
                         </span>
                       </div>
+
                       <ArrowUpRightIcon className="h-5 w-5 text-slate-400" />
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}
@@ -1333,6 +1337,54 @@ export function BrandWorkspace({
             </SectionPanel>
           </FadeIn>
         </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2">
+          <FadeIn>
+            <SectionPanel className="h-full flex flex-col">
+              <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
+                Campaign Onboarding
+              </h2>
+              <div className=" mt-8 space-y-4">
+
+                {onboardingSteps.map((step) => (
+                  <Link
+                    href={step.href}
+                    key={step.label}
+                    className="flex items-center justify-between rounded-[1.5rem] border border-slate-200 px-4 py-4 hover:bg-slate-50 transition"
+                  >
+                    <div className="flex items-center gap-4">
+                      <span
+                        className={cn(
+                          "flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold",
+                          step.complete
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                            : "border-slate-300 bg-white text-slate-400",
+                        )}
+                      >
+                        {step.complete ? <CheckIcon className="h-4 w-4" /> : null}
+                      </span>
+
+                      <span
+                        className={cn(
+                          "text-lg font-medium",
+                          step.complete
+                            ? "text-slate-400 line-through"
+                            : "text-slate-900",
+                        )}
+                      >
+                        {step.label}
+                      </span>
+                    </div>
+
+                    <ArrowUpRightIcon className="h-5 w-5 text-slate-400" />
+                  </Link>
+                ))}
+              </div>
+            </SectionPanel>
+
+          </FadeIn>
+
+        </div>
+
       </div>
     );
   }
@@ -1345,7 +1397,7 @@ export function BrandWorkspace({
             {
               label: "Pending applicants",
               value: String(pendingReviews),
-              tone: "bg-slate-900 text-white",
+              tone: "bg-slate-900 text-black",
             },
             {
               label: "Awaiting review",
@@ -1998,6 +2050,7 @@ export function BrandWorkspaceChrome({
   children,
 }: BrandWorkspaceChromeProps) {
   const displayName = getDisplayName(profile.company_name, "CIRCL Brand");
+  const userName = profile?.full_name;
   const pendingReviews = data.applications.filter(
     (application) => application.status === "pending",
   ).length;
@@ -2071,7 +2124,7 @@ export function BrandWorkspaceChrome({
   );
 
   return (
-    <WorkspaceViewport tone="brand">
+    <WorkspaceViewport tone="brand" name={userName} roleLabel="Brand workspace">
       <WorkspaceSidebar
         tone="brand"
         displayName={displayName}
