@@ -107,7 +107,7 @@ const BRAND_SIGNUP_TOTAL_STEPS = BRAND_SIGNUP_STEPS.length;
 const OTP_LENGTH = 6;
 const DEFAULT_BRAND_HEADLINE = "Brand partnerships lead";
 const inputClassName =
-  "h-14 w-full rounded-2xl border border-[#2f2b27] bg-[#2f2b27] px-4 text-base text-white outline-none transition placeholder:text-white/45 focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)]";
+  "h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition placeholder:text-slate-400 shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)]";
 
 function createEmptyOtp() {
   return Array.from({ length: OTP_LENGTH }, () => "");
@@ -318,7 +318,9 @@ export function SignupForm() {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        throw userError ?? new Error("Unable to load the verified brand account.");
+        throw (
+          userError ?? new Error("Unable to load the verified brand account.")
+        );
       }
 
       const { error: userRowError } = await supabase
@@ -334,14 +336,16 @@ export function SignupForm() {
         throw userRowError;
       }
 
-      const { error: teamMemberError } = await supabase.from("team_members").upsert(
-        {
-          brand_id: user.id,
-          user_id: user.id,
-          role: "owner",
-        },
-        { onConflict: "brand_id,user_id" },
-      );
+      const { error: teamMemberError } = await supabase
+        .from("team_members")
+        .upsert(
+          {
+            brand_id: user.id,
+            user_id: user.id,
+            role: "owner",
+          },
+          { onConflict: "brand_id,user_id" },
+        );
 
       if (teamMemberError) {
         throw teamMemberError;
@@ -391,7 +395,10 @@ export function SignupForm() {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        throw userError ?? new Error("Your session expired. Verify again to continue.");
+        throw (
+          userError ??
+          new Error("Your session expired. Verify again to continue.")
+        );
       }
 
       const { error: brandError } = await supabase.from("brands").upsert(
@@ -409,14 +416,16 @@ export function SignupForm() {
         throw brandError;
       }
 
-      const { error: teamMemberError } = await supabase.from("team_members").upsert(
-        {
-          brand_id: user.id,
-          user_id: user.id,
-          role: "owner",
-        },
-        { onConflict: "brand_id,user_id" },
-      );
+      const { error: teamMemberError } = await supabase
+        .from("team_members")
+        .upsert(
+          {
+            brand_id: user.id,
+            user_id: user.id,
+            role: "owner",
+          },
+          { onConflict: "brand_id,user_id" },
+        );
 
       if (teamMemberError) {
         throw teamMemberError;
@@ -449,7 +458,10 @@ export function SignupForm() {
     }
   }
 
-  function handleOtpKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>) {
+  function handleOtpKeyDown(
+    index: number,
+    event: KeyboardEvent<HTMLInputElement>,
+  ) {
     if (event.key === "Backspace" && !otpDigits[index] && index > 0) {
       event.preventDefault();
       otpInputRefs.current[index - 1]?.focus();
@@ -505,17 +517,31 @@ export function SignupForm() {
   }
 
   return (
-    <section className="rounded-[2rem] border border-black/5 bg-white/84 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8">
+    <section className="rounded-[1.75rem] border border-black/5 bg-white/76 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8">
       <div className="flex items-center justify-between gap-4">
         <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
           Brand signup
         </span>
-        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+        <span className="rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
           Step {step} of {BRAND_SIGNUP_TOTAL_STEPS}
         </span>
       </div>
 
-      <div className="mt-8 grid grid-cols-3 gap-3">
+      <div className="relative mt-8">
+        <div className="absolute left-[calc(16.666%-0.75rem)] right-[calc(16.666%-0.75rem)] top-[2.85rem] h-px bg-slate-200" />
+        <div
+          className="absolute left-[calc(16.666%-0.75rem)] top-[2.85rem] h-px bg-[linear-gradient(90deg,_rgba(7,107,210,0.78),_rgba(59,130,246,0.52))] transition-all duration-300"
+          style={{
+            width:
+              step === 1
+                ? "0%"
+                : step === 2
+                  ? "calc(33.333% + 0.75rem)"
+                  : "calc(66.666% + 1.5rem)",
+          }}
+        />
+
+        <div className="grid grid-cols-3 gap-3">
         {BRAND_SIGNUP_STEPS.map((item, index) => {
           const StepIcon = item.icon;
           const isActive = item.id === step;
@@ -532,24 +558,15 @@ export function SignupForm() {
                 {item.label}
               </p>
 
-              {index < BRAND_SIGNUP_STEPS.length - 1 ? (
-                <span
-                  className={cn(
-                    "absolute left-1/2 top-[2.2rem] h-px w-full translate-x-1/2",
-                    isComplete ? "bg-[#076BD2]" : "bg-black/10",
-                  )}
-                />
-              ) : null}
-
               <div className="relative mt-3 flex justify-center">
                 <span
                   className={cn(
-                    "relative z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border",
+                    "relative z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border transition",
                     isActive
                       ? "border-[#076BD2] bg-[#076BD2] text-white shadow-[0_12px_25px_rgba(7,107,210,0.22)]"
                       : isComplete
-                        ? "border-[#076BD2]/30 bg-[#dcecff] text-[#076BD2]"
-                        : "border-black/10 bg-[#f1ede7] text-slate-400",
+                        ? "border-[#076BD2]/25 bg-[#e8f1ff] text-[#076BD2]"
+                        : "border-slate-200 bg-white text-slate-400",
                   )}
                 >
                   <StepIcon className="h-4 w-4" />
@@ -558,9 +575,10 @@ export function SignupForm() {
             </div>
           );
         })}
+        </div>
       </div>
 
-      <div className="mt-8 space-y-5">
+      <div className="mt-6 space-y-5">
         {step === 1 ? (
           <div className="space-y-3">
             <input
@@ -626,7 +644,7 @@ export function SignupForm() {
                   }
                   onKeyDown={(event) => handleOtpKeyDown(index, event)}
                   onPaste={handleOtpPaste}
-                  className="h-14 w-12 rounded-2xl border border-[#2f2b27] bg-[#2f2b27] text-center text-lg font-semibold text-white outline-none transition focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)] sm:w-14"
+                  className="h-14 w-12 rounded-2xl border border-slate-200 bg-white text-center text-lg font-semibold text-slate-900 outline-none transition shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)] sm:w-14"
                 />
               ))}
             </div>
@@ -677,7 +695,7 @@ export function SignupForm() {
         type="button"
         onClick={handlePrimaryAction}
         disabled={isWorking}
-        className="mt-6 h-14 w-full rounded-2xl bg-[#2f2b27] text-base font-semibold text-white transition hover:bg-[#25221f] disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-6 h-14 w-full rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] text-base font-semibold text-white shadow-[0_18px_35px_rgba(15,23,42,0.16)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isWorking
           ? step === 3
@@ -704,7 +722,10 @@ export function SignupForm() {
       <div className="mt-6 border-t border-black/6 pt-6 text-center text-sm text-slate-500">
         <p>
           By continuing, you agree to our{" "}
-          <Link href="/terms" className="text-[#076BD2] transition hover:text-[#0558ad]">
+          <Link
+            href="/terms"
+            className="text-[#076BD2] transition hover:text-[#0558ad]"
+          >
             Terms of Service
           </Link>{" "}
           and{" "}

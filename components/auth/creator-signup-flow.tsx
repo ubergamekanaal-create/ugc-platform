@@ -204,7 +204,7 @@ const BIRTH_YEAR_OPTIONS = Array.from({ length: 2018 - 1991 + 1 }, (_, index) =>
   String(1991 + index),
 );
 const inputClassName =
-  "h-14 w-full rounded-2xl border border-[#2f2b27] bg-[#2f2b27] px-4 text-base text-white outline-none transition placeholder:text-white/45 focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)]";
+  "h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition placeholder:text-slate-400 shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)]";
 
 function normalizeHandle(value: string) {
   const trimmed = value.trim();
@@ -341,7 +341,9 @@ export function CreatorSignupFlow() {
 
   function handleRemoveFeaturedLink(index: number) {
     setFeaturedLinks((current) => {
-      const nextLinks = current.filter((_, currentIndex) => currentIndex !== index);
+      const nextLinks = current.filter(
+        (_, currentIndex) => currentIndex !== index,
+      );
       return nextLinks.length ? nextLinks : [""];
     });
   }
@@ -499,7 +501,9 @@ export function CreatorSignupFlow() {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        throw userError ?? new Error("Unable to load the verified creator account.");
+        throw (
+          userError ?? new Error("Unable to load the verified creator account.")
+        );
       }
 
       const { error: userRowError } = await supabase
@@ -543,7 +547,9 @@ export function CreatorSignupFlow() {
 
     try {
       if (!isOtpVerified || !hasPasswordApplied) {
-        throw new Error("Verify your email and password setup before finishing signup.");
+        throw new Error(
+          "Verify your email and password setup before finishing signup.",
+        );
       }
 
       const normalizedInstagram = normalizeHandle(instagramUsername);
@@ -564,17 +570,23 @@ export function CreatorSignupFlow() {
         .filter(Boolean);
 
       if (!cleanedLinks.length) {
-        throw new Error("Add at least one of your best videos or portfolio links.");
+        throw new Error(
+          "Add at least one of your best videos or portfolio links.",
+        );
       }
 
       const normalizedLinks = cleanedLinks.map((link) => normalizeLink(link));
 
       if (normalizedLinks.some((link) => !link)) {
-        throw new Error("Use valid http or https links for your featured videos.");
+        throw new Error(
+          "Use valid http or https links for your featured videos.",
+        );
       }
 
       const uniqueLinks = [
-        ...new Set(normalizedLinks.filter((link): link is string => Boolean(link))),
+        ...new Set(
+          normalizedLinks.filter((link): link is string => Boolean(link)),
+        ),
       ];
       const creatorHeadline = buildCreatorHeadline(interests);
       const {
@@ -583,26 +595,33 @@ export function CreatorSignupFlow() {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        throw userError ?? new Error("Your creator session has expired. Verify again to continue.");
+        throw (
+          userError ??
+          new Error(
+            "Your creator session has expired. Verify again to continue.",
+          )
+        );
       }
 
-      const { error: profileError } = await supabase.from("creator_profiles").upsert({
-        user_id: user.id,
-        birth_year: Number.parseInt(birthYear, 10),
-        niches: interests,
-        platform_specialties: [
-          normalizedInstagram ? "Instagram Reels" : null,
-          normalizedTiktok ? "TikTok" : null,
-        ].filter((value): value is string => Boolean(value)),
-        portfolio_url: uniqueLinks[0] ?? null,
-        instagram_url: buildInstagramUrl(normalizedInstagram),
-        instagram_handle: normalizedInstagram || null,
-        tiktok_url: buildTiktokUrl(normalizedTiktok),
-        tiktok_handle: normalizedTiktok || null,
-        monthly_ugc_videos: monthlyVideoCount,
-        featured_content_links: uniqueLinks,
-        onboarding_completed_at: new Date().toISOString(),
-      });
+      const { error: profileError } = await supabase
+        .from("creator_profiles")
+        .upsert({
+          user_id: user.id,
+          birth_year: Number.parseInt(birthYear, 10),
+          niches: interests,
+          platform_specialties: [
+            normalizedInstagram ? "Instagram Reels" : null,
+            normalizedTiktok ? "TikTok" : null,
+          ].filter((value): value is string => Boolean(value)),
+          portfolio_url: uniqueLinks[0] ?? null,
+          instagram_url: buildInstagramUrl(normalizedInstagram),
+          instagram_handle: normalizedInstagram || null,
+          tiktok_url: buildTiktokUrl(normalizedTiktok),
+          tiktok_handle: normalizedTiktok || null,
+          monthly_ugc_videos: monthlyVideoCount,
+          featured_content_links: uniqueLinks,
+          onboarding_completed_at: new Date().toISOString(),
+        });
 
       if (profileError) {
         throw profileError;
@@ -659,7 +678,10 @@ export function CreatorSignupFlow() {
     }
   }
 
-  function handleOtpKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>) {
+  function handleOtpKeyDown(
+    index: number,
+    event: KeyboardEvent<HTMLInputElement>,
+  ) {
     if (event.key === "Backspace" && !otpDigits[index] && index > 0) {
       event.preventDefault();
       otpInputRefs.current[index - 1]?.focus();
@@ -756,71 +778,84 @@ export function CreatorSignupFlow() {
   }
 
   return (
-    <section className="rounded-[2rem] border border-black/5 bg-white/84 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8">
+    <section className="rounded-[1.75rem] border border-black/5 bg-white/76 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8">
       <div className="flex items-center justify-between gap-4">
         <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
           Creator signup
         </span>
-        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+        <span className="rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
           Step {step} of {CREATOR_SIGNUP_TOTAL_STEPS}
         </span>
       </div>
 
-      <div className="mt-8 grid grid-cols-6 gap-2">
-        {CREATOR_SIGNUP_STEPS.map((item, index) => {
-          const StepIcon = item.icon;
-          const isActive = item.id === step;
-          const isComplete = item.id < step;
+      <div className="relative mt-8">
+        <div className="absolute left-[calc(8.333%-0.6rem)] right-[calc(8.333%-0.6rem)] top-[2.75rem] h-px bg-slate-200" />
+        <div
+          className="absolute left-[calc(8.333%-0.6rem)] top-[2.75rem] h-px bg-[linear-gradient(90deg,_rgba(7,107,210,0.78),_rgba(59,130,246,0.52))] transition-all duration-300"
+          style={{
+            width:
+              step === 1
+                ? "0%"
+                : `calc(${((step - 1) / (CREATOR_SIGNUP_TOTAL_STEPS - 1)) * 100}% + ${((step - 1) / (CREATOR_SIGNUP_TOTAL_STEPS - 1)) * 1.2}rem)`,
+          }}
+        />
 
-          return (
-            <div key={item.id} className="relative text-center">
-              <p
-                className={cn(
-                  "text-[10px] font-semibold uppercase tracking-[0.16em]",
-                  isActive || isComplete ? "text-slate-700" : "text-slate-400",
-                )}
-              >
-                {item.label}
-              </p>
+        <div className="grid grid-cols-6 gap-2">
+          {CREATOR_SIGNUP_STEPS.map((item, index) => {
+            const StepIcon = item.icon;
+            const isActive = item.id === step;
+            const isComplete = item.id < step;
 
-              {index < CREATOR_SIGNUP_STEPS.length - 1 ? (
-                <span
+            return (
+              <div key={item.id} className="relative text-center">
+                <p
                   className={cn(
-                    "absolute left-1/2 top-[2.1rem] h-px w-full translate-x-1/2",
-                    isComplete ? "bg-[#076BD2]" : "bg-black/10",
-                  )}
-                />
-              ) : null}
-
-              <div className="relative mt-3 flex justify-center">
-                <span
-                  className={cn(
-                    "relative z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border",
-                    isActive
-                      ? "border-[#076BD2] bg-[#076BD2] text-white shadow-[0_12px_25px_rgba(7,107,210,0.22)]"
-                      : isComplete
-                        ? "border-[#076BD2]/30 bg-[#dcecff] text-[#076BD2]"
-                        : "border-black/10 bg-[#f1ede7] text-slate-400",
+                    "text-[10px] font-semibold uppercase tracking-[0.16em]",
+                    isActive || isComplete
+                      ? "text-slate-700"
+                      : "text-slate-400",
                   )}
                 >
-                  <StepIcon className="h-4 w-4" />
-                </span>
+                  {item.label}
+                </p>
+
+                <div className="relative mt-3 flex justify-center">
+                  <span
+                    className={cn(
+                      "relative z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border transition",
+                      isActive
+                        ? "border-[#076BD2] bg-[#076BD2] text-white shadow-[0_12px_25px_rgba(7,107,210,0.22)]"
+                        : isComplete
+                          ? "border-[#076BD2]/25 bg-[#e8f1ff] text-[#076BD2]"
+                          : "border-slate-200 bg-white text-slate-400",
+                    )}
+                  >
+                    <StepIcon className="h-4 w-4" />
+                  </span>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      <div className="mt-6">
-        <p className="text-center text-sm font-medium text-slate-900">
-          {currentStep.title}
-        </p>
-        <p className="mt-2 text-center text-sm leading-7 text-slate-500">
-          {currentStep.description}
-        </p>
+      <div className="mt-8 rounded-[1.5rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.82))] p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">
+              {currentStep.title}
+            </p>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              {currentStep.description}
+            </p>
+          </div>
+          <span className="hidden rounded-full border border-[rgba(7,107,210,0.14)] bg-[rgba(7,107,210,0.08)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#076BD2] sm:inline-flex">
+            {currentStep.label}
+          </span>
+        </div>
       </div>
 
-      <div className="mt-8 space-y-5">
+      <div className="mt-6 space-y-5">
         {step === 1 ? (
           <div className="space-y-3">
             <input
@@ -884,7 +919,7 @@ export function CreatorSignupFlow() {
                   }
                   onKeyDown={(event) => handleOtpKeyDown(index, event)}
                   onPaste={handleOtpPaste}
-                  className="h-14 w-12 rounded-2xl border border-[#2f2b27] bg-[#2f2b27] text-center text-lg font-semibold text-white outline-none transition focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)] sm:w-14"
+                  className="h-14 w-12 rounded-2xl border border-slate-200 bg-white text-center text-lg font-semibold text-slate-900 outline-none transition shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)] sm:w-14"
                 />
               ))}
             </div>
@@ -933,7 +968,7 @@ export function CreatorSignupFlow() {
                     "rounded-full border px-4 py-3 text-sm font-semibold transition",
                     isSelected
                       ? "border-[#076BD2] bg-[#076BD2] text-white shadow-[0_12px_24px_rgba(7,107,210,0.18)]"
-                      : "border-black/8 bg-white text-slate-600 hover:border-black/15 hover:text-slate-900",
+                      : "border-slate-200 bg-white text-slate-600 shadow-[0_8px_20px_rgba(15,23,42,0.04)] hover:border-slate-300 hover:text-slate-900",
                   )}
                 >
                   {option}
@@ -988,7 +1023,7 @@ export function CreatorSignupFlow() {
                   <button
                     type="button"
                     onClick={() => handleRemoveFeaturedLink(index)}
-                    className="rounded-2xl border border-black/8 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-black/15 hover:text-slate-900"
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
                   >
                     Remove
                   </button>
@@ -1001,7 +1036,7 @@ export function CreatorSignupFlow() {
                 type="button"
                 onClick={handleAddFeaturedLink}
                 disabled={featuredLinks.length >= MAX_FEATURED_LINKS}
-                className="rounded-2xl border border-black/8 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-black/15 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Add another link
               </button>
@@ -1029,7 +1064,7 @@ export function CreatorSignupFlow() {
         type="button"
         onClick={handlePrimaryAction}
         disabled={isWorking}
-        className="mt-6 h-14 w-full rounded-2xl bg-[#2f2b27] text-base font-semibold text-white transition hover:bg-[#25221f] disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-6 h-14 w-full rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] text-base font-semibold text-white shadow-[0_18px_35px_rgba(15,23,42,0.16)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isWorking
           ? step === 6
@@ -1058,7 +1093,10 @@ export function CreatorSignupFlow() {
       <div className="mt-6 border-t border-black/6 pt-6 text-center text-sm text-slate-500">
         <p>
           By continuing, you agree to our{" "}
-          <Link href="/terms" className="text-[#076BD2] transition hover:text-[#0558ad]">
+          <Link
+            href="/terms"
+            className="text-[#076BD2] transition hover:text-[#0558ad]"
+          >
             Terms of Service
           </Link>{" "}
           and{" "}

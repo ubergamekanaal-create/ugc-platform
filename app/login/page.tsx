@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
 import { FadeIn, PageTransition } from "@/components/shared/motion";
+import { BrandMark } from "@/components/shared/brand-mark";
 
 export default function LoginPage() {
   return (
@@ -10,12 +11,7 @@ export default function LoginPage() {
 
       <div className="relative z-10 flex min-h-screen flex-col px-6 py-8 sm:px-8">
         <div className="mx-auto flex w-full max-w-6xl justify-between">
-          <Link
-            href="/"
-            className="font-display text-lg font-semibold tracking-[0.2em] text-slate-900"
-          >
-            CIRCL
-          </Link>
+          <BrandMark href="/" tone="light" />
           <Link
             href="/"
             className="text-sm text-slate-500 transition hover:text-slate-900"
