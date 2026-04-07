@@ -14,7 +14,7 @@ export default function DashboardLoading() {
           </div>
         </aside>
         <div className="space-y-6 px-4 py-5 sm:px-6 lg:px-8">
-          <div className="h-20 rounded-[2rem] border border-blue-100 bg-blue-50/70" />
+          <div className="h-20 rounded-[2rem] border border-slate-200 bg-white" />
           <div className="h-40 rounded-[2rem] border border-slate-200 bg-white" />
           <div className="grid gap-6 xl:grid-cols-2">
             <div className="h-[380px] rounded-[2rem] border border-slate-200 bg-white" />

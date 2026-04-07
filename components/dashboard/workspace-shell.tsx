@@ -57,7 +57,7 @@ type WorkspaceViewportProps = {
   children: ReactNode;
   name?: string | null;
   roleLabel: string;
-  profile?: UserProfile& { role: "brand" };
+  profile?: UserProfile & { role: "brand" };
 };
 
 type WorkspaceShellProps = WorkspaceSidebarProps &
@@ -80,7 +80,7 @@ const toneClasses: Record<
 > = {
   brand: {
     shell:
-      "bg-[radial-gradient(circle_at_top_left,_rgba(7,107,210,0.18),_transparent_24%),radial-gradient(circle_at_88%_12%,_rgba(7,107,210,0.12),_transparent_20%),linear-gradient(180deg,_#f7fbff_0%,_#eef4fb_52%,_#edf1f7_100%)]",
+      "bg-white",
     pill: "border-[rgba(7,107,210,0.14)] bg-[rgba(7,107,210,0.08)] text-accent",
     avatar:
       "bg-[linear-gradient(145deg,_rgba(10,17,32,0.98),_rgba(17,24,39,0.92))]",
@@ -91,7 +91,7 @@ const toneClasses: Record<
   },
   creator: {
     shell:
-      "bg-[radial-gradient(circle_at_top_left,_rgba(7,107,210,0.14),_transparent_24%),radial-gradient(circle_at_88%_10%,_rgba(7,107,210,0.1),_transparent_20%),linear-gradient(180deg,_#fffdf9_0%,_#f7faff_50%,_#f5f7fb_100%)]",
+      "bg-white",
     pill: "border-[rgba(7,107,210,0.14)] bg-[rgba(7,107,210,0.08)] text-accent",
     avatar:
       "bg-[linear-gradient(145deg,_rgba(21,26,46,0.98),_rgba(36,17,54,0.9))]",
@@ -106,7 +106,7 @@ export function WorkspacePanel({ className, children }: WorkspacePanelProps) {
   return (
     <div
       className={cn(
-        "relative rounded-[2rem] border border-white/80 bg-white/82 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]",
+        "relative rounded-[2rem] border border-white/80 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]",
         className,
       )}
     >
@@ -151,7 +151,7 @@ export function WorkspaceSidebar({
   const theme = toneClasses[tone];
 
   return (
-    <aside className=" lg:sticky lg:top-0 h-fit lg:min-h-screen overflow-hidden rounded-[2.25rem] border border-white/80 bg-white/76 py-5 px-4 shadow-[0_26px_90px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+    <aside className=" lg:sticky lg:top-0 h-fit lg:min-h-screen overflow-hidden rounded-[2.25rem] border border-slate-200 bg-white py-5 px-4 shadow-[0_26px_90px_rgba(15,23,42,0.08)] backdrop-blur-xl">
       {/* <div className="flex items-start justify-between pb-6 border-b border-b-white/80">
         <BrandMark tone="light" />
         <span
@@ -163,12 +163,12 @@ export function WorkspaceSidebar({
           {roleLabel}
         </span>
       </div> */}
-      <div className="border-b border-b-white/80">
+      <div className="border-b border-b-slate-200">
         <div
           className={cn(
             "relative overflow-hidden rounded-3xl px-3 py-3 mb-6 text-black bg-white", // Slightly smaller radius
-            "border border-white/10 bg-slate-950", // Clean base
-            "shadow-[0_20px_40px_-12px_rgba(0,0,0,0.3)]", // Deeper shadow
+            "border border-slate-100 bg-slate-950",
+            "shadow-[0_20px_40px_-12px_rgba(0,0,0,0.3)]",
             // theme.avatar,
           )}
 
@@ -211,7 +211,7 @@ export function WorkspaceSidebar({
                     "group flex items-center justify-between rounded-[1.35rem] border px-1 py-1 transition",
                     item.active
                       ? "border-[rgba(7,107,210,0.16)] bg-[rgba(7,107,210,0.08)] text-accent shadow-[0_14px_30px_rgba(7,107,210,0.12)]"
-                      : "border-transparent text-slate-600 hover:border-white hover:bg-white/58 hover:text-slate-950",
+                      : "border-transparent text-slate-600 hover:border-slate-200 hover:bg-white/58 hover:text-slate-950",
                   )}
                 >
                   <div className="flex items-center gap-2">

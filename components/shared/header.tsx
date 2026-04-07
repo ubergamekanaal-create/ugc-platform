@@ -43,7 +43,7 @@ export default function Header({ tone, name, roleLabel, profile }: Props) {
   }
   return (
     <header className="max-w-[1720px] mx-auto sticky top-0 z-50 w-full  mx-auto pt-4 backdrop-blur-3xl">
-      <div className="flex mx-3 sm:mx-5 items-center justify-between px-3 sm:px-6 py-3 rounded-[2rem] border border-white/80 bg-white/82 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] bg-[linear-gradient(135deg,_rgba(8,145,178,0.08),_rgba(255,255,255,0.9),_rgba(7,107,210,0.1))]">
+      <div className="flex mx-3 sm:mx-5 items-center justify-between px-3 sm:px-6 py-3 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] ">
 
         {/* LEFT */}
         <div className="flex items-start gap-3">

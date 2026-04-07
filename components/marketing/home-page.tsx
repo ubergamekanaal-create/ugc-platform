@@ -444,8 +444,8 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
                 </div>
               </FadeIn>
               <FadeIn delay={0.1} className="relative">
-                <div className="relative overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.95),_rgba(244,248,252,0.92))] p-4 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-6">
-                  <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top,_rgba(7,107,210,0.16),_transparent_65%)]" />
+                <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-6">
+                  <div className="absolute inset-x-0 top-0 h-40 bg-white" />
                   <div className="relative space-y-4">
                     <div className="flex items-center justify-between rounded-[1.5rem] border border-slate-200 bg-white px-5 py-4">
                       <div>
