@@ -146,55 +146,55 @@ const CREATOR_SIGNUP_STEPS: Array<{
   description: string;
   icon: (props: StepIconProps) => JSX.Element;
 }> = [
-  {
-    id: 1,
-    label: "Account",
-    title: "Create your creator account",
-    description:
-      "Enter your name, email, and password before we send your verification code.",
-    icon: AccountStepIcon,
-  },
-  {
-    id: 2,
-    label: "Verify",
-    title: "Verify the 6-digit code",
-    description:
-      "Enter the code from your email to confirm the account before profile setup continues.",
-    icon: VerifyStepIcon,
-  },
-  {
-    id: 3,
-    label: "Birth year",
-    title: "What is your birth year?",
-    description:
-      "This helps keep creator eligibility structured from the start.",
-    icon: CalendarStepIcon,
-  },
-  {
-    id: 4,
-    label: "Interests",
-    title: "What are you interested in?",
-    description:
-      "Pick the categories you naturally create in so brands can match you correctly.",
-    icon: InterestStepIcon,
-  },
-  {
-    id: 5,
-    label: "Socials",
-    title: "Add your socials",
-    description:
-      "Share the handles brands recognize and how many UGC videos you create each month.",
-    icon: SocialStepIcon,
-  },
-  {
-    id: 6,
-    label: "Portfolio",
-    title: "Add up to 5 of your best links",
-    description:
-      "Share your strongest links so the profile is useful the moment it goes live.",
-    icon: PortfolioStepIcon,
-  },
-];
+    {
+      id: 1,
+      label: "Account",
+      title: "Create your creator account",
+      description:
+        "Enter your name, email, and password before we send your verification code.",
+      icon: AccountStepIcon,
+    },
+    {
+      id: 2,
+      label: "Verify",
+      title: "Verify the 6-digit code",
+      description:
+        "Enter the code from your email to confirm the account before profile setup continues.",
+      icon: VerifyStepIcon,
+    },
+    {
+      id: 3,
+      label: "Birth year",
+      title: "What is your birth year?",
+      description:
+        "This helps keep creator eligibility structured from the start.",
+      icon: CalendarStepIcon,
+    },
+    {
+      id: 4,
+      label: "Interests",
+      title: "What are you interested in?",
+      description:
+        "Pick the categories you naturally create in so brands can match you correctly.",
+      icon: InterestStepIcon,
+    },
+    {
+      id: 5,
+      label: "Socials",
+      title: "Add your socials",
+      description:
+        "Share the handles brands recognize and how many UGC videos you create each month.",
+      icon: SocialStepIcon,
+    },
+    {
+      id: 6,
+      label: "Portfolio",
+      title: "Add up to 5 of your best links",
+      description:
+        "Share your strongest links so the profile is useful the moment it goes live.",
+      icon: PortfolioStepIcon,
+    },
+  ];
 
 const CREATOR_SIGNUP_TOTAL_STEPS = CREATOR_SIGNUP_STEPS.length;
 const OTP_LENGTH = 6;
@@ -788,8 +788,8 @@ export function CreatorSignupFlow() {
         </span>
       </div>
 
-      <div className="relative mt-4">
-        <div className="absolute left-[calc(8.333%-0.55rem)] right-[calc(8.333%-0.55rem)] top-[2.15rem] hidden h-px bg-slate-200 sm:block" />
+      {/* <div className="relative mt-4">
+        <div className="absolute left-[calc(8.333%-0.55rem)] right-[calc(8.333%-0.55rem)] top-[2.3rem] hidden h-px bg-slate-200 sm:block" />
         <div
           className="absolute left-[calc(8.333%-0.55rem)] top-[2.15rem] hidden h-px bg-[linear-gradient(90deg,_rgba(7,107,210,0.82),_rgba(59,130,246,0.58))] transition-all duration-300 sm:block"
           style={{
@@ -837,8 +837,60 @@ export function CreatorSignupFlow() {
             );
           })}
         </div>
-      </div>
+      </div> */}
+      <div className="relative mt-4">
 
+        <div className="absolute left-[calc(8.333%-0.55rem)] right-[calc(8.333%-0.55rem)] top-[2.3rem] h-px bg-slate-200" />
+
+        <div
+          className="absolute left-[calc(8.333%-0.55rem)] top-[2.3rem] h-px bg-[linear-gradient(90deg,_rgba(7,107,210,0.82),_rgba(59,130,246,0.58))] transition-all duration-300"
+          style={{
+            width:
+              step === 1
+                ? "0%"
+                : `calc(${((step - 1) / (CREATOR_SIGNUP_TOTAL_STEPS - 1)) * 100}% + ${((step - 1) / (CREATOR_SIGNUP_TOTAL_STEPS - 1)) * 1.1}rem)`
+          }}
+        />
+        <div className="absolute left-[calc(8.333%-0.55rem)] right-[calc(8.333%-0.55rem)] top-[6.8rem] h-px bg-slate-200 sm:hidden" />
+
+        <div className="grid grid-cols-3 gap-x-2 gap-y-6 sm:grid-cols-6 sm:gap-2">
+          {CREATOR_SIGNUP_STEPS.map((item) => {
+            const isActive = item.id === step;
+            const isComplete = item.id < step;
+            const StepIcon = item.icon;
+
+            return (
+              <div key={item.id} className="relative text-center">
+                <p
+                  className={cn(
+                    "text-[10px] font-semibold uppercase tracking-[0.14em]",
+                    isActive || isComplete
+                      ? "text-slate-700"
+                      : "text-slate-400"
+                  )}
+                >
+                  {item.label}
+                </p>
+
+                <div className="relative mt-2 flex justify-center">
+                  <span
+                    className={cn(
+                      "relative z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-semibold transition sm:h-8 sm:w-8 sm:text-[11px]",
+                      isActive
+                        ? "border-[#076BD2] bg-[#076BD2] text-white shadow-[0_12px_25px_rgba(7,107,210,0.22)]"
+                        : isComplete
+                          ? "border-[#076BD2]/25 bg-[#e8f1ff] text-[#076BD2]"
+                          : "border-slate-200 bg-white text-slate-400"
+                    )}
+                  >
+                    <StepIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
       <div className="mt-4 rounded-[1.25rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.82))] p-3 sm:p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
