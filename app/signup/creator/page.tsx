@@ -30,9 +30,9 @@ export default async function CreatorSignupPage() {
           </Link>
         </div>
 
-        <div className="mx-auto flex w-full max-w-[39rem] flex-1 flex-col justify-center py-8 md:py-6">
+        <div className="mx-auto flex w-full max-w-[39rem] flex-1 flex-col justify-center py-8 md:py-6 border border-slate-200 bg-white p-2 mt-8 sm:mt-4 rounded-[1.5rem]">
           {/* <div className="rounded-[1.5rem] border border-white/70 bg-white/72 p-2 shadow-[0_28px_90px_rgba(15,23,42,0.08)] backdrop-blur-xl"> */}
-          <div className="rounded-[1.5rem] p-2">
+          <div className="rounded-[1.5rem]">
             <div className="space-y-4">
               <div className="space-y-2 text-center">
                 <h1 className="font-display text-[1.6rem] font-semibold tracking-tight text-slate-950 sm:text-[2.1rem]">
