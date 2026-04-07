@@ -779,7 +779,7 @@ export function CreatorSignupFlow() {
 
   return (
     <section className="rounded-[1.5rem] p-4">
-      <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <div className="flex flex-row justify-between items-center gap-2 sm:gap-4">
         <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400 sm:text-xs sm:tracking-[0.22em]">
           Creator signup
         </span>
@@ -787,58 +787,7 @@ export function CreatorSignupFlow() {
           Step {step} of {CREATOR_SIGNUP_TOTAL_STEPS}
         </span>
       </div>
-
       {/* <div className="relative mt-4">
-        <div className="absolute left-[calc(8.333%-0.55rem)] right-[calc(8.333%-0.55rem)] top-[2.3rem] hidden h-px bg-slate-200 sm:block" />
-        <div
-          className="absolute left-[calc(8.333%-0.55rem)] top-[2.15rem] hidden h-px bg-[linear-gradient(90deg,_rgba(7,107,210,0.82),_rgba(59,130,246,0.58))] transition-all duration-300 sm:block"
-          style={{
-            width:
-              step === 1
-                ? "0%"
-                : `calc(${((step - 1) / (CREATOR_SIGNUP_TOTAL_STEPS - 1)) * 100}% + ${((step - 1) / (CREATOR_SIGNUP_TOTAL_STEPS - 1)) * 1.1}rem)`,
-          }}
-        />
-
-        <div className="grid grid-cols-3 gap-x-2 gap-y-3 sm:grid-cols-6 sm:gap-2">
-          {CREATOR_SIGNUP_STEPS.map((item) => {
-            const isActive = item.id === step;
-            const isComplete = item.id < step;
-            const StepIcon = item.icon;
-
-            return (
-              <div key={item.id} className="relative text-center">
-                <p
-                  className={cn(
-                    "text-[10px] font-semibold uppercase tracking-[0.14em] sm:text-[10px]",
-                    isActive || isComplete
-                      ? "text-slate-700"
-                      : "text-slate-400",
-                  )}
-                >
-                  {item.label}
-                </p>
-
-                <div className="relative mt-2 flex justify-center">
-                  <span
-                    className={cn(
-                      "relative z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-semibold transition sm:h-8 sm:w-8 sm:text-[11px]",
-                      isActive
-                        ? "border-[#076BD2] bg-[#076BD2] text-white shadow-[0_12px_25px_rgba(7,107,210,0.22)]"
-                        : isComplete
-                          ? "border-[#076BD2]/25 bg-[#e8f1ff] text-[#076BD2]"
-                          : "border-slate-200 bg-white text-slate-400",
-                    )}
-                  >
-                    <StepIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div> */}
-      <div className="relative mt-4">
 
         <div className="absolute left-[calc(8.333%-0.55rem)] right-[calc(8.333%-0.55rem)] top-[2.3rem] h-px bg-slate-200" />
 
@@ -861,6 +810,60 @@ export function CreatorSignupFlow() {
 
             return (
               <div key={item.id} className="relative text-center">
+                <p
+                  className={cn(
+                    "text-[10px] font-semibold uppercase tracking-[0.14em]",
+                    isActive || isComplete
+                      ? "text-slate-700"
+                      : "text-slate-400"
+                  )}
+                >
+                  {item.label}
+                </p>
+
+                <div className="relative mt-2 flex justify-center">
+                  <span
+                    className={cn(
+                      "relative z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-semibold transition sm:h-8 sm:w-8 sm:text-[11px]",
+                      isActive
+                        ? "border-[#076BD2] bg-[#076BD2] text-white shadow-[0_12px_25px_rgba(7,107,210,0.22)]"
+                        : isComplete
+                          ? "border-[#076BD2]/25 bg-[#e8f1ff] text-[#076BD2]"
+                          : "border-slate-200 bg-white text-slate-400"
+                    )}
+                  >
+                    <StepIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div> */}
+      <div className="relative mt-4">
+        <div className="absolute left-0 right-0 top-[2.3rem] h-px bg-slate-200" />
+
+        <div
+          className="absolute left-0 top-[2.3rem] h-px bg-[linear-gradient(90deg,_rgba(7,107,210,0.82),_rgba(59,130,246,0.58))] transition-all duration-300"
+          style={{
+            width:
+              step === 1
+                ? "0%"
+                : `${((step - 1) / (CREATOR_SIGNUP_TOTAL_STEPS - 1)) * 100}%`
+          }}
+        />
+        <div className="flex overflow-x-auto gap-4 px-2 pb-2 sm:pb-0 sm:grid sm:grid-cols-6 sm:gap-2 sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+
+          {CREATOR_SIGNUP_STEPS.map((item) => {
+            const isActive = item.id === step;
+            const isComplete = item.id < step;
+            const StepIcon = item.icon;
+
+            return (
+              <div
+                key={item.id}
+                className="relative text-center min-w-[70px] flex-shrink-0 sm:min-w-0"
+              >
                 <p
                   className={cn(
                     "text-[10px] font-semibold uppercase tracking-[0.14em]",
