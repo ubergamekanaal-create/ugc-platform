@@ -11,35 +11,28 @@ export async function GET() {
   } = await supabase.auth.getUser();
 
   if (!user || userError) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  console.log(user.email, "dfasdfdsf");
-  
+
   try {
     const { data, error } = await supabase
       .from("team_invitations")
       .select("id, email, role, permissions, invited_at, brand_id")
       .eq("email", user.email)
-      .eq("status", "pending")
-      // .order("invited_at", { ascending: false });
+      .eq("status", "pending");
+    // .order("invited_at", { ascending: false });
 
     if (error) throw error;
-    console.log(data,"dataaaaa");
-    
     return NextResponse.json({
       success: true,
       data: data || [],
     });
-
   } catch (err) {
     console.error("MY INVITES ERROR:", err);
 
     return NextResponse.json(
       { error: "Failed to fetch invitations" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

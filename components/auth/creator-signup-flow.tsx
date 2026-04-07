@@ -204,7 +204,7 @@ const BIRTH_YEAR_OPTIONS = Array.from({ length: 2018 - 1991 + 1 }, (_, index) =>
   String(1991 + index),
 );
 const inputClassName =
-  "h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition placeholder:text-slate-400 shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)]";
+  "h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)] sm:text-base";
 
 function normalizeHandle(value: string) {
   const trimmed = value.trim();
@@ -778,39 +778,39 @@ export function CreatorSignupFlow() {
   }
 
   return (
-    <section className="rounded-[1.75rem] border border-black/5 bg-white/76 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8">
-      <div className="flex items-center justify-between gap-4">
-        <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+    <section className="rounded-[1.5rem] p-4">
+      <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400 sm:text-xs sm:tracking-[0.22em]">
           Creator signup
         </span>
-        <span className="rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+        <span className="rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:px-2 sm:text-xs sm:tracking-[0.18em]">
           Step {step} of {CREATOR_SIGNUP_TOTAL_STEPS}
         </span>
       </div>
 
-      <div className="relative mt-8">
-        <div className="absolute left-[calc(8.333%-0.6rem)] right-[calc(8.333%-0.6rem)] top-[2.75rem] h-px bg-slate-200" />
+      <div className="relative mt-4">
+        <div className="absolute left-[calc(8.333%-0.55rem)] right-[calc(8.333%-0.55rem)] top-[2.15rem] hidden h-px bg-slate-200 sm:block" />
         <div
-          className="absolute left-[calc(8.333%-0.6rem)] top-[2.75rem] h-px bg-[linear-gradient(90deg,_rgba(7,107,210,0.78),_rgba(59,130,246,0.52))] transition-all duration-300"
+          className="absolute left-[calc(8.333%-0.55rem)] top-[2.15rem] hidden h-px bg-[linear-gradient(90deg,_rgba(7,107,210,0.82),_rgba(59,130,246,0.58))] transition-all duration-300 sm:block"
           style={{
             width:
               step === 1
                 ? "0%"
-                : `calc(${((step - 1) / (CREATOR_SIGNUP_TOTAL_STEPS - 1)) * 100}% + ${((step - 1) / (CREATOR_SIGNUP_TOTAL_STEPS - 1)) * 1.2}rem)`,
+                : `calc(${((step - 1) / (CREATOR_SIGNUP_TOTAL_STEPS - 1)) * 100}% + ${((step - 1) / (CREATOR_SIGNUP_TOTAL_STEPS - 1)) * 1.1}rem)`,
           }}
         />
 
-        <div className="grid grid-cols-6 gap-2">
-          {CREATOR_SIGNUP_STEPS.map((item, index) => {
-            const StepIcon = item.icon;
+        <div className="grid grid-cols-3 gap-x-2 gap-y-3 sm:grid-cols-6 sm:gap-2">
+          {CREATOR_SIGNUP_STEPS.map((item) => {
             const isActive = item.id === step;
             const isComplete = item.id < step;
+            const StepIcon = item.icon;
 
             return (
               <div key={item.id} className="relative text-center">
                 <p
                   className={cn(
-                    "text-[10px] font-semibold uppercase tracking-[0.16em]",
+                    "text-[10px] font-semibold uppercase tracking-[0.14em] sm:text-[10px]",
                     isActive || isComplete
                       ? "text-slate-700"
                       : "text-slate-400",
@@ -819,10 +819,10 @@ export function CreatorSignupFlow() {
                   {item.label}
                 </p>
 
-                <div className="relative mt-3 flex justify-center">
+                <div className="relative mt-2 flex justify-center">
                   <span
                     className={cn(
-                      "relative z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border transition",
+                      "relative z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-semibold transition sm:h-8 sm:w-8 sm:text-[11px]",
                       isActive
                         ? "border-[#076BD2] bg-[#076BD2] text-white shadow-[0_12px_25px_rgba(7,107,210,0.22)]"
                         : isComplete
@@ -830,7 +830,7 @@ export function CreatorSignupFlow() {
                           : "border-slate-200 bg-white text-slate-400",
                     )}
                   >
-                    <StepIcon className="h-4 w-4" />
+                    <StepIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </span>
                 </div>
               </div>
@@ -839,23 +839,22 @@ export function CreatorSignupFlow() {
         </div>
       </div>
 
-      <div className="mt-8 rounded-[1.5rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.82))] p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-4">
+      <div className="mt-4 rounded-[1.25rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.82))] p-3 sm:p-4">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-slate-900">
+            <p className="text-sm font-semibold leading-5 text-slate-900">
               {currentStep.title}
             </p>
-            <p className="mt-1 text-sm leading-6 text-slate-500">
+            <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm sm:leading-6">
               {currentStep.description}
             </p>
           </div>
-          <span className="hidden rounded-full border border-[rgba(7,107,210,0.14)] bg-[rgba(7,107,210,0.08)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#076BD2] sm:inline-flex">
+          <span className="hidden shrink-0 rounded-full border border-[rgba(7,107,210,0.14)] bg-[rgba(7,107,210,0.08)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#076BD2] sm:inline-flex">
             {currentStep.label}
           </span>
         </div>
       </div>
-
-      <div className="mt-6 space-y-5">
+      <div className="mt-4 space-y-3">
         {step === 1 ? (
           <div className="space-y-3">
             <input
@@ -894,7 +893,7 @@ export function CreatorSignupFlow() {
 
         {step === 2 ? (
           <div className="space-y-4">
-            <p className="text-center text-sm leading-7 text-slate-500">
+            <p className="text-center text-xs leading-5 text-slate-500 sm:text-sm sm:leading-6">
               Enter the 6-digit code sent to{" "}
               <span className="font-semibold text-slate-900">
                 {email.trim().toLowerCase()}
@@ -902,7 +901,7 @@ export function CreatorSignupFlow() {
               .
             </p>
 
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center gap-2 sm:gap-3">
               {otpDigits.map((digit, index) => (
                 <input
                   key={index}
@@ -919,7 +918,7 @@ export function CreatorSignupFlow() {
                   }
                   onKeyDown={(event) => handleOtpKeyDown(index, event)}
                   onPaste={handleOtpPaste}
-                  className="h-14 w-12 rounded-2xl border border-slate-200 bg-white text-center text-lg font-semibold text-slate-900 outline-none transition shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)] sm:w-14"
+                  className="h-11 w-10 rounded-2xl border border-slate-200 bg-white text-center text-base font-semibold text-slate-900 outline-none transition shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)] sm:h-12 sm:w-11"
                 />
               ))}
             </div>
@@ -929,7 +928,7 @@ export function CreatorSignupFlow() {
                 type="button"
                 onClick={() => void handleResendOtp()}
                 disabled={isWorking}
-                className="text-sm font-medium text-[#076BD2] transition hover:text-[#0558ad] disabled:cursor-not-allowed disabled:opacity-60"
+                className="text-xs font-medium text-[#076BD2] transition hover:text-[#0558ad] disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
               >
                 {isWorking ? "Sending..." : "Resend code"}
               </button>
@@ -955,7 +954,7 @@ export function CreatorSignupFlow() {
         ) : null}
 
         {step === 4 ? (
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             {CREATOR_INTEREST_OPTIONS.map((option) => {
               const isSelected = interests.includes(option);
 
@@ -965,7 +964,7 @@ export function CreatorSignupFlow() {
                   type="button"
                   onClick={() => handleInterestToggle(option)}
                   className={cn(
-                    "rounded-full border px-4 py-3 text-sm font-semibold transition",
+                    "rounded-2xl border px-3 py-2 text-xs font-semibold transition sm:rounded-full sm:px-3.5 sm:py-2.5 sm:text-sm",
                     isSelected
                       ? "border-[#076BD2] bg-[#076BD2] text-white shadow-[0_12px_24px_rgba(7,107,210,0.18)]"
                       : "border-slate-200 bg-white text-slate-600 shadow-[0_8px_20px_rgba(15,23,42,0.04)] hover:border-slate-300 hover:text-slate-900",
@@ -1009,7 +1008,7 @@ export function CreatorSignupFlow() {
         {step === 6 ? (
           <div className="space-y-3">
             {featuredLinks.map((link, index) => (
-              <div key={index} className="flex items-center gap-3">
+              <div key={index} className="flex items-center gap-2">
                 <input
                   type="url"
                   value={link}
@@ -1023,7 +1022,7 @@ export function CreatorSignupFlow() {
                   <button
                     type="button"
                     onClick={() => handleRemoveFeaturedLink(index)}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                    className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 sm:px-4 sm:py-3 sm:text-sm"
                   >
                     Remove
                   </button>
@@ -1031,16 +1030,16 @@ export function CreatorSignupFlow() {
               </div>
             ))}
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={handleAddFeaturedLink}
                 disabled={featuredLinks.length >= MAX_FEATURED_LINKS}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 sm:px-4 sm:py-3 sm:text-sm"
               >
                 Add another link
               </button>
-              <span className="text-sm text-slate-500">
+              <span className="text-xs text-slate-500 sm:text-sm">
                 Up to {MAX_FEATURED_LINKS} links
               </span>
             </div>
@@ -1064,7 +1063,7 @@ export function CreatorSignupFlow() {
         type="button"
         onClick={handlePrimaryAction}
         disabled={isWorking}
-        className="mt-6 h-14 w-full rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] text-base font-semibold text-white shadow-[0_18px_35px_rgba(15,23,42,0.16)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-4 h-12 w-full rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_35px_rgba(15,23,42,0.16)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 sm:text-base"
       >
         {isWorking
           ? step === 6
@@ -1079,18 +1078,18 @@ export function CreatorSignupFlow() {
                 : "Continue"}
       </button>
 
-      <div className="mt-4 flex justify-center">
+      {/* <div className="mt-3 flex justify-center">
         <button
           type="button"
           onClick={handleBack}
           disabled={step === 1 || isWorking || (isOtpVerified && step === 3)}
-          className="text-sm font-medium text-slate-500 transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
+          className="text-xs font-medium text-slate-500 transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 sm:text-sm"
         >
           Back
         </button>
-      </div>
+      </div> */}
 
-      <div className="mt-6 border-t border-black/6 pt-6 text-center text-sm text-slate-500">
+      <div className="mt-4 border-t border-black/6 pt-4 text-center text-[11px] leading-5 text-slate-500 sm:text-xs">
         <p>
           By continuing, you agree to our{" "}
           <Link
@@ -1108,7 +1107,7 @@ export function CreatorSignupFlow() {
           </Link>
           .
         </p>
-        <p className="mt-4">
+        <p className="mt-2">
           Already have an account?{" "}
           <Link
             href="/login?role=creator"

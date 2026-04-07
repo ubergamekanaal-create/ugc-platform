@@ -1,9 +1,20 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/login-form";
 import { FadeIn, PageTransition } from "@/components/shared/motion";
 import { BrandMark } from "@/components/shared/brand-mark";
+import { createClient } from "@/lib/supabase/server";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#f7f8fc] text-slate-900">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(7,107,210,0.12),_transparent_34%),radial-gradient(circle_at_85%_75%,_rgba(99,102,241,0.08),_transparent_22%),linear-gradient(180deg,_#ffffff,_#f8f8fc)]" />

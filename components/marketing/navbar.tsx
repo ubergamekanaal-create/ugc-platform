@@ -13,7 +13,13 @@ const links = [
   { href: "/#pricing", label: "Pricing" },
 ];
 
-export function MarketingNavbar() {
+type MarketingNavbarProps = {
+  isLoggedIn?: boolean;
+};
+
+export function MarketingNavbar({
+  isLoggedIn = false,
+}: MarketingNavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -32,18 +38,29 @@ export function MarketingNavbar() {
           ))}
         </nav>
         <div className="hidden items-center gap-3 lg:flex">
-          <Link
-            href="/login"
-            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:border-accent/40 hover:bg-blue-50"
-          >
-            Login
-          </Link>
-          <Link
-            href="/signup"
-            className="rounded-full bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-4 py-2 text-sm font-medium text-white transition hover:shadow-glow"
-          >
-            Get Started
-          </Link>
+          {isLoggedIn ? (
+            <Link
+              href="/dashboard"
+              className="rounded-full bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-4 py-2 text-sm font-medium text-white transition hover:shadow-glow"
+            >
+              Go to Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:border-accent/40 hover:bg-blue-50"
+              >
+                Login
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-full bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-4 py-2 text-sm font-medium text-white transition hover:shadow-glow"
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
         <button
           type="button"
@@ -78,20 +95,32 @@ export function MarketingNavbar() {
                   {link.label}
                 </Link>
               ))}
-              <Link
-                href="/login"
-                onClick={() => setIsOpen(false)}
-                className="rounded-2xl border border-slate-200 px-3 py-3 text-sm text-slate-700"
-              >
-                Login
-              </Link>
-              <Link
-                href="/signup"
-                onClick={() => setIsOpen(false)}
-                className="rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-3 py-3 text-sm font-medium text-white"
-              >
-                Get Started
-              </Link>
+              {isLoggedIn ? (
+                <Link
+                  href="/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-3 py-3 text-sm font-medium text-white"
+                >
+                  Go to Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setIsOpen(false)}
+                    className="rounded-2xl border border-slate-200 px-3 py-3 text-sm text-slate-700"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={() => setIsOpen(false)}
+                    className="rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-3 py-3 text-sm font-medium text-white"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </motion.div>
         ) : null}

@@ -365,13 +365,17 @@ import {
   testimonials,
 } from "@/lib/content";
 
-export function HomePage() {
+type HomePageProps = {
+  isLoggedIn?: boolean;
+};
+
+export function HomePage({ isLoggedIn = false }: HomePageProps) {
   return (
     <div className="relative min-h-screen bg-[#f8fbff] text-slate-950">
       <BackgroundOrbs tone="light" />
 
       <div className="relative z-10">
-        <MarketingNavbar />
+        <MarketingNavbar isLoggedIn={isLoggedIn} />
 
         <PageTransition>
           <main>
@@ -397,18 +401,29 @@ export function HomePage() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
-                  <Link
-                    href="/signup"
-                    className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-6 py-3 text-sm font-semibold text-white transition hover:shadow-glow"
-                  >
-                    Get Started
-                  </Link>
-                  <Link
-                    href="/login"
-                    className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-accent/30 hover:bg-blue-50"
-                  >
-                    Login
-                  </Link>
+                  {isLoggedIn ? (
+                    <Link
+                      href="/dashboard"
+                      className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-6 py-3 text-sm font-semibold text-white transition hover:shadow-glow"
+                    >
+                      Go to Dashboard
+                    </Link>
+                  ) : (
+                    <>
+                      <Link
+                        href="/signup"
+                        className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-6 py-3 text-sm font-semibold text-white transition hover:shadow-glow"
+                      >
+                        Get Started
+                      </Link>
+                      <Link
+                        href="/login"
+                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-accent/30 hover:bg-blue-50"
+                      >
+                        Login
+                      </Link>
+                    </>
+                  )}
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">
                   {[
@@ -684,10 +699,10 @@ export function HomePage() {
                 </div>
 
                 <Link
-                  href="/signup"
+                  href={isLoggedIn ? "/dashboard" : "/signup"}
                   className="rounded-full bg-blue-600 text-white px-6 py-3 font-semibold hover:bg-blue-700 transition"
                 >
-                  Get Started
+                  {isLoggedIn ? "Go to Dashboard" : "Get Started"}
                 </Link>
               </FadeIn>
             </section>

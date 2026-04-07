@@ -814,7 +814,6 @@ export function BrandWorkspace({
     };
   }, [data.payouts]);
   const campaignMomentum = campaignPerformance.slice(0, 4);
-  console.log(onboardingSteps, "faskljfdasfjkdsa");
   
   function DashboardSection() {
     const payoutRef = useRef(null);
