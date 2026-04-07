@@ -7,7 +7,7 @@ import type { NotificationItem, UserProfile } from "@/lib/types";
 import { cn, formatDate } from "@/lib/utils";
 
 type NotificationsCenterProps = {
-  profile: UserProfile;
+  profile: UserProfile& { role: "brand" | "creator" };
 };
 
 type NotificationsResponse = {
@@ -207,7 +207,7 @@ export function NotificationsCenter({ profile }: NotificationsCenterProps) {
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-[0_10px_30px_rgba(15,23,42,0.08)] transition hover:border-slate-300 hover:text-slate-950"
+        className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-[0_10px_30px_rgba(15,23,42,0.08)] transition hover:border-slate-300 hover:text-slate-950"
         aria-label="Open notifications"
       >
         <BellIcon className="h-5 w-5" />

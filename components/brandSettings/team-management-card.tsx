@@ -898,7 +898,6 @@ const TeamManagementCard = () => {
             setMembers(membersData.data || []);
             setInvites(invitesData.data || []);
 
-            console.log(membersData, "fsdfldsfjksdafjsda");
 
             setMembersTotal(membersData.pagination?.total || 0);
             setInvitesTotal(invitesData.pagination?.total || 0);
