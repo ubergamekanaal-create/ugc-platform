@@ -960,7 +960,7 @@ export function BrandWorkspace({
                 </div>
               </div>
 
-              <div ref={payoutRef} className="mt-16 sm:mt-8 flex min-h-[250px] flex-col items-center justify-center rounded-[1.75rem] bg-slate-50">
+              <div ref={payoutRef} className="mt-16 sm:mt-8 flex min-h-[250px] flex-col items-center justify-center rounded-[1.75rem] bg-white border border-slate-200">
                 {recentPayoutActivity.maxValue > 0 ? (
                   <div className="w-full px-4 py-4 sm:py-8 sm:px-8">
                     <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -1227,7 +1227,7 @@ export function BrandWorkspace({
                   </span>
                 </div>
               </div>
-              <div className="mt-14 sm:mt-8 rounded-[1.75rem] bg-[linear-gradient(135deg,_rgba(231,242,255,0.95),_rgba(255,255,255,0.98))] p-6">
+              <div className="mt-14 sm:mt-8 rounded-[1.75rem] border border-slate-200 p-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                   Campaign setup
                 </p>
@@ -1336,7 +1336,7 @@ export function BrandWorkspace({
             </SectionPanel>
           </FadeIn>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <FadeIn>
             <SectionPanel className="h-full flex flex-col">
               <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
@@ -1962,7 +1962,7 @@ export function BrandWorkspace({
       </WorkspacePanel>
     );
   const sidebarFooter = (
-    <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(239,246,255,0.96))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+    <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(239,246,255,0.96))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
       <div className="absolute -right-10 top-0 h-20 w-20 rounded-full bg-[radial-gradient(circle,_rgba(7,107,210,0.18),_transparent_70%)]" />
       <div className="relative">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
@@ -2096,7 +2096,7 @@ export function BrandWorkspaceChrome({
     },
   ];
   const sidebarFooter = (
-    <div className="relative rounded-[2rem] border border-white/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(239,246,255,0.96))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+    <div className="relative rounded-[2rem] border border-slate-100 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(239,246,255,0.96))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
       <div className="absolute -right-10 top-0 h-20 w-20 rounded-full bg-[radial-gradient(circle,_rgba(7,107,210,0.18),_transparent_70%)]" />
       <div className="relative">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">

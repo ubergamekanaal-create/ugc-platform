@@ -43,7 +43,7 @@ export function EarningsChart({ data, formatCurrency }: Props) {
       <div className="h-[260px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
-            
+
             {/* Gradient */}
             <defs>
               <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
@@ -79,7 +79,7 @@ export function EarningsChart({ data, formatCurrency }: Props) {
               radius={[12, 12, 0, 0]}
               animationDuration={1200}
               animationEasing="ease-out"
-              animationBegin={startAnimation ? 0 : 999999} // 🔥 KEY FIX
+              animationBegin={startAnimation ? 0 : 999999}
             >
               {data.map((_, index) => (
                 <Cell
@@ -87,7 +87,7 @@ export function EarningsChart({ data, formatCurrency }: Props) {
                   fill={
                     index === data.length - 1
                       ? "url(#barGradient)"
-                      : "#93C5FD"
+                      : "#076BD2"
                   }
                 />
               ))}
