@@ -86,6 +86,14 @@ function getCreatorCombinedAudience(creator: BrandCreatorDirectoryEntry) {
   );
 }
 
+function getApprovalRate(creator: BrandCreatorDirectoryEntry) {
+  if (creator.applications <= 0) {
+    return 0;
+  }
+
+  return (creator.accepted / creator.applications) * 100;
+}
+
 function getCreatorLinks(creator: BrandCreatorDirectoryEntry) {
   return [
     { label: "Portfolio", href: creator.portfolio_url },
@@ -213,6 +221,9 @@ export function BrandCreatorDirectory({
   const [offeredRates, setOfferedRates] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<Record<string, string>>({});
   const [pendingCreatorId, setPendingCreatorId] = useState<string | null>(null);
+  const [selectedCreator, setSelectedCreator] = useState<BrandCreatorDirectoryEntry | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isRefreshing, startRefresh] = useTransition();
   const deferredQuery = useDeferredValue(searchQuery);
 
@@ -536,49 +547,94 @@ export function BrandCreatorDirectory({
           const discoveryRate = getDiscoveryRate(creator);
           const audienceReach = getCreatorAudienceReach(creator);
           const combinedAudience = getCreatorCombinedAudience(creator);
+          const creatorTagItems = [
+            ...(creator.niches.length ? creator.niches : [creator.focus]).map((item) => ({
+              label: item,
+              tone: "neutral" as const,
+            })),
+            ...creator.platform_specialties.map((platform) => ({
+              label: platform,
+              tone: "accent" as const,
+            })),
+          ];
+          const visibleCreatorTags = creatorTagItems.slice(0, 3);
+          const hiddenCreatorTagCount = Math.max(creatorTagItems.length - visibleCreatorTags.length, 0);
 
           return (
             <div
               key={creator.id}
-              className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]"
+              onClick={() => {
+                setSelectedCreator(creator);
+                setIsProfileModalOpen(true);
+              }}
+              className="min-w-0 cursor-pointer rounded-[2rem] border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(15,23,42,0.12)]"
             >
               <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0 flex items-center gap-4">
-                  <span className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-slate-900 text-sm font-semibold text-white">
+                <div className="min-w-0 flex items-start gap-3">
+                  <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.25rem] bg-slate-900 text-sm font-semibold text-white">
                     {getInitials(creator.name)}
                   </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-xl font-semibold text-slate-950">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-lg font-semibold text-slate-950">
                       {creator.name}
                     </p>
-                    <p className="mt-1 break-words text-sm text-slate-500">
-                      {creator.headline ?? creator.focus}
-                    </p>
-                    {creator.location ? (
-                      <p className="mt-2 text-xs uppercase tracking-[0.16em] text-slate-400">
-                        {creator.location}
-                      </p>
-                    ) : null}
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
+                      <span className="break-words">{creator.headline ?? creator.focus}</span>
+                      {creator.location ? (
+                        <>
+                          <span className="text-slate-300">•</span>
+                          <span className="truncate">{creator.location}</span>
+                        </>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      {visibleCreatorTags.map((tag) => (
+                        <span
+                          key={`${creator.id}-tag-${tag.label}`}
+                          className={cn(
+                            "max-w-full truncate rounded-full px-2.5 py-1 text-[11px] font-medium sm:px-3",
+                            tag.tone === "accent"
+                              ? "bg-blue-50 text-accent"
+                              : "bg-slate-100 text-slate-600",
+                          )}
+                        >
+                          {tag.label}
+                        </span>
+                      ))}
+                      {hiddenCreatorTagCount > 0 ? (
+                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-500 sm:px-3">
+                          +{hiddenCreatorTagCount}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-accent">
-                  {creator.pending_invitations > 0
-                    ? `${creator.pending_invitations} pending`
-                    : creator.niches[0] ?? creator.focus}
-                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedCreator(creator);
+                    setIsModalOpen(true);
+                  }}
+                  disabled={pendingCreatorId === creator.id || !availableCampaigns.length}
+                  className="shrink-0 rounded-full bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {pendingCreatorId === creator.id ? "Sending..." : "Invite"}
+                </button>
               </div>
 
-              {creator.bio ? (
-                <p className="mt-5 break-words text-sm leading-7 text-slate-600">
-                  {creator.bio}
-                </p>
-              ) : (
-                <p className="mt-5 break-words text-sm leading-7 text-slate-500">
-                  This creator has not added a short bio yet.
-                </p>
-              )}
+              <div className="hidden">
+                {creator.bio ? (
+                  <p className="mt-5 break-words text-sm leading-7 text-slate-600">
+                    {creator.bio}
+                  </p>
+                ) : (
+                  <p className="mt-5 break-words text-sm leading-7 text-slate-500">
+                    This creator has not added a short bio yet.
+                  </p>
+                )}
 
-              <div className="mt-5 flex flex-wrap gap-2">
+                <div className="mt-5 flex flex-wrap gap-2">
                 {(creator.niches.length ? creator.niches : [creator.focus]).map((item) => (
                   <span
                     key={`${creator.id}-niche-${item}`}
@@ -595,9 +651,10 @@ export function BrandCreatorDirectory({
                     {platform}
                   </span>
                 ))}
+                </div>
               </div>
 
-              {creator.featured_brands.length ? (
+              {/* {creator.featured_brands.length ? (
                 <div className="mt-5 flex flex-wrap gap-2">
                   {creator.featured_brands.map((brand) => (
                     <span
@@ -608,9 +665,9 @@ export function BrandCreatorDirectory({
                     </span>
                   ))}
                 </div>
-              ) : null}
+              ) : null} */}
 
-              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {/* <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl bg-slate-50 p-3">
                   <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
                     Reach
@@ -665,57 +722,114 @@ export function BrandCreatorDirectory({
                     {creator.invitations}
                   </p>
                 </div>
+              </div> */}
+              <div className="mt-4 rounded-[1.35rem] bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(241,245,249,0.9))] p-2.5">
+                <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+                  <div className="rounded-[1rem] border border-white/80 bg-white/95 px-2.5 py-2.5 shadow-[0_8px_18px_rgba(15,23,42,0.04)] sm:px-3">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      Reach
+                    </p>
+                    <p className="mt-1.5 text-sm font-semibold text-slate-950">
+                      {audienceReach > 0 ? formatCompactNumber(audienceReach) : "Add stats"}
+                    </p>
+                  </div>
+                  <div className="rounded-[1rem] border border-white/80 bg-white/95 px-2.5 py-2.5 shadow-[0_8px_18px_rgba(15,23,42,0.04)] sm:px-3">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      Avg Views
+                    </p>
+                    <p className="mt-1.5 text-sm font-semibold text-slate-950">
+                      {creator.average_views > 0
+                        ? formatCompactNumber(creator.average_views)
+                        : "Add views"}
+                    </p>
+                  </div>
+                  <div className="rounded-[1rem] border border-white/80 bg-white/95 px-2.5 py-2.5 shadow-[0_8px_18px_rgba(15,23,42,0.04)] sm:px-3">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      Engagement
+                    </p>
+                    <p className="mt-1.5 text-sm font-semibold text-slate-950">
+                      {creator.engagement_rate > 0
+                        ? formatPercent(creator.engagement_rate)
+                        : "Add %"}
+                    </p>
+                  </div>
+                  <div className="rounded-[1rem] border border-white/80 bg-white/95 px-2.5 py-2.5 shadow-[0_8px_18px_rgba(15,23,42,0.04)] sm:px-3">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      Rate
+                    </p>
+                    <p className="mt-1.5 text-sm font-semibold text-slate-950">
+                      {discoveryRate > 0
+                        ? formatCompactCurrency(discoveryRate)
+                        : "Open"}
+                    </p>
+                  </div>
+                  <div className="rounded-[1rem] border border-white/80 bg-white/95 px-2.5 py-2.5 shadow-[0_8px_18px_rgba(15,23,42,0.04)] sm:px-3">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      Apps
+                    </p>
+                    <p className="mt-1.5 text-sm font-semibold text-slate-950">
+                      {creator.applications}
+                    </p>
+                  </div>
+                  <div className="rounded-[1rem] border border-white/80 bg-white/95 px-2.5 py-2.5 shadow-[0_8px_18px_rgba(15,23,42,0.04)] sm:px-3">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      Invites
+                    </p>
+                    <p className="mt-1.5 text-sm font-semibold text-slate-950">
+                      {creator.invitations}
+                    </p>
+                  </div>
+                </div>
               </div>
-
-              {(combinedAudience > 0 ||
+              {false && (combinedAudience > 0 ||
                 creator.audience_summary ||
                 creator.past_work ||
                 creator.featured_result) && (
-                <div className="mt-6 rounded-[1.5rem] bg-slate-50 p-4 text-sm text-slate-600">
-                  {combinedAudience > 0 ? (
-                    <p>
-                      <span className="font-medium text-slate-900">
-                        Combined audience:
-                      </span>{" "}
-                      {formatCompactNumber(combinedAudience)}
-                    </p>
-                  ) : null}
-                  {creator.audience_summary ? (
-                    <p className={cn(combinedAudience > 0 ? "mt-3" : "")}>
-                      <span className="font-medium text-slate-900">Audience:</span>{" "}
-                      {creator.audience_summary}
-                    </p>
-                  ) : null}
-                  {creator.past_work ? (
-                    <p
-                      className={cn(
-                        combinedAudience > 0 || creator.audience_summary ? "mt-3" : "",
-                      )}
-                    >
-                      <span className="font-medium text-slate-900">Past work:</span>{" "}
-                      {creator.past_work}
-                    </p>
-                  ) : null}
-                  {creator.featured_result ? (
-                    <p
-                      className={cn(
-                        combinedAudience > 0 ||
-                          creator.audience_summary ||
-                          creator.past_work
-                          ? "mt-3"
-                          : "",
-                      )}
-                    >
-                      <span className="font-medium text-slate-900">
-                        Featured result:
-                      </span>{" "}
-                      {creator.featured_result}
-                    </p>
-                  ) : null}
-                </div>
-              )}
+                  <div className="mt-6 rounded-[1.5rem] bg-slate-50 p-4 text-sm text-slate-600">
+                    {combinedAudience > 0 ? (
+                      <p>
+                        <span className="font-medium text-slate-900">
+                          Combined audience:
+                        </span>{" "}
+                        {formatCompactNumber(combinedAudience)}
+                      </p>
+                    ) : null}
+                    {creator.audience_summary ? (
+                      <p className={cn(combinedAudience > 0 ? "mt-3" : "")}>
+                        <span className="font-medium text-slate-900">Audience:</span>{" "}
+                        {creator.audience_summary}
+                      </p>
+                    ) : null}
+                    {creator.past_work ? (
+                      <p
+                        className={cn(
+                          combinedAudience > 0 || creator.audience_summary ? "mt-3" : "",
+                        )}
+                      >
+                        <span className="font-medium text-slate-900">Past work:</span>{" "}
+                        {creator.past_work}
+                      </p>
+                    ) : null}
+                    {creator.featured_result ? (
+                      <p
+                        className={cn(
+                          combinedAudience > 0 ||
+                            creator.audience_summary ||
+                            creator.past_work
+                            ? "mt-3"
+                            : "",
+                        )}
+                      >
+                        <span className="font-medium text-slate-900">
+                          Featured result:
+                        </span>{" "}
+                        {creator.featured_result}
+                      </p>
+                    ) : null}
+                  </div>
+                )}
 
-              <div className="mt-6 rounded-[1.5rem] bg-slate-50 p-4 text-sm text-slate-600">
+              <div className="hidden mt-6 rounded-[1.5rem] bg-slate-50 p-4 text-sm text-slate-600">
                 <p className="font-medium text-slate-900">
                   {creator.latest_campaign_title
                     ? `Latest campaign: ${creator.latest_campaign_title}`
@@ -728,7 +842,7 @@ export function BrandCreatorDirectory({
                 </p>
               </div>
 
-              {creatorLinks.length ? (
+              {false && creatorLinks.length ? (
                 <div className="mt-5 flex flex-wrap gap-2">
                   {creatorLinks.map((link) => (
                     <a
@@ -747,7 +861,7 @@ export function BrandCreatorDirectory({
               <div className="mt-6">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-sm font-semibold text-slate-900">
-                    Content Samples
+                    Reference Videos
                   </p>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
                     {creator.portfolio_assets.length} sample
@@ -758,11 +872,13 @@ export function BrandCreatorDirectory({
                   assets={creator.portfolio_assets}
                   layout="strip"
                   limit={5}
+                  showAssetDetails={false}
+                  previewClickable
                   emptyLabel="This creator has not uploaded portfolio content yet."
                 />
               </div>
 
-              <div className="mt-6 space-y-3">
+              {/* <div className="mt-6 space-y-3">
                 <div>
                   <label
                     htmlFor={`offer-rate-${creator.id}`}
@@ -806,7 +922,7 @@ export function BrandCreatorDirectory({
                     className={cn(
                       "h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]",
                       !availableCampaigns.length &&
-                        "cursor-not-allowed bg-slate-100 text-slate-400",
+                      "cursor-not-allowed bg-slate-100 text-slate-400",
                     )}
                   >
                     {availableCampaigns.length ? (
@@ -842,12 +958,17 @@ export function BrandCreatorDirectory({
                     className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
                   />
                 </div>
-              </div>
+              </div> */}
 
-              <div className="mt-6 flex gap-3">
+              <div className="hidden mt-6 flex gap-3">
                 <button
                   type="button"
-                  onClick={() => void handleInvite(creator)}
+                  // onClick={() => void handleInvite(creator)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedCreator(creator);
+                    setIsModalOpen(true);
+                  }}
                   disabled={pendingCreatorId === creator.id || !availableCampaigns.length}
                   className="flex-1 rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -871,10 +992,417 @@ export function BrandCreatorDirectory({
               {feedback[creator.id] ? (
                 <p className="mt-4 text-sm text-slate-500">{feedback[creator.id]}</p>
               ) : null}
+
             </div>
           );
         })}
+        {isModalOpen && selectedCreator && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+            <div className="w-full max-w-lg rounded-[1.75rem] bg-white shadow-2xl">
 
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Connect With Creator
+                </h2>
+                <button onClick={() => setIsModalOpen(false)}>✕</button>
+              </div>
+
+              <div className="px-6 py-5">
+
+                {/* Title */}
+                <p className="font-semibold text-slate-900">
+                  Invite {selectedCreator.name}
+                </p>
+                <div className="mt-5">
+                  <label className="text-sm font-medium text-slate-800">
+                    Invite note <span className="text-red-500">*</span>
+                  </label>
+
+                  <textarea
+                    rows={4}
+                    value={messages[selectedCreator.id] ?? ""}
+                    onChange={(e) =>
+                      setMessages((prev) => ({
+                        ...prev,
+                        [selectedCreator.id]: e.target.value,
+                      }))
+                    }
+                    placeholder="Share the angle, target customer, creative direction, or delivery deadline."
+                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-accent"
+                  />
+                </div>
+                <div className="mt-5">
+                  <label className="text-sm font-medium text-slate-800">
+                    Invite to campaign
+                  </label>
+
+                  <select
+                    value={
+                      selectedCampaigns[selectedCreator.id] ||
+                      getDefaultCampaignId(
+                        selectedCreator,
+                        inviteableCampaigns,
+                        preferredCampaignId
+                      )
+                    }
+                    onChange={(e) =>
+                      setSelectedCampaigns((prev) => ({
+                        ...prev,
+                        [selectedCreator.id]: e.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-accent"
+                  >
+                    {inviteableCampaigns.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="mt-5">
+                  <label className="text-sm font-medium text-slate-800">
+                    Offer rate
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    value={offeredRates[selectedCreator.id] ?? ""}
+                    onChange={(e) =>
+                      setOfferedRates((prev) => ({
+                        ...prev,
+                        [selectedCreator.id]: e.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-accent"
+                    placeholder="Enter amount"
+                  />
+                </div>
+
+
+                {/* Buttons */}
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="rounded-full bg-slate-200 px-5 py-2 text-sm font-medium text-slate-700"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    disabled={!messages[selectedCreator.id]?.trim()}
+                    onClick={async () => {
+                      await handleInvite(selectedCreator);
+                      setIsModalOpen(false);
+                    }}
+                    className={cn(
+                      "rounded-full px-5 py-2 text-sm font-semibold text-white",
+                      !messages[selectedCreator.id]?.trim()
+                        ? "bg-blue-300 cursor-not-allowed"
+                        : "bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)]"
+                    )}
+                  >
+                    Send Invite
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {isProfileModalOpen && selectedCreator && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/20 px-4 py-8 backdrop-blur-sm">
+            <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-[0_30px_90px_rgba(15,23,42,0.22)]">
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-5">
+                <div>
+                  <p className="text-xl font-semibold capitalize text-slate-950">
+                    Creator Profile
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(false)}
+                  aria-label="Close profile modal"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+                >
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    className="h-4 w-4"
+                  >
+                    <path
+                      d="M5 5l10 10M15 5L5 15"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className="overflow-y-auto px-6 py-6">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="flex min-w-0 items-start gap-4">
+                    <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.35rem] bg-slate-900 text-base font-semibold text-white">
+                      {getInitials(selectedCreator.name)}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-2xl font-semibold text-slate-950">
+                          {selectedCreator.name}
+                        </p>
+                        {selectedCreator.pending_invitations > 0 ? (
+                          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                            {selectedCreator.pending_invitations} pending
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {selectedCreator.headline ?? selectedCreator.focus}
+                      </p>
+                      {selectedCreator.location ? (
+                        <p className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-400">
+                          {selectedCreator.location}
+                        </p>
+                      ) : null}
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {(selectedCreator.niches.length
+                          ? selectedCreator.niches
+                          : [selectedCreator.focus]
+                        ).map((item) => (
+                          <span
+                            key={`${selectedCreator.id}-modal-niche-${item}`}
+                            className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                        {selectedCreator.platform_specialties.map((platform) => (
+                          <span
+                            key={`${selectedCreator.id}-modal-platform-${platform}`}
+                            className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-accent"
+                          >
+                            {platform}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileModalOpen(false);
+                        setIsModalOpen(true);
+                      }}
+                      className="rounded-full bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-2.5 text-sm font-semibold text-white"
+                    >
+                      Invite to campaign
+                    </button>
+                    <a
+                      href={selectedCreator.portfolio_url ?? selectedCreator.website_url ?? "#"}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={cn(
+                        "rounded-full border border-slate-200 px-5 py-2.5 text-sm font-semibold",
+                        selectedCreator.portfolio_url || selectedCreator.website_url
+                          ? "text-slate-700 transition hover:border-accent/30 hover:text-accent"
+                          : "pointer-events-none text-slate-400",
+                      )}
+                    >
+                      Portfolio
+                    </a>
+                  </div>
+                </div>
+                <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="rounded-[1.4rem] border border-slate-200 bg-slate-50 px-4 py-4">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+                      Reach
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-slate-950">
+                      {getCreatorAudienceReach(selectedCreator) > 0
+                        ? formatCompactNumber(getCreatorAudienceReach(selectedCreator))
+                        : "Add stats"}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.4rem] border border-slate-200 bg-slate-50 px-4 py-4">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+                      Avg. views
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-slate-950">
+                      {selectedCreator.average_views > 0
+                        ? formatCompactNumber(selectedCreator.average_views)
+                        : "Add views"}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.4rem] border border-slate-200 bg-slate-50 px-4 py-4">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+                      Engagement
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-slate-950">
+                      {selectedCreator.engagement_rate > 0
+                        ? formatPercent(selectedCreator.engagement_rate)
+                        : "Add %"}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.4rem] border border-slate-200 bg-slate-50 px-4 py-4">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+                      Rate
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-slate-950">
+                      {getDiscoveryRate(selectedCreator) > 0
+                        ? formatCompactCurrency(getDiscoveryRate(selectedCreator))
+                        : "Open"}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.4rem] border border-slate-200 bg-slate-50 px-4 py-4">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+                      Applications
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-slate-950">
+                      {selectedCreator.applications}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.4rem] border border-slate-200 bg-slate-50 px-4 py-4">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+                      Approval
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-slate-950">
+                      {getApprovalRate(selectedCreator) > 0
+                        ? formatPercent(getApprovalRate(selectedCreator))
+                        : "No data"}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-6 grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
+                  <div className="rounded-[1.6rem] border border-slate-200 bg-white p-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      About
+                    </p>
+                    <p className="mt-3 text-sm leading-7 text-slate-600">
+                      {selectedCreator.bio || "This creator has not added a short bio yet."}
+                    </p>
+                    {(selectedCreator.audience_summary ||
+                      selectedCreator.past_work ||
+                      selectedCreator.featured_result) && (
+                      <div className="mt-5 rounded-[1.3rem] bg-slate-50 p-4 text-sm text-slate-600">
+                        {selectedCreator.audience_summary ? (
+                          <p>
+                            <span className="font-medium text-slate-900">Audience:</span>{" "}
+                            {selectedCreator.audience_summary}
+                          </p>
+                        ) : null}
+                        {selectedCreator.past_work ? (
+                          <p
+                            className={cn(
+                              selectedCreator.audience_summary ? "mt-3" : "",
+                            )}
+                          >
+                            <span className="font-medium text-slate-900">Past work:</span>{" "}
+                            {selectedCreator.past_work}
+                          </p>
+                        ) : null}
+                        {selectedCreator.featured_result ? (
+                          <p
+                            className={cn(
+                              selectedCreator.audience_summary ||
+                                selectedCreator.past_work
+                                ? "mt-3"
+                                : "",
+                            )}
+                          >
+                            <span className="font-medium text-slate-900">
+                              Featured result:
+                            </span>{" "}
+                            {selectedCreator.featured_result}
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-4">
+                    <div className="rounded-[1.6rem] border border-slate-200 bg-slate-50 p-5">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        Collaboration Snapshot
+                      </p>
+                      <div className="mt-3 space-y-3 text-sm text-slate-600">
+                        <p>
+                          <span className="font-medium text-slate-900">Latest campaign:</span>{" "}
+                          {selectedCreator.latest_campaign_title ??
+                            "No campaign applications or accepted work yet."}
+                        </p>
+                        <p>
+                          <span className="font-medium text-slate-900">Last invited:</span>{" "}
+                          {selectedCreator.last_invited_at
+                            ? formatDate(selectedCreator.last_invited_at)
+                            : "Ready for a first outbound invite."}
+                        </p>
+                        <p>
+                          <span className="font-medium text-slate-900">
+                            Combined audience:
+                          </span>{" "}
+                          {getCreatorCombinedAudience(selectedCreator) > 0
+                            ? formatCompactNumber(
+                                getCreatorCombinedAudience(selectedCreator),
+                              )
+                            : "No linked audience data"}
+                        </p>
+                      </div>
+                    </div>
+                    {getCreatorLinks(selectedCreator).length ? (
+                      <div className="rounded-[1.6rem] border border-slate-200 bg-white p-5">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          Links
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {getCreatorLinks(selectedCreator).map((link) => (
+                            <a
+                              key={`${selectedCreator.id}-${link.label}`}
+                              href={link.href}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded-full border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-accent/30 hover:text-accent"
+                            >
+                              {link.label}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="mt-6 rounded-[1.6rem] border border-slate-200 bg-white p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        Reference Videos
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Portfolio and content samples from this creator.
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
+                      {selectedCreator.portfolio_assets.length} sample
+                      {selectedCreator.portfolio_assets.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <div className="mt-4">
+                    <CreatorPortfolioGallery
+                      assets={selectedCreator.portfolio_assets}
+                      layout="strip"
+                      limit={8}
+                      showAssetDetails={false}
+                      previewClickable
+                      emptyLabel="This creator has not uploaded portfolio content yet."
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {isRefreshing ? (
           <div className="text-sm text-slate-500 md:col-span-2 xl:col-span-3">
             Refreshing creator roster...

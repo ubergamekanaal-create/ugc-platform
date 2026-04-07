@@ -6,6 +6,7 @@ import { BrandMark } from "@/components/shared/brand-mark";
 import { PageTransition } from "@/components/shared/motion";
 import { cn } from "@/lib/utils";
 import Header from "../shared/header";
+import { UserProfile } from "@/lib/types";
 // import Header from "../shared/header";
 
 export type WorkspaceShellTone = "brand" | "creator";
@@ -56,6 +57,7 @@ type WorkspaceViewportProps = {
   children: ReactNode;
   name?: string | null;
   roleLabel: string;
+  profile?: UserProfile& { role: "brand" };
 };
 
 type WorkspaceShellProps = WorkspaceSidebarProps &
@@ -119,12 +121,13 @@ export function WorkspaceViewport({
   children,
   name,
   roleLabel,
+  profile,
 }: WorkspaceViewportProps) {
   const theme = toneClasses[tone];
   return (
     <div className={cn("relative min-h-screen text-slate-950", theme.shell)}>
       <div className="absolute inset-0 opacity-50 [background-image:radial-gradient(rgba(148,163,184,0.14)_1px,transparent_1px)] [background-size:22px_22px]" />
-      <Header tone={tone} name={name} roleLabel={roleLabel} />
+      <Header tone={tone} name={name} roleLabel={roleLabel} profile={profile} />
 
       <div className="relative mx-auto grid max-w-[1720px] gap-4 p-4 lg:min-h-screen lg:grid-cols-[320px_minmax(0,1fr)] lg:p-6">
         {children}
@@ -198,7 +201,7 @@ export function WorkspaceSidebar({
                 {group.label}
               </p>
             ) : null}
-            <div className={cn("space-y-0", group.label ? "mt-3" : "")}>
+            <div className={cn("space-y-1", group.label ? "mt-3" : "")}>
               {group.items.map((item) => (
                 <Link
                   key={item.href}
@@ -249,7 +252,7 @@ export function WorkspaceMainContent({
   metaItems,
   topBanner,
   headerActions,
-  showTopBanner = true,
+  showTopBanner = false,
   showHeroSection = true,
   animated = true,
   children,

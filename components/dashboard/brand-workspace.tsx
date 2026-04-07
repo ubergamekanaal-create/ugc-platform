@@ -814,7 +814,6 @@ export function BrandWorkspace({
     };
   }, [data.payouts]);
   const campaignMomentum = campaignPerformance.slice(0, 4);
-  console.log(onboardingSteps, "faskljfdasfjkdsa");
   
   function DashboardSection() {
     const payoutRef = useRef(null);
@@ -2005,7 +2004,7 @@ export function BrandWorkspace({
         title={heroTitle}
         description={heroDescription}
         metaItems={detailView?.metaItems ?? primaryStats}
-        topBanner={topBanner}
+        // topBanner={topBanner}
         showTopBanner={!isSubmissionsOverview}
         showHeroSection={!isSubmissionsOverview}
         headerActions={headerActions}
@@ -2032,7 +2031,7 @@ export function BrandWorkspace({
       description={heroDescription}
       navGroups={navGroups}
       metaItems={detailView?.metaItems ?? primaryStats}
-      topBanner={topBanner}
+      // topBanner={topBanner}
       showTopBanner={!isSubmissionsOverview}
       showHeroSection={!isSubmissionsOverview}
       headerActions={headerActions}
@@ -2124,7 +2123,7 @@ export function BrandWorkspaceChrome({
   );
 
   return (
-    <WorkspaceViewport tone="brand" name={userName} roleLabel="Brand workspace">
+    <WorkspaceViewport tone="brand" name={userName} roleLabel="Brand workspace" profile={profile}>
       <WorkspaceSidebar
         tone="brand"
         displayName={displayName}

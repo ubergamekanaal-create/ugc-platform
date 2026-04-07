@@ -16,7 +16,6 @@ export async function GET() {
       { status: 401 }
     );
   }
-  console.log(user.email, "dfasdfdsf");
   
   try {
     const { data, error } = await supabase
@@ -27,7 +26,6 @@ export async function GET() {
       // .order("invited_at", { ascending: false });
 
     if (error) throw error;
-    console.log(data,"dataaaaa");
     
     return NextResponse.json({
       success: true,
