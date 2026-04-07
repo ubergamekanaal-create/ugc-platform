@@ -897,8 +897,6 @@ const TeamManagementCard = () => {
 
             setMembers(membersData.data || []);
             setInvites(invitesData.data || []);
-
-
             setMembersTotal(membersData.pagination?.total || 0);
             setInvitesTotal(invitesData.pagination?.total || 0);
 

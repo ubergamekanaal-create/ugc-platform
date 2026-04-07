@@ -73,32 +73,21 @@ function WebsiteStepIcon({ className }: StepIconProps) {
 const BRAND_SIGNUP_STEPS: Array<{
   id: number;
   label: string;
-  title: string;
-  description: string;
   icon: (props: StepIconProps) => JSX.Element;
 }> = [
   {
     id: 1,
     label: "Account",
-    title: "Create your brand account",
-    description:
-      "Enter your brand name, email, and password to start the signup flow.",
     icon: AccountStepIcon,
   },
   {
     id: 2,
     label: "Verify",
-    title: "Verify the 6-digit code",
-    description:
-      "Enter the code from your email to confirm the account before setup continues.",
     icon: VerifyStepIcon,
   },
   {
     id: 3,
     label: "Website",
-    title: "Add your website link",
-    description:
-      "Use your main store or brand website. You can update other brand details later.",
     icon: WebsiteStepIcon,
   },
 ];
@@ -106,6 +95,8 @@ const BRAND_SIGNUP_STEPS: Array<{
 const BRAND_SIGNUP_TOTAL_STEPS = BRAND_SIGNUP_STEPS.length;
 const OTP_LENGTH = 6;
 const DEFAULT_BRAND_HEADLINE = "Brand partnerships lead";
+const inputClassName =
+  "h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)] sm:text-base";
 
 function createEmptyOtp() {
   return Array.from({ length: OTP_LENGTH }, () => "");
@@ -152,18 +143,11 @@ export function SignupForm() {
   const [success, setSuccess] = useState<string | null>(null);
   const [isWorking, setIsWorking] = useState(false);
 
-  const currentStep = BRAND_SIGNUP_STEPS.find((item) => item.id === step)!;
-  const progress = (step / BRAND_SIGNUP_TOTAL_STEPS) * 100;
   const otpValue = otpDigits.join("");
 
   function resetFeedback() {
     setError(null);
     setSuccess(null);
-  }
-
-  function handleBack() {
-    resetFeedback();
-    setStep((current) => Math.max(1, current - 1));
   }
 
   async function sendOtp() {
@@ -322,7 +306,9 @@ export function SignupForm() {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        throw userError ?? new Error("Unable to load the verified brand account.");
+        throw (
+          userError ?? new Error("Unable to load the verified brand account.")
+        );
       }
 
       const { error: userRowError } = await supabase
@@ -338,14 +324,16 @@ export function SignupForm() {
         throw userRowError;
       }
 
-      const { error: teamMemberError } = await supabase.from("team_members").upsert(
-        {
-          brand_id: user.id,
-          user_id: user.id,
-          role: "owner",
-        },
-        { onConflict: "brand_id,user_id" },
-      );
+      const { error: teamMemberError } = await supabase
+        .from("team_members")
+        .upsert(
+          {
+            brand_id: user.id,
+            user_id: user.id,
+            role: "owner",
+          },
+          { onConflict: "brand_id,user_id" },
+        );
 
       if (teamMemberError) {
         throw teamMemberError;
@@ -395,7 +383,10 @@ export function SignupForm() {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        throw userError ?? new Error("Your session expired. Verify again to continue.");
+        throw (
+          userError ??
+          new Error("Your session expired. Verify again to continue.")
+        );
       }
 
       const { error: brandError } = await supabase.from("brands").upsert(
@@ -413,14 +404,16 @@ export function SignupForm() {
         throw brandError;
       }
 
-      const { error: teamMemberError } = await supabase.from("team_members").upsert(
-        {
-          brand_id: user.id,
-          user_id: user.id,
-          role: "owner",
-        },
-        { onConflict: "brand_id,user_id" },
-      );
+      const { error: teamMemberError } = await supabase
+        .from("team_members")
+        .upsert(
+          {
+            brand_id: user.id,
+            user_id: user.id,
+            role: "owner",
+          },
+          { onConflict: "brand_id,user_id" },
+        );
 
       if (teamMemberError) {
         throw teamMemberError;
@@ -453,7 +446,10 @@ export function SignupForm() {
     }
   }
 
-  function handleOtpKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>) {
+  function handleOtpKeyDown(
+    index: number,
+    event: KeyboardEvent<HTMLInputElement>,
+  ) {
     if (event.key === "Backspace" && !otpDigits[index] && index > 0) {
       event.preventDefault();
       otpInputRefs.current[index - 1]?.focus();
@@ -509,322 +505,237 @@ export function SignupForm() {
   }
 
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-white/80 bg-white/92 shadow-[0_32px_90px_rgba(15,23,42,0.12)] backdrop-blur">
-      <div className="border-b border-slate-200/80 bg-white/90 px-6 py-6 sm:px-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center rounded-full border border-white/80 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-accent shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-              Brand signup
-            </div>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950">
-              Create a brand workspace
-            </h2>
-            <p className="mt-3 max-w-xl text-sm leading-7 text-slate-600 sm:text-base">
-              Complete the 3-step setup to verify your email and enter your dashboard.
-            </p>
-          </div>
-          <span className="inline-flex rounded-full bg-slate-50 px-4 py-2 text-sm font-medium text-slate-500">
-            Step {step} of {BRAND_SIGNUP_TOTAL_STEPS}
-          </span>
+    <section className="rounded-[1.5rem] p-4">
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+          Brand signup
+        </span>
+        <span className="rounded-full border border-slate-200 bg-white/90 px-2 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          Step {step} of {BRAND_SIGNUP_TOTAL_STEPS}
+        </span>
+      </div>
+
+      <div className="relative mt-4">
+        <div className="absolute left-[calc(16.666%-0.75rem)] right-[calc(16.666%-0.75rem)] top-[2.35rem] h-px bg-slate-200" />
+        <div
+          className="absolute left-[calc(16.666%-0.75rem)] top-[2.35rem] h-px bg-[linear-gradient(90deg,_rgba(7,107,210,0.78),_rgba(59,130,246,0.52))] transition-all duration-300"
+          style={{
+            width:
+              step === 1
+                ? "0%"
+                : step === 2
+                  ? "calc(33.333% + 0.75rem)"
+                  : "calc(66.666% + 1.5rem)",
+          }}
+        />
+
+        <div className="grid grid-cols-3 gap-3">
+          {BRAND_SIGNUP_STEPS.map((item) => {
+            const isActive = item.id === step;
+            const isComplete = item.id < step;
+            const StepIcon = item.icon;
+
+            return (
+              <div key={item.id} className="relative text-center">
+                <p
+                  className={cn(
+                    "text-[10px] font-semibold uppercase tracking-[0.16em]",
+                    isActive || isComplete
+                      ? "text-slate-700"
+                      : "text-slate-400",
+                  )}
+                >
+                  {item.label}
+                </p>
+
+                <div className="relative mt-2.5 flex justify-center">
+                  <span
+                    className={cn(
+                      "relative z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border text-[11px] transition",
+                      isActive
+                        ? "border-[#076BD2] bg-[#076BD2] text-white shadow-[0_12px_25px_rgba(7,107,210,0.22)]"
+                        : isComplete
+                          ? "border-[#076BD2]/25 bg-[#e8f1ff] text-[#076BD2]"
+                          : "border-slate-200 bg-white text-slate-400",
+                    )}
+                  >
+                    <StepIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="space-y-6 px-6 py-6 sm:px-8 sm:py-8">
-        <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/90 p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                Setup progress
-              </p>
-              <p className="mt-3 text-lg font-semibold text-slate-950">
-                {currentStep.title}
-              </p>
-              <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-500">
-                {currentStep.description}
-              </p>
-            </div>
-            <span
-              className={cn(
-                "inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]",
-                isOtpVerified
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-amber-100 text-amber-700",
-              )}
-            >
-              {isOtpVerified ? "Email verified" : "Email pending"}
-            </span>
-          </div>
-
-          <div className="mt-5 h-2 rounded-full bg-white">
-            <div
-              className="h-full rounded-full bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] transition-all duration-300"
-              style={{ width: `${progress}%` }}
+      <div className="mt-4 space-y-3">
+        {step === 1 ? (
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={brandName}
+              onChange={(event) => setBrandName(event.target.value)}
+              placeholder="Brand name"
+              className={inputClassName}
+            />
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Email address"
+              className={inputClassName}
+            />
+            <input
+              type="password"
+              minLength={6}
+              autoComplete="new-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Password"
+              className={inputClassName}
+            />
+            <input
+              type="password"
+              minLength={6}
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              placeholder="Confirm password"
+              className={inputClassName}
             />
           </div>
+        ) : null}
 
-          <div className="mt-4 grid gap-2 sm:grid-cols-3">
-            {BRAND_SIGNUP_STEPS.map((item) => {
-              const isActive = item.id === step;
-              const isComplete = item.id < step;
-              const StepIcon = item.icon;
+        {step === 2 ? (
+          <div className="space-y-4">
+            <p className="text-center text-sm leading-7 text-slate-500">
+              Enter the 6-digit code sent to{" "}
+              <span className="font-semibold text-slate-900">
+                {email.trim().toLowerCase()}
+              </span>
+              .
+            </p>
 
-              return (
-                <div
-                  key={item.id}
-                  className={cn(
-                    "rounded-2xl border px-4 py-4 text-center transition",
-                    isActive
-                      ? "border-accent/20 bg-white text-accent shadow-[0_10px_24px_rgba(7,107,210,0.08)]"
-                      : isComplete
-                        ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-                      : "border-transparent bg-white/70 text-slate-400",
-                  )}
-                >
-                  <div className="flex justify-center">
-                    <span
-                      className={cn(
-                        "inline-flex h-10 w-10 items-center justify-center rounded-full",
-                        isActive
-                          ? "bg-[rgba(7,107,210,0.1)]"
-                          : isComplete
-                            ? "bg-white/80"
-                            : "bg-white/60",
-                      )}
-                    >
-                      <StepIcon className="h-5 w-5" />
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm font-medium">{item.label}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
-          {step === 1 ? (
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label
-                  htmlFor="brand-name"
-                  className="mb-2 block text-sm font-medium text-slate-600"
-                >
-                  Brand name
-                </label>
+            <div className="flex justify-center gap-2">
+              {otpDigits.map((digit, index) => (
                 <input
-                  id="brand-name"
+                  key={index}
+                  ref={(node) => {
+                    otpInputRefs.current[index] = node;
+                  }}
                   type="text"
-                  value={brandName}
-                  onChange={(event) => setBrandName(event.target.value)}
-                  placeholder="Northstar Labs"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(event) =>
+                    handleOtpDigitChange(index, event.target.value)
+                  }
+                  onKeyDown={(event) => handleOtpKeyDown(index, event)}
+                  onPaste={handleOtpPaste}
+                  className="h-11 w-10 rounded-2xl border border-slate-200 bg-white text-center text-base font-semibold text-slate-900 outline-none transition shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-[#076BD2] focus:shadow-[0_0_0_4px_rgba(7,107,210,0.12)] sm:h-12 sm:w-11"
                 />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label
-                  htmlFor="brand-email"
-                  className="mb-2 block text-sm font-medium text-slate-600"
-                >
-                  Email address
-                </label>
-                <input
-                  id="brand-email"
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="team@northstar.com"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="brand-password"
-                  className="mb-2 block text-sm font-medium text-slate-600"
-                >
-                  Password
-                </label>
-                <input
-                  id="brand-password"
-                  type="password"
-                  minLength={6}
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Minimum 6 characters"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="brand-confirm-password"
-                  className="mb-2 block text-sm font-medium text-slate-600"
-                >
-                  Confirm password
-                </label>
-                <input
-                  id="brand-confirm-password"
-                  type="password"
-                  minLength={6}
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                  placeholder="Re-enter password"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                />
-              </div>
+              ))}
             </div>
-          ) : null}
 
-          {step === 2 ? (
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-500">
-                Enter the 6-digit code sent to{" "}
-                <span className="font-semibold text-slate-900">
-                  {email.trim().toLowerCase()}
-                </span>
-                .
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                {otpDigits.map((digit, index) => (
-                  <input
-                    key={index}
-                    ref={(node) => {
-                      otpInputRefs.current[index] = node;
-                    }}
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(event) =>
-                      handleOtpDigitChange(index, event.target.value)
-                    }
-                    onKeyDown={(event) => handleOtpKeyDown(index, event)}
-                    onPaste={handleOtpPaste}
-                    className="h-14 w-12 rounded-2xl border border-slate-200 bg-white text-center text-lg font-semibold text-slate-950 outline-none transition focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)] sm:w-14"
-                  />
-                ))}
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => void handleResendOtp()}
-                  disabled={isWorking}
-                  className="inline-flex rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isWorking ? "Sending..." : "Resend code"}
-                </button>
-
-                {isOtpVerified ? (
-                  <span className="inline-flex rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-                    Code accepted
-                  </span>
-                ) : null}
-              </div>
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => void handleResendOtp()}
+                disabled={isWorking}
+                className="text-xs font-medium text-[#076BD2] transition hover:text-[#0558ad] disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
+              >
+                {isWorking ? "Sending..." : "Resend code"}
+              </button>
             </div>
-          ) : null}
-
-          {step === 3 ? (
-            <div className="space-y-4">
-              <div>
-                <label
-                  htmlFor="brand-website-url"
-                  className="mb-2 block text-sm font-medium text-slate-600"
-                >
-                  Website link
-                </label>
-                <input
-                  id="brand-website-url"
-                  type="url"
-                  value={websiteUrl}
-                  onChange={(event) => setWebsiteUrl(event.target.value)}
-                  placeholder="https://northstar.com"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-accent/45 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                />
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-500">
-                This link will be saved to your brand profile and you&apos;ll be
-                redirected straight to the dashboard after setup completes.
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        {error ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {error}
           </div>
         ) : null}
 
-        {success ? (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            {success}
+        {step === 3 ? (
+          <div className="space-y-3">
+            <input
+              type="url"
+              value={websiteUrl}
+              onChange={(event) => setWebsiteUrl(event.target.value)}
+              placeholder="Website link"
+              className={inputClassName}
+            />
+            <p className="text-center text-xs leading-5 text-slate-500 sm:text-sm sm:leading-6">
+              This link will be saved to your brand profile before you enter the
+              dashboard.
+            </p>
           </div>
         ) : null}
+      </div>
 
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={step === 1 || isWorking || isOtpVerified}
-            className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Back
-          </button>
-
-          <button
-            type="button"
-            onClick={handlePrimaryAction}
-            disabled={isWorking}
-            className="inline-flex h-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 text-sm font-semibold text-white shadow-[0_24px_60px_rgba(7,107,210,0.2)] transition hover:translate-y-[-1px] hover:shadow-[0_28px_70px_rgba(7,107,210,0.24)] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isWorking
-              ? step === 3
-                ? "Finishing..."
-                : "Please wait..."
-              : step === 1
-                ? "Continue"
-                : step === 2
-                  ? "Verify code"
-                  : "Open dashboard"}
-          </button>
+      {error ? (
+        <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
         </div>
+      ) : null}
 
-        <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            By continuing, you agree to our{" "}
-            <Link
-              href="/terms"
-              className="text-accent transition hover:text-accent/80"
-            >
-              Terms
-            </Link>{" "}
-            and{" "}
-            <Link
-              href="/privacy"
-              className="text-accent transition hover:text-accent/80"
-            >
-              Privacy Policy
-            </Link>
-            .
-          </p>
-          <p>
-            Already have an account?{" "}
-            <Link
-              href="/login?role=brand"
-              className="font-medium text-accent transition hover:text-accent/80"
-            >
-              Sign in
-            </Link>
-          </p>
+      {success ? (
+        <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {success}
         </div>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={handlePrimaryAction}
+        disabled={isWorking}
+        className="mt-4 h-12 w-full rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_35px_rgba(15,23,42,0.16)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 sm:text-base"
+      >
+        {isWorking
+          ? step === 3
+            ? "Finishing..."
+            : "Please wait..."
+          : step === 1
+            ? "Create account"
+            : step === 2
+              ? "Verify code"
+              : "Open dashboard"}
+      </button>
+
+      {/* <div className="mt-3 flex justify-center">
+        <button
+          type="button"
+          onClick={() => setStep((current) => Math.max(1, current - 1))}
+          disabled={step === 1 || isWorking || isOtpVerified}
+          className="text-xs font-medium text-slate-500 transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 sm:text-sm"
+        >
+          Back
+        </button>
+      </div> */}
+
+      <div className="mt-4 border-t border-black/6 pt-4 text-center text-[11px] leading-5 text-slate-500 sm:text-xs">
+        <p>
+          By continuing, you agree to our{" "}
+          <Link
+            href="/terms"
+            className="text-[#076BD2] transition hover:text-[#0558ad]"
+          >
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/privacy"
+            className="text-[#076BD2] transition hover:text-[#0558ad]"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </p>
+        <p className="mt-2">
+          Already have an account?{" "}
+          <Link
+            href="/login?role=brand"
+            className="font-medium text-[#076BD2] transition hover:text-[#0558ad]"
+          >
+            Sign in
+          </Link>
+        </p>
       </div>
     </section>
   );
