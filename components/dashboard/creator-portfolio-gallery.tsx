@@ -12,6 +12,8 @@ type CreatorPortfolioGalleryProps = {
   onRemove?: (asset: CreatorPortfolioAsset) => void;
   removingAssetId?: string | null;
   limit?: number;
+  showAssetDetails?: boolean;
+  previewClickable?: boolean;
 };
 
 function renderAssetPreview(asset: CreatorPortfolioAsset, compact: boolean) {
@@ -62,6 +64,8 @@ export function CreatorPortfolioGallery({
   onRemove,
   removingAssetId = null,
   limit,
+  showAssetDetails = true,
+  previewClickable = false,
 }: CreatorPortfolioGalleryProps) {
   const visibleAssets = typeof limit === "number" ? assets.slice(0, limit) : assets;
 
@@ -84,7 +88,7 @@ export function CreatorPortfolioGallery({
     <div
       className={cn(
         isStrip
-          ? "min-w-0 flex gap-3 overflow-x-auto pb-2"
+          ? "min-w-0 flex gap-3 overflow-x-auto pb-2 no-scrollbar"
           : "min-w-0 grid gap-4 md:grid-cols-2 xl:grid-cols-3",
         className,
       )}
@@ -94,11 +98,23 @@ export function CreatorPortfolioGallery({
           key={asset.id}
           className={cn(
             "group overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-[0_18px_35px_rgba(15,23,42,0.08)]",
-            isStrip && "w-[180px] shrink-0",
+            isStrip && "w-[150px] shrink-0",
           )}
         >
           <div className="relative">
-            {renderAssetPreview(asset, isStrip)}
+            {previewClickable && asset.signed_url ? (
+              <a
+                href={asset.signed_url}
+                target="_blank"
+                rel="noreferrer"
+                className="block"
+                aria-label={`Open ${asset.file_name}`}
+              >
+                {renderAssetPreview(asset, isStrip)}
+              </a>
+            ) : (
+              renderAssetPreview(asset, isStrip)
+            )}
             {onRemove ? (
               <button
                 type="button"
@@ -111,28 +127,30 @@ export function CreatorPortfolioGallery({
             ) : null}
           </div>
 
-          <div className={cn("space-y-2", isStrip ? "px-3 py-3" : "px-4 py-4")}>
-            <p className="truncate text-sm font-semibold text-slate-950 group-hover:text-accent">
-              {asset.file_name}
-            </p>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-              <span>{asset.mime_type ?? "File"}</span>
-              <span>•</span>
-              <span>{formatFileSize(asset.size_bytes)}</span>
+          {showAssetDetails ? (
+            <div className={cn("space-y-2", isStrip ? "px-3 py-3" : "px-4 py-4")}>
+              <p className="truncate text-sm font-semibold text-slate-950 group-hover:text-accent">
+                {asset.file_name}
+              </p>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span>{asset.mime_type ?? "File"}</span>
+                <span>|</span>
+                <span>{formatFileSize(asset.size_bytes)}</span>
+              </div>
+              {asset.signed_url ? (
+                <a
+                  href={asset.signed_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex text-sm font-semibold text-accent hover:text-blue-500"
+                >
+                  Open sample
+                </a>
+              ) : (
+                <p className="text-sm text-slate-400">Signed URL unavailable.</p>
+              )}
             </div>
-            {asset.signed_url ? (
-              <a
-                href={asset.signed_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex text-sm font-semibold text-accent hover:text-blue-500"
-              >
-                Open sample
-              </a>
-            ) : (
-              <p className="text-sm text-slate-400">Signed URL unavailable.</p>
-            )}
-          </div>
+          ) : null}
         </div>
       ))}
     </div>

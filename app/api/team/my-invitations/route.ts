@@ -13,7 +13,7 @@ export async function GET() {
   if (!user || userError) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
+  
   try {
     const { data, error } = await supabase
       .from("team_invitations")
@@ -23,6 +23,7 @@ export async function GET() {
     // .order("invited_at", { ascending: false });
 
     if (error) throw error;
+    
     return NextResponse.json({
       success: true,
       data: data || [],

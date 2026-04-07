@@ -65,7 +65,7 @@ export function RealtimeChatPanel({
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
-
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const activeConversation = useMemo(
     () =>
       conversations.find((conversation) => conversation.id === activeConversationId) ??
@@ -213,10 +213,10 @@ export function RealtimeChatPanel({
           current.map((conversation) =>
             conversation.id === activeConversationId
               ? {
-                  ...conversation,
-                  latest_message_preview: sentMessage.body,
-                  latest_message_at: sentMessage.created_at,
-                }
+                ...conversation,
+                latest_message_preview: sentMessage.body,
+                latest_message_at: sentMessage.created_at,
+              }
               : conversation,
           ),
         ),
@@ -244,9 +244,11 @@ export function RealtimeChatPanel({
   }, [activeConversationId]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop =
+        messagesContainerRef.current.scrollHeight;
+    }
   }, [messages.length]);
-
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -319,7 +321,7 @@ export function RealtimeChatPanel({
   );
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[340px_1fr]">
+    <div className="grid gap-6 xl:grid-cols-[340px_1fr] h-[100%]">
       <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
         <div className="flex items-center justify-between gap-4 px-2 pb-4">
           <div>
@@ -408,7 +410,7 @@ export function RealtimeChatPanel({
         ) : null}
       </section>
 
-      <section className="min-h-[620px] rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+      <section className="h-[120vh] flex flex-col rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
         {activeConversation ? (
           <>
             <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-6">
@@ -432,7 +434,7 @@ export function RealtimeChatPanel({
               </span>
             </div>
 
-            <div className="space-y-5 py-8">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto space-y-5 py-8 pr-2">
               {isLoadingMessages ? (
                 <div className="text-sm text-slate-500">Loading messages...</div>
               ) : messages.length ? (
@@ -461,7 +463,6 @@ export function RealtimeChatPanel({
                   No messages yet. Send the first message to start the thread.
                 </div>
               )}
-              <div ref={bottomRef} />
             </div>
 
             <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
