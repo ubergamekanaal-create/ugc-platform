@@ -58,6 +58,13 @@ alter table public.creator_profiles
   add column if not exists audience_summary text,
   add column if not exists past_work text,
   add column if not exists location text,
+  add column if not exists username text,
+  add column if not exists gender text,
+  add column if not exists monthly_earnings integer,
+  add column if not exists monthly_earnings_goal integer,
+  add column if not exists country text,
+  add column if not exists city text,
+  add column if not exists state_region text,
   add column if not exists onboarding_completed_at timestamptz,
   add column if not exists created_at timestamptz not null default now(),
   add column if not exists updated_at timestamptz not null default now();

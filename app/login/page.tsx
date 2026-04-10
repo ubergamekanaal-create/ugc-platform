@@ -12,6 +12,23 @@ export default async function LoginPage() {
   } = await supabase.auth.getUser();
 
   if (user) {
+    const { data: userProfile } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (userProfile?.role === "creator") {
+      const { data: creatorProfile } = await supabase
+        .from("creator_profiles")
+        .select("onboarding_completed_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!creatorProfile?.onboarding_completed_at) {
+        redirect("/creator/onboarding");
+      }
+    }
     redirect("/dashboard");
   }
 

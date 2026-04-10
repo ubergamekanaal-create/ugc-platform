@@ -46,6 +46,19 @@ export async function POST(request: Request) {
       { status: 409 },
     );
   }
+  if (profile.role === "creator") {
+    const { data: creatorProfile } = await supabase
+      .from("creator_profiles")
+      .select("onboarding_completed_at")
+      .eq("user_id", data.user.id)
+      .maybeSingle();
+
+    const redirectTo = creatorProfile?.onboarding_completed_at
+      ? "/dashboard"
+      : "/creator/onboarding";
+
+    return NextResponse.json({ redirectTo });
+  }
 
   return NextResponse.json({ redirectTo: "/dashboard" });
 }

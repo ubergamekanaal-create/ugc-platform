@@ -75,6 +75,32 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
+  if (profile.role === "creator") {
+    const { data: creatorProfile } = await supabase
+      .from("creator_profiles")
+      .select("onboarding_completed_at")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const isOnboardingComplete =
+      !!creatorProfile?.onboarding_completed_at;
+
+    const isOnboardingPage = pathname.startsWith("/creator/onboarding");
+
+    if (!isOnboardingComplete) {
+      if (!isOnboardingPage) {
+        return NextResponse.redirect(
+          new URL("/creator/onboarding", request.url)
+        );
+      }
+    }
+
+    if (isOnboardingComplete && isOnboardingPage) {
+      return NextResponse.redirect(
+        new URL("/dashboard", request.url)
+      );
+    }
+  }
   return response;
 }
 
