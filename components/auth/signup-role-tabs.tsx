@@ -33,7 +33,7 @@ export function SignupRoleTabs({
   return (
     <div
       className={cn(
-        "inline-flex w-full rounded-full border border-white/80 bg-white/80 p-1 shadow-[0_14px_30px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.75)] backdrop-blur",
+        "inline-flex w-full rounded-xl border border-gray-100 bg-gray-100 p-1  backdrop-blur",
         className,
       )}
     >
@@ -45,9 +45,9 @@ export function SignupRoleTabs({
             key={item.role}
             href={item.href}
             className={cn(
-              "inline-flex flex-1 items-center justify-center rounded-full px-3 py-2 text-sm font-semibold transition duration-200",
+              "inline-flex flex-1 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold transition duration-200",
               isActive
-                ? "bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] text-white shadow-[0_14px_30px_rgba(7,107,210,0.22)]"
+                ? "bg-white"
                 : "text-slate-500 hover:bg-white/90 hover:text-slate-900",
             )}
           >
