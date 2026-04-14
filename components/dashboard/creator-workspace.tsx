@@ -492,7 +492,7 @@ export function CreatorWorkspace({
     creatorWorkspaceSections[0];
   const displayName = getDisplayName(
     [profileForm.firstName, profileForm.lastName].filter(Boolean).join(" ") ||
-      profile.full_name,
+    profile.full_name,
     "Creator",
   );
   const brandConnections = useMemo(() => {
@@ -941,69 +941,69 @@ export function CreatorWorkspace({
                           </div>
                         </div>
                         <div className="grid gap-4 md:grid-cols-[1fr_220px]">
-                        <div>
-                          <label
-                            htmlFor={`pitch-${campaign.id}`}
-                            className="mb-2 block text-sm font-medium text-slate-600"
-                          >
-                            Pitch
-                          </label>
-                          <textarea
-                            id={`pitch-${campaign.id}`}
-                            rows={4}
-                            value={draft.pitch}
-                            onChange={(event) =>
-                              setDrafts((current) => ({
-                                ...current,
-                                [campaign.id]: {
-                                  ...current[campaign.id],
-                                  pitch: event.target.value,
-                                  rate: current[campaign.id]?.rate ?? "",
-                                },
-                              }))
-                            }
-                            placeholder="Explain why you are a strong fit for this brief."
-                            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                          />
-                        </div>
-                        <div className="flex flex-col justify-between gap-4">
                           <div>
                             <label
-                              htmlFor={`rate-${campaign.id}`}
+                              htmlFor={`pitch-${campaign.id}`}
                               className="mb-2 block text-sm font-medium text-slate-600"
                             >
-                              Your rate
+                              Pitch
                             </label>
-                            <input
-                              id={`rate-${campaign.id}`}
-                              type="number"
-                              min="0"
-                              value={draft.rate}
+                            <textarea
+                              id={`pitch-${campaign.id}`}
+                              rows={4}
+                              value={draft.pitch}
                               onChange={(event) =>
                                 setDrafts((current) => ({
                                   ...current,
                                   [campaign.id]: {
                                     ...current[campaign.id],
-                                    pitch: current[campaign.id]?.pitch ?? "",
-                                    rate: event.target.value,
+                                    pitch: event.target.value,
+                                    rate: current[campaign.id]?.rate ?? "",
                                   },
                                 }))
                               }
-                              placeholder="900"
-                              className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                              placeholder="Explain why you are a strong fit for this brief."
+                              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
                             />
                           </div>
-                          <MotionScale
-                            type="button"
-                            disabled={pendingCampaignId === campaign.id}
-                            onClick={() => handleApply(campaign.id)}
-                            className="rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {pendingCampaignId === campaign.id
-                              ? "Submitting..."
-                              : "Send application"}
-                          </MotionScale>
-                        </div>
+                          <div className="flex flex-col justify-between gap-4">
+                            <div>
+                              <label
+                                htmlFor={`rate-${campaign.id}`}
+                                className="mb-2 block text-sm font-medium text-slate-600"
+                              >
+                                Your rate
+                              </label>
+                              <input
+                                id={`rate-${campaign.id}`}
+                                type="number"
+                                min="0"
+                                value={draft.rate}
+                                onChange={(event) =>
+                                  setDrafts((current) => ({
+                                    ...current,
+                                    [campaign.id]: {
+                                      ...current[campaign.id],
+                                      pitch: current[campaign.id]?.pitch ?? "",
+                                      rate: event.target.value,
+                                    },
+                                  }))
+                                }
+                                placeholder="900"
+                                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                              />
+                            </div>
+                            <MotionScale
+                              type="button"
+                              disabled={pendingCampaignId === campaign.id}
+                              onClick={() => handleApply(campaign.id)}
+                              className="rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {pendingCampaignId === campaign.id
+                                ? "Submitting..."
+                                : "Send application"}
+                            </MotionScale>
+                          </div>
                         </div>
                       </div>
                     ) : null}
@@ -1897,7 +1897,7 @@ export function CreatorWorkspace({
     </WorkspacePanel>
   );
   const sidebarFooter = (
-    <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(254,242,242,0.9))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+    <div className="mx-2 relative overflow-hidden rounded-[2rem] border border-white/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(254,242,242,0.9))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
       <div className="absolute -right-8 top-0 h-20 w-20 rounded-full bg-[radial-gradient(circle,_rgba(244,114,182,0.18),_transparent_70%)]" />
       <div className="relative">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
@@ -2013,9 +2013,9 @@ export function CreatorWorkspaceChrome({
     },
   ];
   const displayName = getDisplayName(profile.full_name, "Creator");
-  const userName= profile?.full_name;
+  const userName = profile?.full_name;
   const sidebarFooter = (
-    <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(254,242,242,0.9))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+    <div className="mx-2 relative overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(254,242,242,0.9))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
       <div className="absolute -right-8 top-0 h-20 w-20 rounded-full bg-[radial-gradient(circle,_rgba(244,114,182,0.18),_transparent_70%)]" />
       <div className="relative">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
@@ -2040,7 +2040,7 @@ export function CreatorWorkspaceChrome({
   );
 
   return (
-    <WorkspaceViewport tone="creator" name={userName} roleLabel="Creator studio">
+    <WorkspaceViewport tone="creator" name={userName} roleLabel="Creator studio" navGroups={navGroups}>
       <WorkspaceSidebar
         tone="creator"
         displayName={displayName}

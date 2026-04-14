@@ -652,8 +652,8 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
                   {pricingPlans.map((plan, index) => (
                     <FadeIn key={plan.name} delay={index * 0.1}>
                       <div className={`h-[100%] rounded-3xl p-8 shadow-sm hover:shadow-xl transition ${index === 1
-                          ? "bg-gradient-to-b from-blue-600 to-blue-500 text-white scale-200"
-                          : "bg-white border border-slate-200"
+                        ? "bg-gradient-to-b from-blue-600 to-blue-500 text-white scale-200"
+                        : "bg-white border border-slate-200"
                         }`}>
 
                         <h3 className="text-xl font-semibold">{plan.name}</h3>

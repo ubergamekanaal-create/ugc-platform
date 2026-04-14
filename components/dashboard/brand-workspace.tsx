@@ -814,7 +814,7 @@ export function BrandWorkspace({
     };
   }, [data.payouts]);
   const campaignMomentum = campaignPerformance.slice(0, 4);
-  
+
   function DashboardSection() {
     const payoutRef = useRef(null);
 
@@ -2096,7 +2096,7 @@ export function BrandWorkspaceChrome({
     },
   ];
   const sidebarFooter = (
-    <div className="relative rounded-[2rem] border border-slate-100 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(239,246,255,0.96))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+    <div className="mx-2 relative rounded-[2rem] border border-slate-100 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(239,246,255,0.96))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
       <div className="absolute -right-10 top-0 h-20 w-20 rounded-full bg-[radial-gradient(circle,_rgba(7,107,210,0.18),_transparent_70%)]" />
       <div className="relative">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
@@ -2123,7 +2123,7 @@ export function BrandWorkspaceChrome({
   );
 
   return (
-    <WorkspaceViewport tone="brand" name={userName} roleLabel="Brand workspace" profile={profile}>
+    <WorkspaceViewport tone="brand" name={userName} roleLabel="Brand workspace" profile={profile} navGroups={navGroups}>
       <WorkspaceSidebar
         tone="brand"
         displayName={displayName}
