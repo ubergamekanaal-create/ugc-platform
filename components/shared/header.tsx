@@ -42,8 +42,8 @@ export default function Header({ tone, name, roleLabel, profile }: Props) {
     }
   }
   return (
-    <header className="max-w-[1720px] mx-auto sticky top-0 z-50 w-full  mx-auto pt-4 backdrop-blur-3xl">
-      <div className="flex mx-3 sm:mx-5 items-center justify-between px-3 sm:px-6 py-3 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] ">
+    <header className="mx-auto fixed top-0 z-50 w-full bg-[#f1f2f4] backdrop-blur-3xl">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-3 border-b border-b-slate-300 bg-[#f1f2f4] p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] ">
 
         {/* LEFT */}
         <div className="flex items-start gap-3">
@@ -52,7 +52,7 @@ export default function Header({ tone, name, roleLabel, profile }: Props) {
             {roleLabel}
           </span>
         </div>
-        
+
         {/* RIGHT */}
         <div className="flex sm:gap-2 items-center">
           {profile && <NotificationsCenter profile={profile} />}
