@@ -168,7 +168,14 @@ function PulseDot() {
     <span className="inline-block h-[6px] w-[6px] shrink-0 rounded-full bg-[#1D9E75] [animation:circl-pulse_1.5s_infinite]" />
   );
 }
-
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 function Avatar({
   initials,
   bg,
@@ -229,29 +236,7 @@ import {
 import { BrandMark } from "../shared/brand-mark";
 function BrandSampleRequest() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 40, scale: 0.95 }}
-      animate={{
-        opacity: 1,
-        y: [0, -10, 0],
-        scale: 1,
-      }}
-      transition={{
-        opacity: { duration: 0.5 },
-        scale: { duration: 0.5 },
-        y: {
-          duration: 4,
-          repeat: Infinity,
-          ease: "easeInOut",
-        },
-      }}
-      whileHover={{
-        y: -12,
-        rotate: -2,
-        scale: 1.02,
-      }}
-      className="rounded-[16px] border border-[#e0e8f8] bg-white px-4 py-[14px] w-[198px] shadow-sm"
-    >
+    <div className="rounded-[16px] border border-[#e0e8f8] bg-white px-4 py-[14px] w-[198px] shadow-sm">
       <div className="mb-[5px] text-[10px] font-bold tracking-[0.06em] text-[#aaa]">
         CREATOR SAMPLE REQUEST
       </div>
@@ -321,7 +306,7 @@ function BrandSampleRequest() {
           Decline
         </motion.button>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -513,40 +498,113 @@ function BrandVideoStatus() {
   );
 }
 
-function BrandHiring({ hiringData }: { hiringData: { h: number; j: number } }) {
+// function BrandHiring({ hiringData }: { hiringData: { h: number; j: number } }) {
+//   return (
+//     <div className="rounded-[16px] border border-[#e0e8f8] bg-white px-4 py-[14px] w-[195px]">
+//       <div className="mb-[5px] text-[10px] font-bold tracking-[0.06em] text-[#aaa]">
+//         BRANDS HIRING NOW
+//       </div>
+//       <div className="mb-[7px] text-[21px] font-extrabold text-[#1476ff]">
+//         {hiringData.h.toLocaleString()}
+//       </div>
+//       <div className="mb-2 flex">
+//         {(
+//           [
+//             ["NK", "#1476ff"],
+//             ["GY", "#1d9e75"],
+//             ["OA", "#d85a30"],
+//             ["MN", "#d4537e"],
+//             ["FL", "#534ab7"],
+//           ] as [string, string][]
+//         ).map(([i, c]) => (
+//           <Avatar key={i} initials={i} bg={c} />
+//         ))}
+//         <Avatar
+//           initials={`+${Math.max(0, hiringData.h - 5)}`}
+//           bg="#888"
+//           fontSize={7}
+//         />
+//       </div>
+//       <Pill type="b">
+//         <PulseDot /> {hiringData.j} joined this week
+//       </Pill>
+//     </div>
+//   );
+// }
+function BrandHiring({
+  hiringData,
+  hiringUsers = [],
+  isLoading = false,
+}: {
+  hiringData: { h: number; j: number };
+  hiringUsers?: { name: string }[];
+  isLoading?: boolean;
+}) {
+  const avatarColors = [
+    "#1476ff",
+    "#1d9e75",
+    "#d85a30",
+    "#d4537e",
+    "#534ab7",
+  ];
+
+  const visibleUsers = isLoading ? [] : hiringUsers.slice(0, 5);
+  const extraCount = isLoading ? 0 : Math.max(0, hiringData.h - 5);
+
   return (
     <div className="rounded-[16px] border border-[#e0e8f8] bg-white px-4 py-[14px] w-[195px]">
       <div className="mb-[5px] text-[10px] font-bold tracking-[0.06em] text-[#aaa]">
         BRANDS HIRING NOW
       </div>
-      <div className="mb-[7px] text-[21px] font-extrabold text-[#1476ff]">
-        {hiringData.h.toLocaleString()}
-      </div>
+
+      {isLoading ? (
+        <div className="flex flex-col items-start">
+          {/* top small skeleton */}
+          <div className="mb-[10px] h-[16px] w-[40px] rounded-[6px] bg-[#e6edf7] animate-pulse" />
+
+          {/* 5 avatar skeletons */}
+          <div className="flex">
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className="-mr-[6px] rounded-full border-2 border-white bg-[#e6edf7] animate-pulse w-7 h-7"
+              />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="mb-[7px] text-[21px] font-extrabold text-[#1476ff]">
+          {hiringData.h.toLocaleString()}
+        </div>
+      )}
+
       <div className="mb-2 flex">
-        {(
-          [
-            ["NK", "#1476ff"],
-            ["GY", "#1d9e75"],
-            ["OA", "#d85a30"],
-            ["MN", "#d4537e"],
-            ["FL", "#534ab7"],
-          ] as [string, string][]
-        ).map(([i, c]) => (
-          <Avatar key={i} initials={i} bg={c} />
+        {visibleUsers.map((user, index) => (
+          <Avatar
+            key={index}
+            initials={getInitials(user.name)}
+            bg={avatarColors[index % avatarColors.length]}
+            fontSize={10}
+          />
         ))}
-        <Avatar
-          initials={`+${Math.max(0, hiringData.h - 5)}`}
-          bg="#888"
-          fontSize={7}
-        />
+
+        {extraCount > 0 && (
+          <Avatar initials={`+${extraCount}`} bg="#888" fontSize={7} />
+        )}
       </div>
-      <Pill type="b">
-        <PulseDot /> {hiringData.j} joined this week
-      </Pill>
+
+      {isLoading ? (
+        <div className="flex items-center gap-2 rounded-full bg-[#e6edf7] px-3 py-[6px] animate-pulse">
+          {/* dot skeleton */}
+        </div>
+      ) : (
+        <Pill type="b">
+          <PulseDot /> {hiringData.j} joined this week
+        </Pill>
+      )}
     </div>
   );
 }
-
 function CreatorMonthlyEarnings() {
   return (
     <div className="rounded-[16px] border-0 bg-[#13151c] px-4 py-[14px] w-[210px]">
@@ -750,19 +808,35 @@ function HeroSideColumn({
   );
 }
 
-// ─── Mobile Cards Marquee ─────────────────────────────────────────────────────
-// On mobile/tablet we show a horizontal scrollable strip of all cards instead of two side columns
-
 function MobileCardsStrip({ cards }: { cards: React.ReactNode[] }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    if (ref.current) {
+      setWidth(ref.current.scrollWidth / 2);
+    }
+  }, [cards]);
+
   return (
-    <div className="w-full overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="flex gap-3 px-1" style={{ width: "max-content" }}>
-        {cards.map((card, i) => (
+    <div className="relative w-full sm:w-[calc(100vw-48px)] mx-auto overflow-hidden">
+      <motion.div
+        ref={ref}
+        className="flex gap-3"
+        style={{ width: "max-content", willChange: "transform" }}
+        animate={{ x: [0, -width] }}
+        transition={{
+          duration: 12,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+      >
+        {[...cards, ...cards].map((card, i) => (
           <div key={i} className="shrink-0">
             {card}
           </div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -991,30 +1065,6 @@ function DashboardMock() {
     }, 2400);
     return () => clearInterval(id);
   }, []);
-  // useEffect(() => {
-  //   const id = setInterval(() => {
-  //     setCreatorData((prev) => {
-  //       const next = [...prev];
-  //       const last = next[next.length - 1];
-
-  //       next.shift();
-
-  //       const variation = Math.floor(Math.random() * 800) - 400; // +400 / -400
-
-  //       next.push({
-  //         month: last.month,
-  //         total: Math.max(6000, last.total + variation),
-  //         active: Math.max(4000, last.active + variation * 2),
-  //       });
-
-  //       return next;
-  //     });
-  //   }, 2000);
-
-  //   return () => clearInterval(id);
-  // }, []);
-  // ── Bar chart — oscillates each bar independently ─────────────────────────
-  // const INIT_BARS = [30, 45, 52, 40, 70, 82, 91, 86, 100];
   const INIT_BARS = [
     860, 700, 555, 680, 790, 1000, 850, 950, 880, 920, 780, 840,
   ];
@@ -1040,10 +1090,6 @@ function DashboardMock() {
   useEffect(() => {
     setHasMounted(true);
   }, []);
-  // const chartData = bars.map((value, index) => ({
-  //   name: months[index],
-  //   value,
-  // }));
   const chartData = useMemo(
     () =>
       bars.map((value, index) => ({
@@ -1052,19 +1098,6 @@ function DashboardMock() {
       })),
     [bars],
   );
-  // useEffect(() => {
-  //   const id = setInterval(() => {
-  //     setBars((prev) =>
-  //       prev.map((v, i) => {
-  //         if (i === prev.length - 1)
-  //           return Math.min(100, v + Math.floor(Math.random() * 3));
-  //         const delta = Math.floor(Math.random() * 15) - 6;
-  //         return Math.min(100, Math.max(20, v + delta));
-  //       }),
-  //     );
-  //   }, 1800);
-  //   return () => clearInterval(id);
-  // }, []);
   useEffect(() => {
     const id = setInterval(() => {
       setBars((prev) =>
@@ -1198,24 +1231,6 @@ function DashboardMock() {
 
           <div className="grid grid-cols-1 gap-[10px] sm:grid-cols-2">
             {/* Bar chart */}
-            {/* <div className="rounded-[9px] bg-[#F7F6F3] p-3">
-              <div className="mb-2 text-[11px] font-semibold text-[#888]">
-                Submissions per month
-              </div>
-              <div className="flex h-[50px] items-end gap-[3px]">
-                {bars.map((h, i) => (
-                  <motion.div
-                    key={i}
-                    className="min-w-[11px] flex-1 rounded-t-[3px]"
-                    animate={{ height: `${h}%` }}
-                    transition={{ duration: 0.9, ease: [0.34, 1.2, 0.64, 1] }}
-                    style={{
-                      background: i >= bars.length - 4 ? "#1476FF" : "#B5D4F4",
-                    }}
-                  />
-                ))}
-              </div>
-            </div> */}
             <div className="rounded-[9px] bg-[#F7F6F3] p-3">
               <div className="mb-2 text-[11px] font-semibold text-[#888]">
                 Submissions per month
@@ -1264,37 +1279,6 @@ function DashboardMock() {
                 </ResponsiveContainer>
               </div>
             </div>
-            {/* GMV trend line */}
-            {/* <div className="rounded-[9px] bg-[#F7F6F3] p-3">
-              <div className="mb-2 text-[11px] font-semibold text-[#888]">
-                GMV trend
-              </div>
-              <svg
-                width="100%"
-                height="50"
-                viewBox="0 0 200 50"
-                preserveAspectRatio="none"
-              >
-                <motion.polyline
-                  points={gmvPolyline}
-                  fill="none"
-                  stroke="#1476FF"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  animate={{ points: gmvPolyline }}
-                  transition={{ duration: 0.8, ease: "easeInOut" }}
-                />
-                <motion.circle
-                  cx={200}
-                  cy={gmvEndY}
-                  r="3"
-                  fill="#1476FF"
-                  animate={{ cy: gmvEndY }}
-                  transition={{ duration: 0.8, ease: "easeInOut" }}
-                />
-              </svg>
-            </div> */}
             <div className="rounded-[9px] bg-[#F7F6F3] p-3">
               <div className="mb-2 text-[11px] font-semibold text-[#888]">
                 Creator Growth
@@ -1361,20 +1345,82 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
   const [bCreatorCount, setBCreatorCount] = useState(847);
   const [totalPayout, setTotalPayout] = useState(22432650);
   const [hiringData, setHiringData] = useState({ h: 362, j: 84 });
+  const [hiringUsers, setHiringUsers] = useState<{ name: string }[]>([]);
+  const [isHiringLoading, setIsHiringLoading] = useState(true);
 
+  // useEffect(() => {
+  //   const launchDate = new Date("2026-04-07T00:00:00Z");
+  //   const weeks = Math.floor(
+  //     (Date.now() - launchDate.getTime()) / (7 * 24 * 60 * 60 * 1000),
+  //   );
+  //   const h = 362 + weeks * 4;
+  //   const j = Math.min(
+  //     174,
+  //     Math.max(30, 30 + Math.round((Math.sin(weeks * 2.4) + 1) * 72)),
+  //   );
+  //   setHiringData({ h, j });
+  // }, []);
   useEffect(() => {
-    const launchDate = new Date("2026-04-07T00:00:00Z");
-    const weeks = Math.floor(
-      (Date.now() - launchDate.getTime()) / (7 * 24 * 60 * 60 * 1000),
-    );
-    const h = 362 + weeks * 4;
-    const j = Math.min(
-      174,
-      Math.max(30, 30 + Math.round((Math.sin(weeks * 2.4) + 1) * 72)),
-    );
-    setHiringData({ h, j });
-  }, []);
+    let isMounted = true;
 
+    const fetchHiringData = async () => {
+      const supabase = createClient();
+
+      try {
+        setIsHiringLoading(true); // ✅ start loading
+
+        const { data: campaigns, error: campaignError } = await supabase
+          .from("campaigns")
+          .select("brand_id")
+          .eq("status", "open");
+
+        if (campaignError) throw campaignError;
+
+        const brandIds = [...new Set(campaigns?.map((c) => c.brand_id))];
+
+        const { data: profiles, error: profileError } = await supabase
+          .from("public_profiles")
+          .select("id, display_name, full_name, company_name")
+          .in("id", brandIds);
+
+        if (profileError) throw profileError;
+
+        const brands =
+          profiles?.map((p) => ({
+            id: p.id,
+            name:
+              p.display_name ||
+              p.company_name ||
+              p.full_name ||
+              "NA",
+          })) || [];
+
+        if (!isMounted) return;
+
+        setHiringData({
+          h: brandIds.length,
+          j: 0,
+        });
+
+        setHiringUsers(brands);
+      } catch (err) {
+        console.error(err);
+
+        if (!isMounted) return;
+
+        setHiringData({ h: 0, j: 0 });
+        setHiringUsers([]);
+      } finally {
+        if (isMounted) setIsHiringLoading(false);
+      }
+    };
+
+    fetchHiringData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
   useEffect(() => {
     const id = setInterval(() => setBVideoIdx((v) => (v + 1) % 3), 3000);
     return () => clearInterval(id);
@@ -1401,37 +1447,26 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
     return () => clearInterval(id);
   }, []);
 
-  // const brandLeft = [
-  //   <BrandSampleRequest />,
-  //   <BrandVideoStatus />,
-  //   <BrandActiveCreators bCreatorCount={bCreatorCount} />,
-  // ];
-  // const brandRight = [
-  //   <BrandTopPerformer bVideoIdx={bVideoIdx} />,
-  //   <BrandHiring hiringData={hiringData} />,
-  //   <BrandMetaAdSpend />,
-  // ];
   const brandLeft = [
     <BrandSampleRequest key="brand-sample-request" />,
     <BrandVideoStatus key="brand-video-status" />,
-    <BrandActiveCreators key="brand-active-creators" bCreatorCount={bCreatorCount} />,
+    <BrandActiveCreators
+      key="brand-active-creators"
+      bCreatorCount={bCreatorCount}
+    />,
   ];
 
   const brandRight = [
     <BrandTopPerformer key="brand-top-performer" bVideoIdx={bVideoIdx} />,
-    <BrandHiring key="brand-hiring" hiringData={hiringData} />,
+    <BrandHiring
+      key="brand-hiring"
+      hiringData={hiringData}
+      hiringUsers={hiringUsers}
+      isLoading={isHiringLoading}
+    />,
     <BrandMetaAdSpend key="brand-meta-ad-spend" />,
   ];
 
-  // const creatorLeft = [
-  //   <CreatorMonthlyEarnings />,
-  //   <CreatorTotalPayout totalPayout={totalPayout} />,
-  // ];
-  // const creatorRight = [
-  //   <CreatorTopVideo cVideoIdx={cVideoIdx} />,
-  //   <CreatorBrandsHiring hiringData={hiringData} />,
-  //   <CreatorAvgGMV />,
-  // ];
   const creatorLeft = [
     <CreatorMonthlyEarnings key="creator-monthly-earnings" />,
     <CreatorTotalPayout key="creator-total-payout" totalPayout={totalPayout} />,
@@ -1447,7 +1482,11 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
   const rightCards = mode === "brand" ? brandRight : creatorRight;
   const allCards = [...leftCards, ...rightCards];
 
-  const ctaHref = isLoggedIn ? "/dashboard" : (mode === "brand" ? "/signup" : "/signup/creator");
+  const ctaHref = isLoggedIn
+    ? "/dashboard"
+    : mode === "brand"
+      ? "/signup"
+      : "/signup/creator";
 
   const content = {
     brand: {
@@ -1515,8 +1554,8 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
         <PageTransition>
           <main>
             {/* ── Hero ── */}
-            <div className="min-h-screen p-[12px] sm:p-[24px]">
-              <section className="relative min-h-[calc(100vh-24px)] rounded-[20px] border border-[#dbe6fb] bg-gradient-to-br from-[#eef4ff] to-[#e6f0ff] px-[20px] py-[56px] flex items-center justify-center sm:min-h-[calc(100vh-48px)] sm:rounded-[28px] sm:px-[40px] sm:py-[72px] lg:px-[80px]">
+            <div className="min-h-screen sm:p-[24px]">
+              <section className="relative min-h-[calc(100vh-24px)] border border-[#dbe6fb] bg-gradient-to-br from-[#eef4ff] to-[#e6f0ff] py-[56px] flex items-center justify-center sm:min-h-[calc(100vh-48px)] sm:rounded-[28px] sm:py-[72px] lg:px-[80px]">
                 <div>
                   <BrandMark
                     href="/"
@@ -1609,59 +1648,6 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
                       >
                         {c.btn}
                       </Link>
-                      {/* <Link
-                        href={ctaHref}
-                        className="relative inline-flex items-center justify-center px-[34px] py-[14px] rounded-[3rem] bg-[#f3f3f3] text-black font-bold text-[14px] lg:text-lg"
-                      >
-                        <svg
-                          className="absolute inset-0 w-full h-full"
-                          viewBox="0 0 100 40"
-                          preserveAspectRatio="none"
-                        >
-                          <defs>
-                            <linearGradient
-                              id="blueGradient"
-                              x1="0%"
-                              y1="0%"
-                              x2="100%"
-                              y2="0%"
-                            >
-                              <stop
-                                offset="10%"
-                                stopColor="#bfdbfe"
-                                stopOpacity="1"
-                              />
-                              <stop
-                                offset="30%"
-                                stopColor="#60a5fa"
-                                stopOpacity="1"
-                              />
-                              <stop
-                                offset="100%"
-                                stopColor="#2563eb"
-                                stopOpacity="1"
-                              />
-                            </linearGradient>
-                          </defs>
-
-                          <rect
-                            x="1"
-                            y="1"
-                            width="97"
-                            height="38"
-                            rx="20"
-                            ry="20"
-                            fill="none"
-                            stroke="url(#blueGradient)"
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeDasharray="60 200"
-                            className="animate-dash"
-                          />
-                        </svg>
-
-                        {c.btn}
-                      </Link> */}
                     </FadeIn>
                   </div>
 

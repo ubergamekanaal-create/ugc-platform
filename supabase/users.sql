@@ -132,3 +132,5 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute procedure public.handle_new_user();
+alter table public.users 
+add column if not exists active boolean not null default false;

@@ -28,7 +28,10 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
-
+  await supabase
+    .from("users")
+    .update({ active: true })
+    .eq("id", data.user.id);
   const { data: profile, error: profileError } = await supabase
     .from("users")
     .select("role")
