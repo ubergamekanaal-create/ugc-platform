@@ -42,15 +42,15 @@ type BrandCreatorDirectoryMode = "full" | "summary" | "none";
 
 type DashboardContext =
   | {
-      role: "brand";
-      profile: UserProfile & { role: "brand" };
-      data: BrandDashboardData;
-    }
+    role: "brand";
+    profile: UserProfile & { role: "brand" };
+    data: BrandDashboardData;
+  }
   | {
-      role: "creator";
-      profile: UserProfile & { role: "creator" };
-      data: CreatorDashboardData;
-    };
+    role: "creator";
+    profile: UserProfile & { role: "creator" };
+    data: CreatorDashboardData;
+  };
 
 const campaignSelectFields =
   "id, brand_id, title, description, product_name, product_details, content_type, budget, status, platforms, deliverables, creator_slots, duration, deadline, payment_type, usage_rights, creator_requirements, created_at";
@@ -125,8 +125,8 @@ function normalizeCampaign(row: Record<string, unknown>): Campaign {
     budget: readNumber(row.budget),
     status:
       row.status === "in_review" ||
-      row.status === "active" ||
-      row.status === "completed"
+        row.status === "active" ||
+        row.status === "completed"
         ? row.status
         : "open",
     platforms: readStringArray(row.platforms),
@@ -150,8 +150,8 @@ function normalizeApplication(row: Record<string, unknown>): CampaignApplication
     rate: readNumber(row.rate),
     status:
       row.status === "shortlisted" ||
-      row.status === "accepted" ||
-      row.status === "declined"
+        row.status === "accepted" ||
+        row.status === "declined"
         ? row.status
         : "pending",
     created_at: readString(row.created_at, new Date().toISOString()),
@@ -191,8 +191,8 @@ function normalizeSubmission(row: Record<string, unknown>): CampaignSubmission {
     feedback: readNullableString(row.feedback),
     status:
       row.status === "revision_requested" ||
-      row.status === "approved" ||
-      row.status === "rejected"
+        row.status === "approved" ||
+        row.status === "rejected"
         ? (row.status as SubmissionStatus)
         : "submitted",
     assets: [],
@@ -349,8 +349,8 @@ function normalizeFunding(row: Record<string, unknown>): CampaignFunding {
     currency: readString(row.currency, "usd"),
     status:
       row.status === "paid" ||
-      row.status === "cancelled" ||
-      row.status === "failed"
+        row.status === "cancelled" ||
+        row.status === "failed"
         ? (row.status as FundingStatus)
         : "pending",
     created_at: readString(row.created_at, new Date().toISOString()),
@@ -476,6 +476,21 @@ async function getBrandData(
   userId: string,
   creatorDirectoryMode: BrandCreatorDirectoryMode = "full",
 ): Promise<BrandDashboardData> {
+  const { data: storeConnection, error: storeError } = await supabase
+    .from("brand_store_connections")
+    .select("id")
+    .eq("brand_id", userId)
+    .limit(1)
+    .maybeSingle();
+
+  if (storeError) {
+    console.error("getBrandData: store connection lookup failed", {
+      userId,
+      error: storeError,
+    });
+  }
+
+  const storeConnected = !!storeConnection;
   const { data: rawCampaigns, error: campaignError } = await supabase
     .from("campaigns")
     .select(campaignSelectFields)
@@ -505,10 +520,10 @@ async function getBrandData(
   ] = await Promise.all([
     campaignIds.length
       ? supabase
-          .from("campaign_applications")
-          .select("id, campaign_id, creator_id, pitch, rate, status, created_at")
-          .in("campaign_id", campaignIds)
-          .order("created_at", { ascending: false })
+        .from("campaign_applications")
+        .select("id, campaign_id, creator_id, pitch, rate, status, created_at")
+        .in("campaign_id", campaignIds)
+        .order("created_at", { ascending: false })
       : Promise.resolve({ data: [], error: null }),
     supabase
       .from("campaign_invitations")
@@ -519,12 +534,12 @@ async function getBrandData(
       .order("created_at", { ascending: false }),
     campaignIds.length
       ? supabase
-          .from("campaign_submissions")
-          .select(
-            "id, campaign_id, brand_id, creator_id, application_id, revision_number, content_links, notes, feedback, status, created_at, updated_at, submitted_at, reviewed_at",
-          )
-          .in("campaign_id", campaignIds)
-          .order("submitted_at", { ascending: false, nullsFirst: false })
+        .from("campaign_submissions")
+        .select(
+          "id, campaign_id, brand_id, creator_id, application_id, revision_number, content_links, notes, feedback, status, created_at, updated_at, submitted_at, reviewed_at",
+        )
+        .in("campaign_id", campaignIds)
+        .order("submitted_at", { ascending: false, nullsFirst: false })
       : Promise.resolve({ data: [], error: null }),
     supabase
       .from("campaign_fundings")
@@ -542,11 +557,11 @@ async function getBrandData(
       .order("created_at", { ascending: false }),
     creatorDirectoryMode === "full"
       ? supabase
-          .from("public_profiles")
-          .select(
-            "id, role, display_name, full_name, company_name, headline, avatar_url",
-          )
-          .eq("role", "creator")
+        .from("public_profiles")
+        .select(
+          "id, role, display_name, full_name, company_name, headline, avatar_url",
+        )
+        .eq("role", "creator")
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -641,14 +656,14 @@ async function getBrandData(
   const creatorDirectoryProfiles = creatorDirectoryError
     ? []
     : ((rawCreatorDirectory ?? []) as Array<Record<string, unknown>>).map((row) => ({
-        id: readString(row.id),
-        role: isRole(row.role) ? row.role : "creator",
-        display_name: readNullableString(row.display_name),
-        full_name: readNullableString(row.full_name),
-        company_name: readNullableString(row.company_name),
-        headline: readNullableString(row.headline),
-        avatar_url: readNullableString(row.avatar_url),
-      }));
+      id: readString(row.id),
+      role: isRole(row.role) ? row.role : "creator",
+      display_name: readNullableString(row.display_name),
+      full_name: readNullableString(row.full_name),
+      company_name: readNullableString(row.company_name),
+      headline: readNullableString(row.headline),
+      avatar_url: readNullableString(row.avatar_url),
+    }));
 
   const relatedCreatorIds = [...new Set([
     ...applications.map((application) => application.creator_id),
@@ -668,11 +683,11 @@ async function getBrandData(
   ] = await Promise.all([
     creatorDirectoryIds.length
       ? supabase
-          .from("creator_profiles")
-          .select(
-            "user_id, bio, niches, platform_specialties, birth_year, portfolio_url, instagram_url, instagram_handle, instagram_followers, tiktok_url, tiktok_handle, tiktok_followers, youtube_url, youtube_handle, youtube_subscribers, website_url, base_rate, engagement_rate, average_views, monthly_ugc_videos, featured_content_links, featured_brands, featured_result, audience_summary, past_work, location, onboarding_completed_at, created_at, updated_at",
-          )
-          .in("user_id", [...new Set(creatorDirectoryIds)])
+        .from("creator_profiles")
+        .select(
+          "user_id, bio, niches, platform_specialties, birth_year, portfolio_url, instagram_url, instagram_handle, instagram_followers, tiktok_url, tiktok_handle, tiktok_followers, youtube_url, youtube_handle, youtube_subscribers, website_url, base_rate, engagement_rate, average_views, monthly_ugc_videos, featured_content_links, featured_brands, featured_result, audience_summary, past_work, location, onboarding_completed_at, created_at, updated_at",
+        )
+        .in("user_id", [...new Set(creatorDirectoryIds)])
       : Promise.resolve({ data: [], error: null }),
     creatorDirectoryMode === "full" && creatorDirectoryIds.length
       ? getCreatorPortfolioAssetsByUserId(supabase, creatorDirectoryIds)
@@ -881,6 +896,7 @@ async function getBrandData(
     invitations,
     fundings: enrichedFundings,
     payouts: enrichedPayouts,
+    storeConnected: storeConnected,
   };
 }
 
@@ -1054,9 +1070,9 @@ async function getCreatorData(
   const { data: rawRelatedCampaigns, error: relatedCampaignsError } =
     missingRelatedCampaignIds.length
       ? await supabase
-          .from("campaigns")
-          .select(campaignSelectFields)
-          .in("id", missingRelatedCampaignIds)
+        .from("campaigns")
+        .select(campaignSelectFields)
+        .in("id", missingRelatedCampaignIds)
       : { data: [], error: null };
 
   if (relatedCampaignsError) {

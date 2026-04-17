@@ -708,7 +708,7 @@ export function BrandWorkspace({
   const onboardingSteps = [
     {
       label: "Connect your store",
-      complete: Boolean(profile.company_name),
+      complete: data?.storeConnected,
       href: "/dashboard/integrations",
     },
     {
@@ -1336,7 +1336,7 @@ export function BrandWorkspace({
             </SectionPanel>
           </FadeIn>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {hasWorkspaceActivity && <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <FadeIn>
             <SectionPanel className="h-full flex flex-col">
               <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
@@ -1382,7 +1382,7 @@ export function BrandWorkspace({
 
           </FadeIn>
 
-        </div>
+        </div>}
 
       </div>
     );
