@@ -1829,7 +1829,7 @@ export function BrandWorkspace({
     };
 
     return (
-      <div className="flex flex-col md:flex-row gap-6 ">
+      <div className="min-h-screen flex flex-col md:flex-row gap-6 ">
         {/* LEFT SIDEBAR */}
         <BrandMenu
           activeIndex={activeIndex}

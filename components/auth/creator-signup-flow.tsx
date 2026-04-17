@@ -1390,7 +1390,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
               {currentStep.description}
             </p>
           </div>
-          <span className="hidden shrink-0 rounded-full border border-purple-500 bg-[#E6E6FA] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-500 sm:inline-flex">
+          <span className="hidden shrink-0 rounded-full border border-blue-500 bg-blue-200 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-500 sm:inline-flex">
             {currentStep.label}
           </span>
         </div>
@@ -1455,7 +1455,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                     {currentStep.description}
                   </p>
                 </div>
-                <span className="hidden shrink-0 rounded-full border border-purple-600 bg-[#E6E6FA] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-600 sm:inline-flex">
+                <span className="hidden shrink-0 rounded-full border border-blue-600 bg-blue-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-600 sm:inline-flex">
                   {currentStep.label}
                 </span>
               </div>
@@ -1494,7 +1494,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                 type="button"
                 onClick={() => void handleResendOtp()}
                 disabled={isWorking}
-                className="text-xs font-medium text-purple-600 transition hover:text-purple-500 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
+                className="text-xs font-medium text-blue-600 transition hover:text-blue-500 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
               >
                 {isWorking ? "Sending..." : "Resend code"}
               </button>
@@ -2581,7 +2581,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
             "mt-4 h-12 w-full px-4 py-3 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 sm:text-base",
             isProfileIntroStep && step !== 12
               ? "md:fixed h-14 md:bottom-10 md:left-1/2 md:-translate-x-1/2 max-w-[40rem] rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
-              : "rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50",
+              : "rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50",
           )}
         >
           {isWorking
@@ -2618,14 +2618,14 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
           By continuing, you agree to our{" "}
           <Link
             href="/terms"
-            className="text-purple-600 transition hover:text-purple-500 font-medium"
+            className="text-blue-600 transition hover:text-blue-500 font-medium"
           >
             Terms of Service
           </Link>{" "}
           and{" "}
           <Link
             href="/privacy"
-            className="text-purple-600 transition hover:text-purple-500 font-medium"
+            className="text-blue-600 transition hover:text-blue-500 font-medium"
           >
             Privacy Policy
           </Link>
@@ -2635,7 +2635,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
           Already have an account?{" "}
           <Link
             href="/login?role=creator"
-            className="font-medium text-purple-600 transition hover:text-purple-500"
+            className="font-medium text-blue-600 transition hover:text-blue-500"
           >
             Sign in
           </Link>
