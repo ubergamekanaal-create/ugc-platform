@@ -4,11 +4,11 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   --font-sans: "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Poppins", "Inter", "Segoe UI", ui-sans-serif, system-ui,
-    sans-serif;
-  --background: 6 10 18;
+  --font-display:
+    "Poppins", "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --background: 255 255 255;
   --foreground: 244 247 250;
   --card: 13 18 27;
   --card-soft: 18 25 38;
@@ -29,10 +29,14 @@ html {
 
   body {
     @apply min-h-screen bg-background text-foreground font-sans antialiased;
-    background-image:
+    /* background-image:
       radial-gradient(circle at top, rgba(7, 107, 210, 0.16), transparent 28%),
-      radial-gradient(circle at 85% 20%, rgba(59, 130, 246, 0.14), transparent 22%),
-      linear-gradient(180deg, rgba(9, 13, 21, 0.96), rgba(5, 8, 14, 1));
+      radial-gradient(
+        circle at 85% 20%,
+        rgba(59, 130, 246, 0.14),
+        transparent 22%
+      ),
+      linear-gradient(180deg, rgba(9, 13, 21, 0.96), rgba(5, 8, 14, 1)); */
   }
 
   ::selection {

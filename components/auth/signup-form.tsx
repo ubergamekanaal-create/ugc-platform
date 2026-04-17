@@ -771,8 +771,6 @@ export function SignupForm() {
                 <ExtractBrnad />
                 Extract Brand Info
               </button>
-
-              <p className="pt-1 text-center text-sm text-slate-400">Skip</p>
             </div>
           ) : null}
 

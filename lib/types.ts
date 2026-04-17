@@ -396,6 +396,7 @@ export type BrandDashboardData = {
   invitations: CampaignInvitation[];
   fundings: BrandFundingSummary[];
   payouts: BrandPayoutSummary[];
+  storeConnected?: boolean;
 };
 
 export type CreatorDashboardData = {

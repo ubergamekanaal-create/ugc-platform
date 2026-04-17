@@ -4,6 +4,21 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { FadeIn, PageTransition } from "@/components/shared/motion";
 import { cn } from "@/lib/utils";
+import { motion, animate, useMotionValue, useTransform } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
+import {
+  BarChart,
+  Bar,
+  ResponsiveContainer,
+  Cell,
+  YAxis,
+  XAxis,
+  CartesianGrid,
+  LineChart,
+  Line,
+  Tooltip,
+} from "recharts";
+import { BrandMark } from "../shared/brand-mark";
 
 type Mode = "brand" | "creator";
 
@@ -168,24 +183,38 @@ function PulseDot() {
     <span className="inline-block h-[6px] w-[6px] shrink-0 rounded-full bg-[#1D9E75] [animation:circl-pulse_1.5s_infinite]" />
   );
 }
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 function Avatar({
   initials,
   bg,
   size = 22,
   fontSize = 8,
+  src,
 }: {
   initials: string;
   bg: string;
   size?: number;
   fontSize?: number;
+  src?: string | null;
 }) {
   return (
     <div
       className="-mr-[6px] flex shrink-0 items-center justify-center rounded-full border-2 border-white font-bold text-white"
       style={{ width: size, height: size, fontSize, background: bg }}
     >
-      {initials}
+      {src ? (
+        <img src={src} alt={initials} className="h-full w-full object-cover" />
+      ) : (
+        initials
+      )}
     </div>
   );
 }
@@ -212,46 +241,9 @@ function Pill({
   );
 }
 
-import { motion, animate, useMotionValue, useTransform } from "framer-motion";
-import { createClient } from "@/lib/supabase/client";
-import {
-  BarChart,
-  Bar,
-  ResponsiveContainer,
-  Cell,
-  YAxis,
-  XAxis,
-  CartesianGrid,
-  LineChart,
-  Line,
-  Tooltip,
-} from "recharts";
-import { BrandMark } from "../shared/brand-mark";
 function BrandSampleRequest() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 40, scale: 0.95 }}
-      animate={{
-        opacity: 1,
-        y: [0, -10, 0],
-        scale: 1,
-      }}
-      transition={{
-        opacity: { duration: 0.5 },
-        scale: { duration: 0.5 },
-        y: {
-          duration: 4,
-          repeat: Infinity,
-          ease: "easeInOut",
-        },
-      }}
-      whileHover={{
-        y: -12,
-        rotate: -2,
-        scale: 1.02,
-      }}
-      className="rounded-[16px] border border-[#e0e8f8] bg-white px-4 py-[14px] w-[198px] shadow-sm"
-    >
+    <div className="rounded-[16px] border border-[#e0e8f8] bg-white px-4 py-[14px] w-[198px] shadow-sm">
       <div className="mb-[5px] text-[10px] font-bold tracking-[0.06em] text-[#aaa]">
         CREATOR SAMPLE REQUEST
       </div>
@@ -321,7 +313,7 @@ function BrandSampleRequest() {
           Decline
         </motion.button>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -393,32 +385,63 @@ function BrandMetaAdSpend() {
   );
 }
 
-function BrandActiveCreators({ bCreatorCount }: { bCreatorCount: number }) {
+function BrandActiveCreators({
+  bCreatorCount,
+  users = [],
+  isLoading = false,
+}: {
+  bCreatorCount: number;
+  users?: { name: string; avatar?: string | null }[];
+  isLoading?: boolean;
+}) {
+  const avatarColors = ["#1476ff", "#1d9e75", "#d85a30", "#d4537e", "#534ab7"];
+
+  const visibleUsers = isLoading ? [] : users.slice(0, 5);
+  const extraCount = isLoading ? 0 : Math.max(0, users.length - 5);
+
   return (
     <div className="rounded-[16px] border border-[#e0e8f8] bg-white px-4 py-[14px] w-[188px]">
       <div className="mb-[5px] text-[10px] font-bold tracking-[0.06em] text-[#aaa]">
         ACTIVE CREATORS
       </div>
-      <div className="my-[3px] mb-[7px] flex items-baseline gap-[7px] flex items-center">
-        <div className="text-[21px] font-extrabold text-[#0d1a2d]">
-          {bCreatorCount.toLocaleString()}
+      {isLoading ? (
+        <div className="flex flex-col items-start">
+          <div className="mb-[10px] h-[18px] w-[60px] rounded-[6px] bg-[#e6edf7] animate-pulse" />
+
+          <div className="flex">
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className="-mr-[6px] rounded-full border-2 border-white bg-[#e6edf7] animate-pulse w-[22px] h-[22px]"
+              />
+            ))}
+          </div>
         </div>
-        <Pill type="g">↑ live</Pill>
-      </div>
-      <div className="flex">
-        {(
-          [
-            ["JK", "#1476ff"],
-            ["SM", "#1d9e75"],
-            ["AL", "#d85a30"],
-            ["PR", "#d4537e"],
-            ["NX", "#534ab7"],
-          ] as [string, string][]
-        ).map(([i, c]) => (
-          <Avatar key={i} initials={i} bg={c} />
-        ))}
-        <Avatar initials="+42" bg="#888" fontSize={7} />
-      </div>
+      ) : (
+        <>
+          <div className="my-[3px] mb-[7px] flex items-center gap-[7px]">
+            <div className="text-[21px] font-extrabold text-[#0d1a2d]">
+              {bCreatorCount.toLocaleString()}
+            </div>
+            <Pill type="g">↑ live</Pill>
+          </div>
+
+          <div className="flex">
+            {visibleUsers.map((user, index) => (
+              <Avatar
+                key={index}
+                initials={getInitials(user.name)}
+                bg={avatarColors[index % avatarColors.length]}
+                src={user.avatar}
+              />
+            ))}
+
+            {extraCount > 0 && (
+              <Avatar initials={`+${extraCount}`} bg="#888" fontSize={7} />
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -513,36 +536,71 @@ function BrandVideoStatus() {
   );
 }
 
-function BrandHiring({ hiringData }: { hiringData: { h: number; j: number } }) {
+function BrandHiring({
+  hiringData,
+  hiringUsers = [],
+  isLoading = false,
+}: {
+  hiringData: { h: number; j: number };
+  hiringUsers?: { name: string }[];
+  isLoading?: boolean;
+}) {
+  const avatarColors = ["#1476ff", "#1d9e75", "#d85a30", "#d4537e", "#534ab7"];
+
+  const visibleUsers = isLoading ? [] : hiringUsers.slice(0, 5);
+  const extraCount = isLoading ? 0 : Math.max(0, hiringData.h - 5);
+
   return (
     <div className="rounded-[16px] border border-[#e0e8f8] bg-white px-4 py-[14px] w-[195px]">
       <div className="mb-[5px] text-[10px] font-bold tracking-[0.06em] text-[#aaa]">
         BRANDS HIRING NOW
       </div>
-      <div className="mb-[7px] text-[21px] font-extrabold text-[#1476ff]">
-        {hiringData.h.toLocaleString()}
-      </div>
+
+      {isLoading ? (
+        <div className="flex flex-col items-start">
+          {/* top small skeleton */}
+          <div className="mb-[10px] h-[16px] w-[40px] rounded-[6px] bg-[#e6edf7] animate-pulse" />
+
+          {/* 5 avatar skeletons */}
+          <div className="flex">
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className="-mr-[6px] rounded-full border-2 border-white bg-[#e6edf7] animate-pulse w-7 h-7"
+              />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="mb-[7px] text-[21px] font-extrabold text-[#1476ff]">
+          {hiringData.h.toLocaleString()}
+        </div>
+      )}
+
       <div className="mb-2 flex">
-        {(
-          [
-            ["NK", "#1476ff"],
-            ["GY", "#1d9e75"],
-            ["OA", "#d85a30"],
-            ["MN", "#d4537e"],
-            ["FL", "#534ab7"],
-          ] as [string, string][]
-        ).map(([i, c]) => (
-          <Avatar key={i} initials={i} bg={c} />
+        {visibleUsers.map((user, index) => (
+          <Avatar
+            key={index}
+            initials={getInitials(user.name)}
+            bg={avatarColors[index % avatarColors.length]}
+            fontSize={10}
+          />
         ))}
-        <Avatar
-          initials={`+${Math.max(0, hiringData.h - 5)}`}
-          bg="#888"
-          fontSize={7}
-        />
+
+        {extraCount > 0 && (
+          <Avatar initials={`+${extraCount}`} bg="#888" fontSize={7} />
+        )}
       </div>
-      <Pill type="b">
-        <PulseDot /> {hiringData.j} joined this week
-      </Pill>
+
+      {isLoading ? (
+        <div className="flex items-center gap-2 rounded-full bg-[#e6edf7] px-3 py-[6px] animate-pulse">
+          {/* dot skeleton */}
+        </div>
+      ) : (
+        <Pill type="b">
+          <PulseDot /> {hiringData.j} joined this week
+        </Pill>
+      )}
     </div>
   );
 }
@@ -750,18 +808,475 @@ function HeroSideColumn({
   );
 }
 
-// ─── Mobile Cards Marquee ─────────────────────────────────────────────────────
-// On mobile/tablet we show a horizontal scrollable strip of all cards instead of two side columns
-
 function MobileCardsStrip({ cards }: { cards: React.ReactNode[] }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    if (ref.current) {
+      setWidth(ref.current.scrollWidth / 2);
+    }
+  }, [cards]);
+
   return (
-    <div className="w-full overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="flex gap-3 px-1" style={{ width: "max-content" }}>
-        {cards.map((card, i) => (
+    <div className="relative w-full max-w-full mx-auto overflow-hidden">
+      <motion.div
+        ref={ref}
+        className="flex items-center gap-3"
+        style={{ width: "max-content", willChange: "transform" }}
+        animate={{ x: [0, -width] }}
+        transition={{
+          duration: 12,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+      >
+        {[...cards, ...cards].map((card, i) => (
           <div key={i} className="shrink-0">
             {card}
           </div>
         ))}
+      </motion.div>
+    </div>
+  );
+}
+
+function BrandStepMiniPreview({ stepNum }: { stepNum: string }) {
+  const shellClassName =
+    "relative mt-4 h-[96px] overflow-hidden rounded-[16px] border border-[#d8e4f8] bg-[linear-gradient(180deg,#ffffff_0%,#f6faff_100%)] px-3 py-3";
+
+  if (stepNum === "01") {
+    return (
+      <div className={shellClassName}>
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(20,118,255,0.14),transparent_36%),radial-gradient(circle_at_bottom_left,rgba(117,86,255,0.08),transparent_32%)]" />
+        <motion.div
+          className="absolute right-4 top-4 rounded-full border border-[#cfe0ff] bg-white/90 px-2 py-1 text-[10px] font-bold text-[#1476ff] shadow-[0_8px_20px_rgba(20,118,255,0.14)]"
+          animate={{ y: [0, -3, 0], rotate: [0, 1.5, 0] }}
+          transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+        >
+          72%
+        </motion.div>
+        <div className="relative z-[1] mb-2">
+          <div className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#8aa0c5]">
+            Brand onboarding
+          </div>
+          <div className="text-[12px] font-bold text-[#0d1a2d]">
+            Workspace setup
+          </div>
+        </div>
+        <div className="relative z-[1] mb-2 overflow-hidden rounded-full bg-[#deebff]">
+          <motion.div
+            className="h-[8px] rounded-full bg-[linear-gradient(90deg,#1476ff_0%,#53a2ff_100%)]"
+            animate={{ width: ["42%", "72%", "72%", "42%"] }}
+            transition={{ duration: 4.8, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </div>
+        <div className="relative z-[1] flex items-center gap-2">
+          {["Brand", "Store", "Live"].map((label, index) => (
+            <motion.div
+              key={label}
+              className="rounded-full border border-[#dbe7fb] bg-white/90 px-2 py-1 text-[9px] font-semibold text-[#5b6c8d] shadow-[0_6px_16px_rgba(13,26,45,0.06)]"
+              animate={{ y: index === 1 ? [0, -2, 0] : [0, 0, 0] }}
+              transition={{
+                duration: 2.2,
+                repeat: Infinity,
+                delay: index * 0.2,
+                ease: "easeInOut",
+              }}
+            >
+              {label}
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (stepNum === "02") {
+    return (
+      <div className={shellClassName}>
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(20,118,255,0.10),transparent_40%)]" />
+        <div className="relative z-[1] mb-2 flex items-center justify-between">
+          <div className="text-[12px] font-bold text-[#0d1a2d]">
+            Campaign brief
+          </div>
+          <div className="rounded-full bg-[#eef4ff] px-2 py-1 text-[9px] font-bold text-[#1476ff]">
+            Drafting
+          </div>
+        </div>
+        <div className="relative z-[1] h-[52px]">
+          <motion.div
+            className="absolute left-0 top-2 rounded-[12px] border border-[#dfe8f8] bg-white px-3 py-2 shadow-[0_10px_20px_rgba(13,26,45,0.06)]"
+            animate={{ rotate: [-7, -4, -7], y: [0, -2, 0] }}
+            transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <div className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#8aa0c5]">
+              Tone
+            </div>
+            <div className="text-[10px] font-semibold text-[#0d1a2d]">Bold</div>
+          </motion.div>
+          <motion.div
+            className="absolute left-[82px] top-0 rounded-[12px] border border-[#dfe8f8] bg-white px-3 py-2 shadow-[0_12px_24px_rgba(13,26,45,0.07)]"
+            animate={{ y: [0, -4, 0], rotate: [0, 2, 0] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <div className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#8aa0c5]">
+              Budget
+            </div>
+            <div className="text-[10px] font-semibold text-[#0d1a2d]">
+              $2.5k
+            </div>
+          </motion.div>
+          <motion.div
+            className="absolute right-0 top-3 rounded-[12px] border border-[#dfe8f8] bg-white px-3 py-2 shadow-[0_10px_20px_rgba(13,26,45,0.06)]"
+            animate={{ rotate: [6, 3, 6], y: [0, -2, 0] }}
+            transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <div className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#8aa0c5]">
+              Product
+            </div>
+            <div className="text-[10px] font-semibold text-[#0d1a2d]">
+              Serum
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  if (stepNum === "03") {
+    return (
+      <div className={shellClassName}>
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(95,146,255,0.16),transparent_34%)]" />
+        <div className="relative z-[1] mb-2 text-[12px] font-bold text-[#0d1a2d]">
+          Creator matching
+        </div>
+        <div className="relative z-[1] h-[54px]">
+          <motion.div
+            className="absolute left-0 top-2 flex h-10 w-10 items-center justify-center rounded-full border border-[#dce7fb] bg-[linear-gradient(135deg,#ffe6d3,#ffffff)] text-[10px] font-bold text-[#0d1a2d]"
+            animate={{ y: [0, -3, 0] }}
+            transition={{
+              duration: 2.2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            SK
+          </motion.div>
+          <motion.div
+            className="absolute left-8 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-[#dce7fb] bg-[linear-gradient(135deg,#dfeaff,#ffffff)] text-[10px] font-bold text-[#0d1a2d]"
+            animate={{ y: [0, 2, 0] }}
+            transition={{
+              duration: 2.4,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            UG
+          </motion.div>
+          <motion.div
+            className="absolute right-0 top-1 rounded-[14px] border border-[#cfe0ff] bg-white px-3 py-2 shadow-[0_12px_26px_rgba(20,118,255,0.12)]"
+            animate={{ x: [0, 4, 0], rotate: [0, 2, 0] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <div className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#8aa0c5]">
+              Match score
+            </div>
+            <div className="text-[12px] font-bold text-[#1476ff]">96%</div>
+          </motion.div>
+          <motion.div
+            className="absolute bottom-0 left-[64px] rounded-full bg-[#1476ff] px-2.5 py-1 text-[9px] font-bold text-white"
+            animate={{ scale: [1, 1.08, 1] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+          >
+            Best fit
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  if (stepNum === "04") {
+    return (
+      <div className={shellClassName}>
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(29,158,117,0.10),transparent_36%)]" />
+        <div className="relative z-[1] mb-2 flex items-center justify-between">
+          <div className="text-[12px] font-bold text-[#0d1a2d]">
+            Content review
+          </div>
+          <motion.div
+            className="rounded-full bg-[#e7fbf3] px-2 py-1 text-[9px] font-bold text-[#0f6e56]"
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          >
+            2 pending
+          </motion.div>
+        </div>
+        <div className="relative z-[1] h-[52px]">
+          <motion.div
+            className="absolute left-2 top-2 rounded-[14px] border border-[#dce7fb] bg-white px-3 py-2 shadow-[0_12px_24px_rgba(13,26,45,0.08)]"
+            animate={{ rotate: [-7, -4, -7], x: [0, 2, 0] }}
+            transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <div className="text-[10px] font-semibold text-[#0d1a2d]">
+              New video
+            </div>
+            <div className="text-[8px] text-[#7e8cac]">Hook revised</div>
+          </motion.div>
+          <motion.div
+            className="absolute right-14 top-0 rounded-full bg-[#e1f5ee] px-2.5 py-1 text-[9px] font-bold text-[#0f6e56] shadow-[0_8px_18px_rgba(15,110,86,0.12)]"
+            animate={{ y: [0, -3, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+          >
+            Approve
+          </motion.div>
+          <motion.div
+            className="absolute right-0 bottom-1 rounded-full bg-[#fff3e8] px-2.5 py-1 text-[9px] font-bold text-[#854f0b] shadow-[0_8px_18px_rgba(133,79,11,0.10)]"
+            animate={{ y: [0, 3, 0] }}
+            transition={{ duration: 2.1, repeat: Infinity, ease: "easeInOut" }}
+          >
+            Revise
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={shellClassName}>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(118,87,255,0.10),transparent_40%)]" />
+      <div className="relative z-[1] mb-2 flex items-center justify-between">
+        <div className="text-[12px] font-bold text-[#0d1a2d]">
+          Results snapshot
+        </div>
+        <div className="rounded-full bg-[#eef4ff] px-2 py-1 text-[9px] font-bold text-[#1476ff]">
+          Live
+        </div>
+      </div>
+      <div className="relative z-[1] h-[52px]">
+        <motion.div
+          className="absolute left-0 top-1 rounded-[14px] border border-[#dce7fb] bg-[linear-gradient(180deg,#091122_0%,#1a2550_100%)] px-4 py-3 text-white shadow-[0_14px_28px_rgba(13,26,45,0.18)]"
+          animate={{ y: [0, -2, 0] }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <div className="text-[8px] uppercase tracking-[0.1em] text-[#8fb7ff]">
+            ROAS
+          </div>
+          <div className="text-[12px] font-bold">5.4x</div>
+        </motion.div>
+        <motion.div
+          className="absolute right-0 top-0 rounded-full border border-[#d8c9ff] bg-[#f4eeff] px-3 py-1.5 text-[10px] font-bold text-[#7556ff] shadow-[0_10px_20px_rgba(117,86,255,0.12)]"
+          animate={{ x: [0, -3, 0], rotate: [0, 3, 0] }}
+          transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+        >
+          +$764
+        </motion.div>
+        <motion.div
+          className="absolute bottom-1 right-10 rounded-full border border-[#c8f1dd] bg-[#eafff2] px-3 py-1 text-[9px] font-bold text-[#0f6e56]"
+          animate={{ scale: [1, 1.06, 1] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+        >
+          1,483 clicks
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+function CreatorStepMiniPreview({ stepNum }: { stepNum: string }) {
+  const shellClassName =
+    "relative mt-4 h-[96px] overflow-hidden rounded-[16px] border border-[#d8e4f8] bg-[linear-gradient(180deg,#ffffff_0%,#f8f6ff_100%)] px-3 py-3";
+
+  if (stepNum === "01") {
+    return (
+      <div className={shellClassName}>
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(117,86,255,0.12),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(20,118,255,0.08),transparent_32%)]" />
+        <div className="relative z-[1] mb-2 flex items-center justify-between">
+          <div className="text-[12px] font-bold text-[#0d1a2d]">
+            Creator profile
+          </div>
+          <motion.div
+            className="rounded-full border border-[#ddd2ff] bg-white/90 px-2 py-1 text-[9px] font-bold text-[#7556ff]"
+            animate={{ y: [0, -3, 0], rotate: [0, 2, 0] }}
+            transition={{ duration: 2.3, repeat: Infinity, ease: "easeInOut" }}
+          >
+            84%
+          </motion.div>
+        </div>
+        <div className="relative z-[1] h-[52px]">
+          <motion.div
+            className="absolute left-0 top-1 rounded-[14px] border border-[#ddd2ff] bg-white px-3 py-2 shadow-[0_12px_24px_rgba(117,86,255,0.10)]"
+            animate={{ rotate: [-5, -2, -5], y: [0, -2, 0] }}
+            transition={{ duration: 2.7, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <div className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#9b87df]">
+              Niche
+            </div>
+            <div className="text-[10px] font-semibold text-[#0d1a2d]">
+              Beauty UGC
+            </div>
+          </motion.div>
+          <motion.div
+            className="absolute right-0 top-3 rounded-full bg-[#7556ff] px-3 py-1 text-[9px] font-bold text-white shadow-[0_10px_20px_rgba(117,86,255,0.14)]"
+            animate={{ scale: [1, 1.07, 1] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+          >
+            Portfolio ready
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  if (stepNum === "02") {
+    return (
+      <div className={shellClassName}>
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(20,118,255,0.10),transparent_38%)]" />
+        <div className="relative z-[1] mb-2 flex items-center justify-between">
+          <div className="text-[12px] font-bold text-[#0d1a2d]">
+            Browse campaigns
+          </div>
+          <div className="rounded-full bg-[#eef4ff] px-2 py-1 text-[9px] font-bold text-[#1476ff]">
+            340 live
+          </div>
+        </div>
+        <div className="relative z-[1] h-[52px]">
+          <motion.div
+            className="absolute left-0 top-1 rounded-[14px] border border-[#dce7fb] bg-white px-3 py-2 shadow-[0_12px_24px_rgba(13,26,45,0.08)]"
+            animate={{ x: [0, 3, 0], rotate: [-3, 0, -3] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <div className="text-[10px] font-semibold text-[#0d1a2d]">
+              Skincare ad
+            </div>
+            <div className="text-[8px] text-[#7e8cac]">$450 payout</div>
+          </motion.div>
+          <motion.div
+            className="absolute right-0 top-3 rounded-full bg-[#1476ff] px-3 py-1 text-[9px] font-bold text-white shadow-[0_10px_22px_rgba(20,118,255,0.16)]"
+            animate={{ y: [0, -3, 0] }}
+            transition={{ duration: 1.9, repeat: Infinity, ease: "easeInOut" }}
+          >
+            Apply
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  if (stepNum === "03") {
+    return (
+      <div className={shellClassName}>
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(29,158,117,0.10),transparent_38%)]" />
+        <div className="relative z-[1] mb-2 flex items-center justify-between">
+          <div className="text-[12px] font-bold text-[#0d1a2d]">
+            Sample request
+          </div>
+          <div className="rounded-full bg-[#e7fbf3] px-2 py-1 text-[9px] font-bold text-[#0f6e56]">
+            Auto shipped
+          </div>
+        </div>
+        <div className="relative z-[1] h-[52px]">
+          <motion.div
+            className="absolute left-1 top-2 rounded-[14px] border border-[#dce7fb] bg-white px-3 py-2 shadow-[0_12px_24px_rgba(13,26,45,0.08)]"
+            animate={{ rotate: [-6, -3, -6], y: [0, -2, 0] }}
+            transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <div className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#8aa0c5]">
+              Sample
+            </div>
+            <div className="text-[10px] font-semibold text-[#0d1a2d]">
+              1 package
+            </div>
+          </motion.div>
+          <motion.div
+            className="absolute right-0 top-2 rounded-full border border-[#c8f1dd] bg-white px-3 py-1 text-[9px] font-bold text-[#0f6e56] shadow-[0_10px_20px_rgba(15,110,86,0.10)]"
+            animate={{ x: [0, -3, 0], rotate: [0, 3, 0] }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            Tracking live
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  if (stepNum === "04") {
+    return (
+      <div className={shellClassName}>
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(20,118,255,0.10),transparent_38%)]" />
+        <div className="relative z-[1] mb-2 flex items-center justify-between">
+          <div className="text-[12px] font-bold text-[#0d1a2d]">
+            Submit your video
+          </div>
+          <motion.div
+            className="rounded-full bg-[#eef4ff] px-2 py-1 text-[9px] font-bold text-[#1476ff]"
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          >
+            Uploading
+          </motion.div>
+        </div>
+        <div className="relative z-[1] h-[52px]">
+          <div className="absolute left-0 top-1 w-[150px] rounded-[14px] border border-[#dce7fb] bg-white px-3 py-2 shadow-[0_12px_24px_rgba(13,26,45,0.08)]">
+            <div className="mb-2 text-[10px] font-semibold text-[#0d1a2d]">
+              UGC draft.mp4
+            </div>
+            <div className="overflow-hidden rounded-full bg-[#deebff]">
+              <motion.div
+                className="h-[7px] rounded-full bg-[linear-gradient(90deg,#1476ff_0%,#63a8ff_100%)]"
+                animate={{ width: ["26%", "88%", "88%", "26%"] }}
+                transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </div>
+          </div>
+          <motion.div
+            className="absolute right-0 top-4 rounded-full bg-[#7556ff] px-3 py-1 text-[9px] font-bold text-white shadow-[0_10px_20px_rgba(117,86,255,0.14)]"
+            animate={{ y: [0, -3, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            Sent
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={shellClassName}>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(117,86,255,0.12),transparent_38%)]" />
+      <div className="relative z-[1] mb-2 flex items-center justify-between">
+        <div className="text-[12px] font-bold text-[#0d1a2d]">
+          Automatic payout
+        </div>
+        <div className="rounded-full bg-[#e7fbf3] px-2 py-1 text-[9px] font-bold text-[#0f6e56]">
+          24h
+        </div>
+      </div>
+      <div className="relative z-[1] h-[52px]">
+        <motion.div
+          className="absolute left-0 top-1 rounded-[14px] border border-[#dce7fb] bg-[linear-gradient(180deg,#13151c_0%,#23283a_100%)] px-4 py-3 text-white shadow-[0_14px_28px_rgba(13,26,45,0.18)]"
+          animate={{ y: [0, -2, 0] }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <div className="text-[8px] uppercase tracking-[0.1em] text-[#8ec5ff]">
+            Payout
+          </div>
+          <div className="text-[12px] font-bold">$420</div>
+        </motion.div>
+        <motion.div
+          className="absolute right-0 top-0 rounded-full border border-[#d8c9ff] bg-[#f4eeff] px-3 py-1.5 text-[10px] font-bold text-[#7556ff] shadow-[0_10px_20px_rgba(117,86,255,0.12)]"
+          animate={{ x: [0, -3, 0], rotate: [0, 3, 0] }}
+          transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+        >
+          Paid
+        </motion.div>
+        <motion.div
+          className="absolute bottom-1 right-10 rounded-full border border-[#c8f1dd] bg-[#eafff2] px-3 py-1 text-[9px] font-bold text-[#0f6e56]"
+          animate={{ scale: [1, 1.06, 1] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+        >
+          Released
+        </motion.div>
       </div>
     </div>
   );
@@ -845,7 +1360,7 @@ function StepsSection({ steps, mode }: { steps: Step[]; mode: Mode }) {
 
         const card = (
           <div
-            className="w-full max-w-[330px] shrink-0 rounded-[18px] border-[1.5px] px-[24px] py-[22px]"
+            className="sm:shrink-0 rounded-[18px] border-[1.5px] px-[18px] py-[18px] sm:w-full sm:max-w-[330px] sm:px-[24px] sm:py-[22px]"
             style={{ background: bg, borderColor: border }}
           >
             <div
@@ -878,36 +1393,59 @@ function StepsSection({ steps, mode }: { steps: Step[]; mode: Mode }) {
               </svg>
               {s.chip}
             </div>
+            {mode === "brand" ? (
+              <BrandStepMiniPreview stepNum={s.num} />
+            ) : (
+              <CreatorStepMiniPreview stepNum={s.num} />
+            )}
           </div>
         );
 
         return (
+          // <div
+          //   key={`${mode}-${i}`}
+          //   className="relative z-[2] flex items-center py-[40px] md:py-[60px]"
+          // >
+          //   {flip ? (
+          //     <>
+          //       <div className="w-1/2 flex justify-center pr-4 md:pr-[40px]">
+          //         {dot}
+          //       </div>
+          //       <div className="w-1/2 flex justify-center pl-4 md:pl-[40px]">
+          //         {card}
+          //       </div>
+          //     </>
+          //   ) : (
+          //     <>
+          //       <div className="w-1/2 flex justify-center pr-4 md:pr-[40px]">
+          //         {card}
+          //       </div>
+          //       <div className="w-1/2 flex justify-center pl-4 md:pl-[40px]">
+          //         {dot}
+          //       </div>
+          //     </>
+          //   )}
+          // </div>
+
           <div
             key={`${mode}-${i}`}
-            className="relative z-[2] flex items-center py-[40px] md:py-[60px]"
+            className="relative z-[2] flex items-center gap-2 py-[24px] sm:py-[40px] md:py-[60px]"
           >
-            {/* Mobile: always dot left, card right — same center layout */}
-            <div className="flex w-full flex-col items-center gap-6 md:hidden">
-              {dot}
-              <div className="w-full px-4">{card}</div>
-            </div>
-
-            {/* Desktop: alternate */}
             {flip ? (
               <>
-                <div className="hidden w-1/2 justify-center pr-[40px] md:flex">
+                <div className="flex w-[64px] shrink-0 justify-end sm:w-1/2 sm:justify-center sm:pr-[40px]">
                   {dot}
                 </div>
-                <div className="hidden w-1/2 justify-center pl-[40px] md:flex">
+                <div className="flex flex-1 justify-start pl-2 sm:w-1/2 sm:justify-center sm:pl-[40px]">
                   {card}
                 </div>
               </>
             ) : (
               <>
-                <div className="hidden w-1/2 justify-center pr-[40px] md:flex">
+                <div className="flex flex-1 justify-start pr-2 sm:w-1/2 sm:justify-center sm:pr-[40px]">
                   {card}
                 </div>
-                <div className="hidden w-1/2 justify-center pl-[40px] md:flex">
+                <div className="flex w-[64px] shrink-0 justify-start sm:w-1/2 sm:justify-center sm:pl-[40px]">
                   {dot}
                 </div>
               </>
@@ -965,61 +1503,165 @@ function DashboardMock() {
     },
   ];
 
-  // ── Dynamic stat counters ──────────────────────────────────────────────────
+  useEffect(() => {
+    const supabase = createClient();
+
+    async function fetchRealStats() {
+      try {
+        const [
+          { count: totalCreators },
+          { count: activeCreators },
+          { count: submissions },
+          { count: approved },
+          { data: submissionsData },
+          { data: creatorsData },
+        ] = await Promise.all([
+          supabase
+            .from("public_profiles")
+            .select("*", { count: "exact", head: true })
+            .eq("role", "creator"),
+
+          supabase
+            .from("public_profiles")
+            .select("*", { count: "exact", head: true })
+            .eq("role", "creator")
+            .eq("active", true),
+
+          supabase
+            .from("campaign_submissions")
+            .select("*", { count: "exact", head: true }),
+
+          supabase
+            .from("campaign_submissions")
+            .select("*", { count: "exact", head: true })
+            .eq("status", "approved"),
+
+          supabase.from("campaign_submissions").select("created_at"),
+
+          supabase
+            .from("public_profiles")
+            .select("created_at, active")
+            .eq("role", "creator"),
+        ]);
+
+        setStats({
+          totalCreators: totalCreators || 0,
+          activeCreators: activeCreators || 0,
+          submissions: submissions || 0,
+          approved: approved || 0,
+        });
+
+        const months = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+
+        const map: any = {};
+
+        submissionsData?.forEach((item) => {
+          if (!item.created_at) return;
+
+          const m = new Date(item.created_at).toLocaleString("default", {
+            month: "short",
+          });
+
+          map[m] = (map[m] || 0) + 1;
+        });
+
+        setBars(months.map((m) => map[m] || 0));
+
+        const creatorMap: any = {};
+        const activeMap: any = {};
+
+        // init months
+        months.forEach((m) => {
+          creatorMap[m] = 0;
+          activeMap[m] = 0;
+        });
+
+        // process creators data
+        creatorsData?.forEach((item) => {
+          if (!item.created_at) return;
+
+          const m = new Date(item.created_at).toLocaleString("default", {
+            month: "short",
+          });
+
+          creatorMap[m] += 1;
+
+          if (item.active) {
+            activeMap[m] += 1;
+          }
+        });
+
+        setCreatorData(
+          months.map((m) => ({
+            month: m,
+            total: creatorMap[m],
+            active: activeMap[m],
+          })),
+        );
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    fetchRealStats();
+  }, []);
+
   const [stats, setStats] = useState({
-    totalCreators: 11492,
-    activeCreators: 12237,
-    submissions: 12235,
-    approved: 12165,
+    totalCreators: 0,
+    activeCreators: 0,
+    submissions: 0,
+    approved: 0,
   });
-  const [creatorData, setCreatorData] = useState([
-    { month: "Jan", total: 2200, active: 1200 },
-    { month: "Feb", total: 1100, active: 1700 },
-    { month: "Mar", total: 1400, active: 2200 },
-    { month: "Apr", total: 3000, active: 2500 },
-    { month: "May", total: 2400, active: 2000 },
-    { month: "Jun", total: 5000, active: 5600 },
-  ]);
+
+  type CreatorDataType = {
+    month: string;
+    total: number;
+    active: number;
+  };
+
+  const [creatorData, setCreatorData] = useState<CreatorDataType[]>([]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setBars((prev) => {
+        if (prev.length === 0) return prev;
+
+        return prev.map(
+          (v) => v + (Math.random() < 0.3 ? Math.floor(Math.random() * 3) : 0),
+        );
+      });
+    }, 3000);
+
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => {
     const id = setInterval(() => {
       setStats((s) => ({
-        totalCreators: s.totalCreators + Math.floor(Math.random() * 3),
-        activeCreators: s.activeCreators + Math.floor(Math.random() * 4),
+        totalCreators: s.totalCreators + Math.floor(Math.random() * 4),
+        activeCreators: s.activeCreators + Math.floor(Math.random() * 2),
         submissions: s.submissions + Math.floor(Math.random() * 5),
         approved: s.approved + Math.floor(Math.random() * 4),
       }));
     }, 2400);
     return () => clearInterval(id);
   }, []);
-  // useEffect(() => {
-  //   const id = setInterval(() => {
-  //     setCreatorData((prev) => {
-  //       const next = [...prev];
-  //       const last = next[next.length - 1];
 
-  //       next.shift();
-
-  //       const variation = Math.floor(Math.random() * 800) - 400; // +400 / -400
-
-  //       next.push({
-  //         month: last.month,
-  //         total: Math.max(6000, last.total + variation),
-  //         active: Math.max(4000, last.active + variation * 2),
-  //       });
-
-  //       return next;
-  //     });
-  //   }, 2000);
-
-  //   return () => clearInterval(id);
-  // }, []);
-  // ── Bar chart — oscillates each bar independently ─────────────────────────
-  // const INIT_BARS = [30, 45, 52, 40, 70, 82, 91, 86, 100];
-  const INIT_BARS = [
-    860, 700, 555, 680, 790, 1000, 850, 950, 880, 920, 780, 840,
-  ];
   const [bars, setBars] = useState<number[]>([]);
-  const [hasMounted, setHasMounted] = useState(false);
+
   const months = [
     "Jan",
     "Feb",
@@ -1034,16 +1676,7 @@ function DashboardMock() {
     "Nov",
     "Dec",
   ];
-  useEffect(() => {
-    setBars(INIT_BARS);
-  }, []);
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-  // const chartData = bars.map((value, index) => ({
-  //   name: months[index],
-  //   value,
-  // }));
+
   const chartData = useMemo(
     () =>
       bars.map((value, index) => ({
@@ -1052,42 +1685,18 @@ function DashboardMock() {
       })),
     [bars],
   );
-  // useEffect(() => {
-  //   const id = setInterval(() => {
-  //     setBars((prev) =>
-  //       prev.map((v, i) => {
-  //         if (i === prev.length - 1)
-  //           return Math.min(100, v + Math.floor(Math.random() * 3));
-  //         const delta = Math.floor(Math.random() * 15) - 6;
-  //         return Math.min(100, Math.max(20, v + delta));
-  //       }),
-  //     );
-  //   }, 1800);
-  //   return () => clearInterval(id);
-  // }, []);
-  useEffect(() => {
-    const id = setInterval(() => {
-      setBars((prev) =>
-        prev.map((v, i) => {
-          const delta = Math.floor(Math.random() * 200) - 100;
 
-          return Math.max(300, v + delta);
-        }),
-      );
-    }, 2000);
-
-    return () => clearInterval(id);
-  }, []);
   useEffect(() => {
     const id = setInterval(() => {
       setCreatorData((prev) =>
         prev.map((item) => {
-          const variation = Math.floor(Math.random() * 800) - 400;
+          const base = Math.max(1, Math.floor(item.total * 0.05));
+          const delta = Math.floor(Math.random() * base) + 1;
 
           return {
             ...item,
-            total: Math.max(3000, item.total + variation),
-            active: Math.max(1200, item.active + variation * 2),
+            total: item.total + delta,
+            active: item.active + Math.floor(delta / 2),
           };
         }),
       );
@@ -1095,7 +1704,7 @@ function DashboardMock() {
 
     return () => clearInterval(id);
   }, []);
-  // ── GMV trend line — grows rightward with slight wiggle ───────────────────
+
   const INIT_GMV = [48, 42, 34, 28, 20, 14, 9, 4, 1];
   const [gmvPoints, setGmvPoints] = useState(INIT_GMV);
 
@@ -1198,24 +1807,6 @@ function DashboardMock() {
 
           <div className="grid grid-cols-1 gap-[10px] sm:grid-cols-2">
             {/* Bar chart */}
-            {/* <div className="rounded-[9px] bg-[#F7F6F3] p-3">
-              <div className="mb-2 text-[11px] font-semibold text-[#888]">
-                Submissions per month
-              </div>
-              <div className="flex h-[50px] items-end gap-[3px]">
-                {bars.map((h, i) => (
-                  <motion.div
-                    key={i}
-                    className="min-w-[11px] flex-1 rounded-t-[3px]"
-                    animate={{ height: `${h}%` }}
-                    transition={{ duration: 0.9, ease: [0.34, 1.2, 0.64, 1] }}
-                    style={{
-                      background: i >= bars.length - 4 ? "#1476FF" : "#B5D4F4",
-                    }}
-                  />
-                ))}
-              </div>
-            </div> */}
             <div className="rounded-[9px] bg-[#F7F6F3] p-3">
               <div className="mb-2 text-[11px] font-semibold text-[#888]">
                 Submissions per month
@@ -1264,37 +1855,6 @@ function DashboardMock() {
                 </ResponsiveContainer>
               </div>
             </div>
-            {/* GMV trend line */}
-            {/* <div className="rounded-[9px] bg-[#F7F6F3] p-3">
-              <div className="mb-2 text-[11px] font-semibold text-[#888]">
-                GMV trend
-              </div>
-              <svg
-                width="100%"
-                height="50"
-                viewBox="0 0 200 50"
-                preserveAspectRatio="none"
-              >
-                <motion.polyline
-                  points={gmvPolyline}
-                  fill="none"
-                  stroke="#1476FF"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  animate={{ points: gmvPolyline }}
-                  transition={{ duration: 0.8, ease: "easeInOut" }}
-                />
-                <motion.circle
-                  cx={200}
-                  cy={gmvEndY}
-                  r="3"
-                  fill="#1476FF"
-                  animate={{ cy: gmvEndY }}
-                  transition={{ duration: 0.8, ease: "easeInOut" }}
-                />
-              </svg>
-            </div> */}
             <div className="rounded-[9px] bg-[#F7F6F3] p-3">
               <div className="mb-2 text-[11px] font-semibold text-[#888]">
                 Creator Growth
@@ -1333,7 +1893,6 @@ function DashboardMock() {
                       stroke="#1476FF"
                       strokeWidth={2}
                       connectNulls={true}
-                    // dot={{ r: 3 }}
                     />
                     <Line
                       type="natural"
@@ -1341,7 +1900,6 @@ function DashboardMock() {
                       stroke="#1D9E75"
                       strokeWidth={2}
                       connectNulls={true}
-                    // dot={{ r: 3 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -1358,23 +1916,83 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
   const [mode, setMode] = useState<Mode>("brand");
   const [bVideoIdx, setBVideoIdx] = useState(0);
   const [cVideoIdx, setCVideoIdx] = useState(0);
-  const [bCreatorCount, setBCreatorCount] = useState(847);
+  const [bCreatorCount, setBCreatorCount] = useState(0);
   const [totalPayout, setTotalPayout] = useState(22432650);
   const [hiringData, setHiringData] = useState({ h: 362, j: 84 });
+  const [hiringUsers, setHiringUsers] = useState<{ name: string }[]>([]);
+  const [isHiringLoading, setIsHiringLoading] = useState(true);
+  const [activeUsers, setActiveUsers] = useState<{ name: string }[]>([]);
+  const [isActiveLoading, setIsActiveLoading] = useState(true);
 
+  // useEffect(() => {
+  //   const launchDate = new Date("2026-04-07T00:00:00Z");
+  //   const weeks = Math.floor(
+  //     (Date.now() - launchDate.getTime()) / (7 * 24 * 60 * 60 * 1000),
+  //   );
+  //   const h = 362 + weeks * 4;
+  //   const j = Math.min(
+  //     174,
+  //     Math.max(30, 30 + Math.round((Math.sin(weeks * 2.4) + 1) * 72)),
+  //   );
+  //   setHiringData({ h, j });
+  // }, []);
   useEffect(() => {
-    const launchDate = new Date("2026-04-07T00:00:00Z");
-    const weeks = Math.floor(
-      (Date.now() - launchDate.getTime()) / (7 * 24 * 60 * 60 * 1000),
-    );
-    const h = 362 + weeks * 4;
-    const j = Math.min(
-      174,
-      Math.max(30, 30 + Math.round((Math.sin(weeks * 2.4) + 1) * 72)),
-    );
-    setHiringData({ h, j });
-  }, []);
+    let isMounted = true;
 
+    const fetchHiringData = async () => {
+      const supabase = createClient();
+
+      try {
+        setIsHiringLoading(true);
+
+        const { data: campaigns, error: campaignError } = await supabase
+          .from("campaigns")
+          .select("brand_id")
+          .eq("status", "open");
+
+        if (campaignError) throw campaignError;
+
+        const brandIds = [...new Set(campaigns?.map((c) => c.brand_id))];
+
+        const { data: profiles, error: profileError } = await supabase
+          .from("public_profiles")
+          .select("id, display_name, full_name, company_name")
+          .in("id", brandIds);
+
+        if (profileError) throw profileError;
+
+        const brands =
+          profiles?.map((p) => ({
+            id: p.id,
+            name: p.display_name || p.company_name || p.full_name || "NA",
+          })) || [];
+
+        if (!isMounted) return;
+
+        setHiringData({
+          h: brandIds.length,
+          j: 0,
+        });
+
+        setHiringUsers(brands);
+      } catch (err) {
+        console.error(err);
+
+        if (!isMounted) return;
+
+        setHiringData({ h: 0, j: 0 });
+        setHiringUsers([]);
+      } finally {
+        if (isMounted) setIsHiringLoading(false);
+      }
+    };
+
+    fetchHiringData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
   useEffect(() => {
     const id = setInterval(() => setBVideoIdx((v) => (v + 1) % 3), 3000);
     return () => clearInterval(id);
@@ -1386,12 +2004,45 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
   }, []);
 
   useEffect(() => {
+    const supabase = createClient();
+
+    async function fetchData() {
+      setIsActiveLoading(true);
+      const { data, count, error } = await supabase
+        .from("public_profiles")
+        .select("full_name, avatar_url", { count: "exact" })
+        .eq("role", "creator")
+        .eq("active", true)
+        .limit(10);
+
+      if (error) {
+        console.error(error);
+        setIsActiveLoading(false);
+        return;
+      }
+
+      setBCreatorCount(count || 0);
+
+      const users =
+        data?.map((u) => ({
+          name: u.full_name || "NA",
+          avatar: u.avatar_url || null,
+        })) || [];
+
+      setActiveUsers(users);
+
+      setIsActiveLoading(false);
+    }
+
+    fetchData();
+
     const id = setInterval(() => {
-      const add = Math.floor(Math.random() * 3); // 0, 1, or 2
+      const add = Math.floor(Math.random() * 3);
       if (add > 0) {
         setBCreatorCount((c) => c + add);
       }
     }, 2200);
+
     return () => clearInterval(id);
   }, []);
 
@@ -1401,37 +2052,28 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
     return () => clearInterval(id);
   }, []);
 
-  // const brandLeft = [
-  //   <BrandSampleRequest />,
-  //   <BrandVideoStatus />,
-  //   <BrandActiveCreators bCreatorCount={bCreatorCount} />,
-  // ];
-  // const brandRight = [
-  //   <BrandTopPerformer bVideoIdx={bVideoIdx} />,
-  //   <BrandHiring hiringData={hiringData} />,
-  //   <BrandMetaAdSpend />,
-  // ];
   const brandLeft = [
     <BrandSampleRequest key="brand-sample-request" />,
     <BrandVideoStatus key="brand-video-status" />,
-    <BrandActiveCreators key="brand-active-creators" bCreatorCount={bCreatorCount} />,
+    <BrandActiveCreators
+      key="brand-active-creators"
+      bCreatorCount={bCreatorCount}
+      users={activeUsers}
+      isLoading={isActiveLoading}
+    />,
   ];
 
   const brandRight = [
     <BrandTopPerformer key="brand-top-performer" bVideoIdx={bVideoIdx} />,
-    <BrandHiring key="brand-hiring" hiringData={hiringData} />,
+    <BrandHiring
+      key="brand-hiring"
+      hiringData={hiringData}
+      hiringUsers={hiringUsers}
+      isLoading={isHiringLoading}
+    />,
     <BrandMetaAdSpend key="brand-meta-ad-spend" />,
   ];
 
-  // const creatorLeft = [
-  //   <CreatorMonthlyEarnings />,
-  //   <CreatorTotalPayout totalPayout={totalPayout} />,
-  // ];
-  // const creatorRight = [
-  //   <CreatorTopVideo cVideoIdx={cVideoIdx} />,
-  //   <CreatorBrandsHiring hiringData={hiringData} />,
-  //   <CreatorAvgGMV />,
-  // ];
   const creatorLeft = [
     <CreatorMonthlyEarnings key="creator-monthly-earnings" />,
     <CreatorTotalPayout key="creator-total-payout" totalPayout={totalPayout} />,
@@ -1447,7 +2089,11 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
   const rightCards = mode === "brand" ? brandRight : creatorRight;
   const allCards = [...leftCards, ...rightCards];
 
-  const ctaHref = isLoggedIn ? "/dashboard" : (mode === "brand" ? "/signup" : "/signup/creator");
+  const ctaHref = isLoggedIn
+    ? "/dashboard"
+    : mode === "brand"
+      ? "/signup"
+      : "/signup/creator";
 
   const content = {
     brand: {
@@ -1463,7 +2109,7 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
       sh2: "From signup to revenue in 5 steps",
       ss: "Everything you need to run a high-performing UGC program — without the chaos.",
       ch: "Ready to scale your UGC?",
-      cp: "Join 500+ brands already using Circl to grow with creators.",
+      cp: "Join 500+ brands already using CIRCL to grow with creators.",
       cb: "Add my brand",
       steps: BRAND_STEPS,
     },
@@ -1497,7 +2143,6 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
       console.error(error);
       return;
     }
-    console.log("dataaaa______", data);
     const total = data.reduce((sum, row) => sum + (row.creator_amount || 0), 0);
 
     setTotalPayout(total);
@@ -1507,85 +2152,42 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
   }, []);
   return (
     <>
-      <div
-        className="min-h-screen overflow-x-hidden bg-white text-[#1a1a1a]"
-        suppressHydrationWarning
-        style={{ fontFamily: "'DM Sans', sans-serif" }}
-      >
-        <PageTransition>
-          <main>
-            {/* ── Hero ── */}
-            <div className="min-h-screen p-[12px] sm:p-[24px]">
-              <section className="relative min-h-[calc(100vh-24px)] rounded-[20px] border border-[#dbe6fb] bg-gradient-to-br from-[#eef4ff] to-[#e6f0ff] px-[20px] py-[56px] flex items-center justify-center sm:min-h-[calc(100vh-48px)] sm:rounded-[28px] sm:px-[40px] sm:py-[72px] lg:px-[80px]">
-                <div>
-                  <BrandMark
-                    href="/"
-                    tone="light"
-                    className="absolute top-[16px] left-8"
-                  />
-                  <Link
-                    href="/login"
-                    className="absolute top-[16px] text-blue-600 right-[16px] text-[12px] font-medium bg-white border border-[#d8e4f8] rounded-full px-[14px] py-[7px] hover:bg-[#f7faff] transition-colors z-10 shadow-sm sm:top-[22px] sm:right-[28px] sm:text-[13px] sm:px-[18px] sm:py-[8px]"
-                  >
-                    Sign in
-                  </Link>
-                </div>
-
-                {/* ── Mobile / Tablet layout: stacked ── */}
-                <div className="flex w-full flex-col items-center gap-8 lg:hidden mt-8 sm:mt-0 ">
-                  {/* Toggle */}
-                  <div className="flex rounded-full bg-white/70 backdrop-blur border border-[#d0dcf5] p-1 shadow-sm">
-                    {(["brand", "creator"] as Mode[]).map((m) => (
-                      <button
-                        key={m}
-                        onClick={() => setMode(m)}
-                        className={cn(
-                          "cursor-pointer rounded-full px-[22px] py-[10px] text-[14px] font-bold transition-all duration-[200ms]",
-                          mode === m
-                            ? "bg-[#1476ff] text-white shadow"
-                            : "bg-transparent text-[#888]",
-                        )}
-                      >
-                        {m === "brand" ? "I'm a Brand" : "I'm a Creator"}
-                      </button>
-                    ))}
+      <div className="mx-auto max-w-[1740px] w-full">
+        <div
+          className="overflow-x-hidden bg-white text-[#1a1a1a]"
+          suppressHydrationWarning
+          style={{ fontFamily: "'DM Sans', sans-serif" }}
+        >
+          <PageTransition>
+            <main>
+              {/* ── Hero ── */}
+              <div className="sm:px-12 sm:py-8">
+                {/* <section className="relative min-h-[calc(100vh-24px)] border border-[#dbe6fb] bg-gradient-to-br from-[#eef4ff] to-[#e6f0ff] py-[56px] flex items-center justify-center sm:min-h-[calc(100vh-48px)] sm:rounded-[28px] sm:py-[72px] lg:px-[80px]"> */}
+                <section className="relative md:h-[820px] border border-[#dbe6fb] bg-gradient-to-br from-[#eef4ff] to-[#e6f0ff] py-[56px] flex items-center justify-center sm:rounded-[28px] sm:py-[72px] lg:px-[80px]">
+                  <div>
+                    <BrandMark
+                      href="/"
+                      tone="light"
+                      className="absolute top-[16px] left-8"
+                    />
+                    <Link
+                      href="/login"
+                      className="absolute top-[16px] text-blue-600 right-[16px] text-[12px] font-medium bg-white border border-[#d8e4f8] rounded-full px-[14px] py-[7px] hover:bg-[#f7faff] transition-colors z-10 shadow-sm sm:top-[22px] sm:right-[28px] sm:text-[13px] sm:px-[18px] sm:py-[8px]"
+                    >
+                      Sign in
+                    </Link>
                   </div>
 
-                  {/* Hero copy */}
-                  <FadeIn className="w-full max-w-[500px] text-center">
-                    <h1 className="mb-[14px] text-[38px] font-extrabold leading-[1.06] tracking-[-0.03em] text-[#0d1a2d] sm:text-[48px]">
-                      {c.h1}
-                    </h1>
-                    <p className="text-[15px] text-[#6b7a99] leading-[1.65] mb-7 sm:text-[17px]">
-                      {c.p}
-                    </p>
-                    <Link
-                      href={ctaHref}
-                      className="inline-block text-[14px] lg:text-lg font-bold lg:font-extrabold bg-[#1476ff] text-black bg-white px-[34px] py-[14px] rounded-[2rem] hover:bg-[#0e62db] hover:text-white transition-colors shadow-md capitalize"
-                    >
-                      {c.btn}
-                    </Link>
-                  </FadeIn>
-
-                  {/* Scrollable cards strip */}
-                  <MobileCardsStrip cards={allCards} />
-                </div>
-
-                {/* ── Desktop layout: 3-col grid ── */}
-                <div className="hidden w-full grid-cols-3 items-center gap-4 lg:grid lg:grid-cols-1">
-                  {/* LEFT SIDE */}
-                  <HeroSideColumn cards={leftCards} align="left" />
-
-                  {/* CENTER */}
-                  <div className="flex flex-col items-center text-center px-[20px]">
+                  {/* ── Mobile / Tablet layout: stacked ── */}
+                  <div className="flex w-full flex-col items-center gap-8 lg:hidden mt-8 sm:mt-0 ">
                     {/* Toggle */}
-                    <div className="mb-9 flex rounded-full bg-white/70 backdrop-blur border border-[#d0dcf5] p-1 shadow-sm">
+                    <div className="flex rounded-full bg-white/70 backdrop-blur border border-[#d0dcf5] p-1 shadow-sm">
                       {(["brand", "creator"] as Mode[]).map((m) => (
                         <button
                           key={m}
                           onClick={() => setMode(m)}
                           className={cn(
-                            "cursor-pointer rounded-full px-[30px] py-[11px] text-[15px] font-bold transition-all duration-[200ms]",
+                            "cursor-pointer rounded-full px-[22px] py-[10px] text-[14px] font-bold transition-all duration-[200ms]",
                             mode === m
                               ? "bg-[#1476ff] text-white shadow"
                               : "bg-transparent text-[#888]",
@@ -1596,11 +2198,12 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
                       ))}
                     </div>
 
-                    <FadeIn className="max-w-[560px]">
-                      <h1 className="mb-[14px] text-[52px] lg:text-[72px] font-extrabold leading-[1.06] tracking-[-0.03em] text-[#0d1a2d]">
+                    {/* Hero copy */}
+                    <FadeIn className="w-full max-w-[500px] text-center">
+                      <h1 className="mb-[14px] text-[38px] font-extrabold leading-[1.06] tracking-[-0.03em] text-[#0d1a2d] sm:text-[48px]">
                         {c.h1}
                       </h1>
-                      <p className="text-[17px] text-[#6b7a99] leading-[1.65] mb-7">
+                      <p className="text-[15px] text-[#6b7a99] leading-[1.65] mb-7 sm:text-[17px]">
                         {c.p}
                       </p>
                       <Link
@@ -1609,134 +2212,128 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
                       >
                         {c.btn}
                       </Link>
-                      {/* <Link
-                        href={ctaHref}
-                        className="relative inline-flex items-center justify-center px-[34px] py-[14px] rounded-[3rem] bg-[#f3f3f3] text-black font-bold text-[14px] lg:text-lg"
-                      >
-                        <svg
-                          className="absolute inset-0 w-full h-full"
-                          viewBox="0 0 100 40"
-                          preserveAspectRatio="none"
-                        >
-                          <defs>
-                            <linearGradient
-                              id="blueGradient"
-                              x1="0%"
-                              y1="0%"
-                              x2="100%"
-                              y2="0%"
-                            >
-                              <stop
-                                offset="10%"
-                                stopColor="#bfdbfe"
-                                stopOpacity="1"
-                              />
-                              <stop
-                                offset="30%"
-                                stopColor="#60a5fa"
-                                stopOpacity="1"
-                              />
-                              <stop
-                                offset="100%"
-                                stopColor="#2563eb"
-                                stopOpacity="1"
-                              />
-                            </linearGradient>
-                          </defs>
-
-                          <rect
-                            x="1"
-                            y="1"
-                            width="97"
-                            height="38"
-                            rx="20"
-                            ry="20"
-                            fill="none"
-                            stroke="url(#blueGradient)"
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeDasharray="60 200"
-                            className="animate-dash"
-                          />
-                        </svg>
-
-                        {c.btn}
-                      </Link> */}
                     </FadeIn>
+
+                    {/* Scrollable cards strip */}
+                    <MobileCardsStrip cards={allCards} />
                   </div>
 
-                  {/* RIGHT SIDE */}
-                  <HeroSideColumn cards={rightCards} align="right" />
-                </div>
-              </section>
-            </div>
+                  {/* ── Desktop layout: 3-col grid ── */}
+                  <div className="hidden w-full grid-cols-3 items-center gap-4 lg:grid lg:grid-cols-1">
+                    {/* LEFT SIDE */}
+                    <HeroSideColumn cards={leftCards} align="left" />
 
-            {/* ── How it works ── */}
-            <section className="py-16 px-5 bg-white sm:py-24 sm:px-12">
-              <FadeIn>
-                <div className="text-[11px] font-bold tracking-[0.1em] text-[#1476ff] uppercase text-center mb-[10px]">
-                  How it works
-                </div>
-                <h2 className="text-[28px] font-extrabold tracking-[-0.025em] text-center text-[#0d1a2d] mb-[10px] sm:text-[38px]">
-                  {c.sh2}
-                </h2>
-                <p className="text-[15px] text-[#888] text-center mb-[48px] sm:mb-[72px] sm:text-[16px]">
-                  {c.ss}
-                </p>
-              </FadeIn>
-              <StepsSection steps={c.steps} mode={mode} />
-            </section>
+                    {/* CENTER */}
+                    <div className="flex flex-col items-center text-center px-[20px]">
+                      {/* Toggle */}
+                      <div className="mb-9 flex rounded-full bg-white/70 backdrop-blur border border-[#d0dcf5] p-1 shadow-sm">
+                        {(["brand", "creator"] as Mode[]).map((m) => (
+                          <button
+                            key={m}
+                            onClick={() => setMode(m)}
+                            className={cn(
+                              "cursor-pointer rounded-full px-[30px] py-[11px] text-[15px] font-bold transition-all duration-[200ms]",
+                              mode === m
+                                ? "bg-[#1476ff] text-white shadow"
+                                : "bg-transparent text-[#888]",
+                            )}
+                          >
+                            {m === "brand" ? "I'm a Brand" : "I'm a Creator"}
+                          </button>
+                        ))}
+                      </div>
 
-            {/* ── Dashboard ── */}
-            <section className="bg-[#f7f6f3] px-5 py-14 sm:px-12 sm:py-20">
-              <div className="max-w-[900px] mx-auto">
+                      <FadeIn className="max-w-[560px]">
+                        <h1 className="mb-[14px] text-[52px] lg:text-[72px] font-extrabold leading-[1.06] tracking-[-0.03em] text-[#0d1a2d]">
+                          {c.h1}
+                        </h1>
+                        <p className="text-[17px] text-[#6b7a99] leading-[1.65] mb-7">
+                          {c.p}
+                        </p>
+                        <Link
+                          href={ctaHref}
+                          className="inline-block text-[14px] lg:text-lg font-bold lg:font-extrabold bg-[#1476ff] text-black bg-white px-[34px] py-[14px] rounded-[2rem] hover:bg-[#0e62db] hover:text-white transition-colors shadow-md capitalize"
+                        >
+                          {c.btn}
+                        </Link>
+                      </FadeIn>
+                    </div>
+
+                    {/* RIGHT SIDE */}
+                    <HeroSideColumn cards={rightCards} align="right" />
+                  </div>
+                </section>
+              </div>
+
+              {/* ── How it works ── */}
+              <section className="py-16 px-5 bg-white sm:py-20 sm:px-12">
                 <FadeIn>
                   <div className="text-[11px] font-bold tracking-[0.1em] text-[#1476ff] uppercase text-center mb-[10px]">
-                    Dashboard
+                    How it works
                   </div>
                   <h2 className="text-[28px] font-extrabold tracking-[-0.025em] text-center text-[#0d1a2d] mb-[10px] sm:text-[38px]">
-                    Full visibility, zero guesswork
+                    {c.sh2}
                   </h2>
-                  <p className="text-[15px] text-[#888] text-center sm:text-[16px]">
-                    See every creator, every video, every dollar — in one clean
-                    view.
+                  <p className="text-[15px] text-[#888] text-center mb-[48px] sm:mb-[72px] sm:text-[16px]">
+                    {c.ss}
                   </p>
                 </FadeIn>
-                <FadeIn>
-                  {/* Wrap in scrollable container on mobile so dashboard doesn't break layout */}
-                  <div className="overflow-x-auto">
-                    <div className=" sm:min-w-[480px] sm:min-w-0">
-                      <DashboardMock />
+                <StepsSection steps={c.steps} mode={mode} />
+              </section>
+
+              {/* ── Dashboard ── */}
+              {/* <section className="bg-[#f7f6f3] px-5 py-14 sm:px-12 sm:py-20"> */}
+              <section className="px-5 py-14 sm:px-12 sm:py-20">
+                <div className="max-w-[900px] mx-auto">
+                  <FadeIn>
+                    <div className="text-[11px] font-bold tracking-[0.1em] text-[#1476ff] uppercase text-center mb-[10px]">
+                      Dashboard
                     </div>
-                  </div>
+                    <h2 className="text-[28px] font-extrabold tracking-[-0.025em] text-center text-[#0d1a2d] mb-[10px] sm:text-[38px]">
+                      Full visibility, zero guesswork
+                    </h2>
+                    <p className="text-[15px] text-[#888] text-center sm:text-[16px]">
+                      See every creator, every video, every dollar — in one
+                      clean view.
+                    </p>
+                  </FadeIn>
+                  <FadeIn>
+                    {/* Wrap in scrollable container on mobile so dashboard doesn't break layout */}
+                    <div className="overflow-x-auto">
+                      <div className=" sm:min-w-[480px] sm:min-w-0">
+                        <DashboardMock />
+                      </div>
+                    </div>
+                  </FadeIn>
+                </div>
+              </section>
+
+              {/* ── CTA ── */}
+              {/* <section className="bg-[#eef4ff] px-5 py-16 text-center sm:px-12 sm:py-20"> */}
+              <section className="px-5 py-16 text-center sm:px-12 sm:py-20">
+                <FadeIn>
+                  <h2 className="text-[28px] font-extrabold tracking-[-0.025em] text-[#0d1a2d] mb-3 sm:text-[36px]">
+                    {c.ch}
+                  </h2>
+                  <p className="text-[15px] text-[#6b7a99] mb-7 sm:text-[16px]">
+                    {c.cp}
+                  </p>
+                  <Link
+                    href={ctaHref}
+                    className="inline-block text-[15px] font-bold bg-[#1476ff] text-white px-9 py-[14px] rounded-[12px] hover:bg-[#0e62db] transition-colors"
+                  >
+                    {c.cb}
+                  </Link>
                 </FadeIn>
-              </div>
-            </section>
+              </section>
 
-            {/* ── CTA ── */}
-            <section className="bg-[#eef4ff] px-5 py-16 text-center sm:px-12 sm:py-20">
-              <FadeIn>
-                <h2 className="text-[28px] font-extrabold tracking-[-0.025em] text-[#0d1a2d] mb-3 sm:text-[36px]">
-                  {c.ch}
-                </h2>
-                <p className="text-[15px] text-[#6b7a99] mb-7 sm:text-[16px]">
-                  {c.cp}
-                </p>
-                <Link
-                  href={ctaHref}
-                  className="inline-block text-[15px] font-bold bg-[#1476ff] text-white px-9 py-[14px] rounded-[12px] hover:bg-[#0e62db] transition-colors"
-                >
-                  {c.cb}
-                </Link>
-              </FadeIn>
-            </section>
-
-            {/* Footer */}
-            <footer className="pt-16 pb-8 text-center text-[11px] text-[#47C2FF]">
-              © 2024 Circl Inc. All Rights Reserved.
-            </footer>
-          </main>
-        </PageTransition>
+              {/* Footer */}
+              <footer className="pt-16 pb-8 text-center text-[12px] text-[#47C2FF] font-medium">
+                © 2026 Circl Inc. All Rights Reserved.
+              </footer>
+            </main>
+          </PageTransition>
+        </div>
       </div>
     </>
   );
