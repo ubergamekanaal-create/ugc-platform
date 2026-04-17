@@ -113,7 +113,7 @@ function HelpIcon() {
 
 function SparklesWandIcon() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" color="currentColor" className="w-8 h-8 text-purple-600"><path d="M14 12.6483L16.3708 10.2775C16.6636 9.98469 16.81 9.83827 16.8883 9.68032C17.0372 9.3798 17.0372 9.02696 16.8883 8.72644C16.81 8.56849 16.6636 8.42207 16.3708 8.12923C16.0779 7.83638 15.9315 7.68996 15.7736 7.61169C15.473 7.46277 15.1202 7.46277 14.8197 7.61169C14.6617 7.68996 14.5153 7.83638 14.2225 8.12923L11.8517 10.5M14 12.6483L5.77754 20.8708C5.4847 21.1636 5.33827 21.31 5.18032 21.3883C4.8798 21.5372 4.52696 21.5372 4.22644 21.3883C4.06849 21.31 3.92207 21.1636 3.62923 20.8708C3.33639 20.5779 3.18996 20.4315 3.11169 20.2736C2.96277 19.973 2.96277 19.6202 3.11169 19.3197C3.18996 19.1617 3.33639 19.0153 3.62923 18.7225L11.8517 10.5M14 12.6483L11.8517 10.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path><path d="M19.5 2.5L19.3895 2.79873C19.2445 3.19044 19.172 3.38629 19.0292 3.52917C18.8863 3.67204 18.6904 3.74452 18.2987 3.88946L18 4L18.2987 4.11054C18.6904 4.25548 18.8863 4.32796 19.0292 4.47083C19.172 4.61371 19.2445 4.80956 19.3895 5.20127L19.5 5.5L19.6105 5.20127C19.7555 4.80956 19.828 4.61371 19.9708 4.47083C20.1137 4.32796 20.3096 4.25548 20.7013 4.11054L21 4L20.7013 3.88946C20.3096 3.74452 20.1137 3.67204 19.9708 3.52917C19.828 3.38629 19.7555 3.19044 19.6105 2.79873L19.5 2.5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="1.5"></path><path d="M19.5 12.5L19.3895 12.7987C19.2445 13.1904 19.172 13.3863 19.0292 13.5292C18.8863 13.672 18.6904 13.7445 18.2987 13.8895L18 14L18.2987 14.1105C18.6904 14.2555 18.8863 14.328 19.0292 14.4708C19.172 14.6137 19.2445 14.8096 19.3895 15.2013L19.5 15.5L19.6105 15.2013C19.7555 14.8096 19.828 14.6137 19.9708 14.4708C20.1137 14.328 20.3096 14.2555 20.7013 14.1105L21 14L20.7013 13.8895C20.3096 13.7445 20.1137 13.672 19.9708 13.5292C19.828 13.3863 19.7555 13.1904 19.6105 12.7987L19.5 12.5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="1.5"></path><path d="M10.5 2.5L10.3895 2.79873C10.2445 3.19044 10.172 3.38629 10.0292 3.52917C9.88629 3.67204 9.69044 3.74452 9.29873 3.88946L9 4L9.29873 4.11054C9.69044 4.25548 9.88629 4.32796 10.0292 4.47083C10.172 4.61371 10.2445 4.80956 10.3895 5.20127L10.5 5.5L10.6105 5.20127C10.7555 4.80956 10.828 4.61371 10.9708 4.47083C11.1137 4.32796 11.3096 4.25548 11.7013 4.11054L12 4L11.7013 3.88946C11.3096 3.74452 11.1137 3.67204 10.9708 3.52917C10.828 3.38629 10.7555 3.19044 10.6105 2.79873L10.5 2.5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" color="currentColor" className="w-8 h-8 text-blue-600"><path d="M14 12.6483L16.3708 10.2775C16.6636 9.98469 16.81 9.83827 16.8883 9.68032C17.0372 9.3798 17.0372 9.02696 16.8883 8.72644C16.81 8.56849 16.6636 8.42207 16.3708 8.12923C16.0779 7.83638 15.9315 7.68996 15.7736 7.61169C15.473 7.46277 15.1202 7.46277 14.8197 7.61169C14.6617 7.68996 14.5153 7.83638 14.2225 8.12923L11.8517 10.5M14 12.6483L5.77754 20.8708C5.4847 21.1636 5.33827 21.31 5.18032 21.3883C4.8798 21.5372 4.52696 21.5372 4.22644 21.3883C4.06849 21.31 3.92207 21.1636 3.62923 20.8708C3.33639 20.5779 3.18996 20.4315 3.11169 20.2736C2.96277 19.973 2.96277 19.6202 3.11169 19.3197C3.18996 19.1617 3.33639 19.0153 3.62923 18.7225L11.8517 10.5M14 12.6483L11.8517 10.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path><path d="M19.5 2.5L19.3895 2.79873C19.2445 3.19044 19.172 3.38629 19.0292 3.52917C18.8863 3.67204 18.6904 3.74452 18.2987 3.88946L18 4L18.2987 4.11054C18.6904 4.25548 18.8863 4.32796 19.0292 4.47083C19.172 4.61371 19.2445 4.80956 19.3895 5.20127L19.5 5.5L19.6105 5.20127C19.7555 4.80956 19.828 4.61371 19.9708 4.47083C20.1137 4.32796 20.3096 4.25548 20.7013 4.11054L21 4L20.7013 3.88946C20.3096 3.74452 20.1137 3.67204 19.9708 3.52917C19.828 3.38629 19.7555 3.19044 19.6105 2.79873L19.5 2.5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="1.5"></path><path d="M19.5 12.5L19.3895 12.7987C19.2445 13.1904 19.172 13.3863 19.0292 13.5292C18.8863 13.672 18.6904 13.7445 18.2987 13.8895L18 14L18.2987 14.1105C18.6904 14.2555 18.8863 14.328 19.0292 14.4708C19.172 14.6137 19.2445 14.8096 19.3895 15.2013L19.5 15.5L19.6105 15.2013C19.7555 14.8096 19.828 14.6137 19.9708 14.4708C20.1137 14.328 20.3096 14.2555 20.7013 14.1105L21 14L20.7013 13.8895C20.3096 13.7445 20.1137 13.672 19.9708 13.5292C19.828 13.3863 19.7555 13.1904 19.6105 12.7987L19.5 12.5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="1.5"></path><path d="M10.5 2.5L10.3895 2.79873C10.2445 3.19044 10.172 3.38629 10.0292 3.52917C9.88629 3.67204 9.69044 3.74452 9.29873 3.88946L9 4L9.29873 4.11054C9.69044 4.25548 9.88629 4.32796 10.0292 4.47083C10.172 4.61371 10.2445 4.80956 10.3895 5.20127L10.5 5.5L10.6105 5.20127C10.7555 4.80956 10.828 4.61371 10.9708 4.47083C11.1137 4.32796 11.3096 4.25548 11.7013 4.11054L12 4L11.7013 3.88946C11.3096 3.74452 11.1137 3.67204 10.9708 3.52917C10.828 3.38629 10.7555 3.19044 10.6105 2.79873L10.5 2.5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="1.5"></path></svg>
   );
 }
 
@@ -215,6 +215,9 @@ export function SignupForm() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("Member");
+  const [teamMembers, setTeamMembers] = useState<
+    { email: string; role: string }[]
+  >([]);
   const [otpDigits, setOtpDigits] = useState<string[]>(createEmptyOtp);
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
@@ -461,11 +464,29 @@ export function SignupForm() {
       if (teamMemberError) {
         throw teamMemberError;
       }
+      // SEND INVITES ONE BY ONE
 
       setHasPasswordApplied(true);
     }
   }
+  function handleAddTeamMember() {
+    if (!inviteEmail.trim()) return;
 
+    setTeamMembers((prev) => [
+      ...prev,
+      {
+        email: inviteEmail.trim(),
+        role: inviteRole,
+      },
+    ]);
+
+    // reset input
+    setInviteEmail("");
+    setInviteRole("Member");
+  }
+  function handleRemoveMember(index: number) {
+    setTeamMembers((prev) => prev.filter((_, i) => i !== index));
+  }
   async function handleVerifyOtpAndContinue() {
     resetFeedback();
     setIsWorking(true);
@@ -488,7 +509,16 @@ export function SignupForm() {
   async function handleCompleteSignup() {
     resetFeedback();
     setIsWorking(true);
-
+    const defaultPermissions = {
+      include_in_chats: true,
+      view_analytics: true,
+      manage_submissions: true,
+      manage_creators: true,
+      view_finance: true,
+      manage_campaigns: true,
+      manage_integrations: true,
+      manage_settings: true,
+    };
     try {
       if (!isOtpVerified || !hasPasswordApplied) {
         throw new Error("Verify your email before finishing signup.");
@@ -551,7 +581,29 @@ export function SignupForm() {
       if (teamMemberError) {
         throw teamMemberError;
       }
+      for (const member of teamMembers) {
+        try {
+          const res = await fetch("/api/invite", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: member.email,
+              role: member.role.toLowerCase(),
+              permissions: defaultPermissions,
+            }),
+          });
 
+          const result = await res.json();
+
+          if (!res.ok) {
+            console.error("Invite failed:", member.email, result?.error);
+          }
+        } catch (err) {
+          console.error("Invite error:", member.email, err);
+        }
+      }
       setSuccess("Brand account ready. Opening your workspace...");
       window.location.assign("/dashboard");
     } catch (submitError) {
@@ -714,12 +766,12 @@ export function SignupForm() {
 
             <div className="h-2 rounded-full bg-slate-200">
               <div
-                className="relative h-full rounded-full bg-gradient-to-r from-purple-700 to-purple-500 transition-all duration-300"
+                className="relative h-full rounded-full bg-gradient-to-r from-blue-600 to-blue-500 transition-all duration-300"
                 style={{
                   width: `${(subStep / BRAND_SETUP_TOTAL_SUBSTEPS) * 100}%`,
                 }}
               >
-                <span className="absolute right-2 top-1/2 h-2.5 w-2.5 -translate-y-1/2 translate-x-1/2 rounded-full border-2 border-white bg-purple-600" />
+                <span className="absolute right-2 top-1/2 h-2.5 w-2.5 -translate-y-1/2 translate-x-1/2 rounded-full border-2 border-white bg-blue-600" />
               </div>
             </div>
           </div>
@@ -739,7 +791,7 @@ export function SignupForm() {
           {subStep === 1 ? (
             <div className="space-y-6 px-1 py-3">
               <div className="space-y-2 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#f6e9ff] text-[#a020f0]">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-[#a020f0]">
                   <SparklesWandIcon />
                 </div>
                 <h3 className="pt-1 text-[1.7rem] font-semibold tracking-tight text-slate-950">
@@ -759,14 +811,14 @@ export function SignupForm() {
                   value={websiteUrl}
                   onChange={(event) => setWebsiteUrl(event.target.value)}
                   placeholder="https://yourbrand.com"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-[#7c1fff] focus:shadow-[0_0_0_4px_rgba(124,31,255,0.12)]"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-blue-500 focus:shadow-[0_0_0_4px_#dbeafe]"
                 />
               </div>
 
               <button
                 type="button"
                 onClick={handleStepThreeContinue}
-                className="flex h-11 w-full items-center justify-center rounded-full bg-[linear-gradient(90deg,_#c084fc,_#d946ef)] text-sm font-semibold text-white transition hover:brightness-105"
+                className="flex h-11 w-full items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-blue-500 text-sm font-semibold text-white transition hover:brightness-105"
               >
                 <ExtractBrnad />
                 Extract Brand Info
@@ -870,7 +922,7 @@ export function SignupForm() {
                 <button
                   type="button"
                   onClick={handleStepThreeContinue}
-                  className="inline-flex items-center rounded-full bg-[linear-gradient(90deg,_#7c1fff,_#c026ff)] px-5 py-2 text-sm font-semibold text-white transition hover:brightness-105"
+                  className="inline-flex items-center rounded-full bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-2 text-sm font-semibold text-white transition hover:brightness-105"
                 >
                   Next
                   <ArrowRightIcon />
@@ -927,12 +979,37 @@ export function SignupForm() {
 
               <button
                 type="button"
+                onClick={handleAddTeamMember}
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-[#f8f8fb] text-sm font-medium text-slate-400 transition hover:text-slate-600"
               >
                 <UserPlusIcon />
                 Add Team Member
               </button>
+              {teamMembers.length > 0 && (
+                <div className="space-y-2">
+                  {teamMembers.map((member, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-2 bg-white"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">
+                          {member.email}
+                        </p>
+                        <p className="text-xs text-slate-500">{member.role}</p>
+                      </div>
 
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMember(index)}
+                        className="text-red-500 hover:text-red-600 text-sm font-bold"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="flex items-center justify-between gap-3 pt-4">
                 <button
                   type="button"
@@ -950,7 +1027,7 @@ export function SignupForm() {
                   type="button"
                   onClick={() => void handleCompleteSignup()}
                   disabled={isWorking}
-                  className="rounded-full bg-[linear-gradient(90deg,_#7c1fff,_#c026ff)] px-5 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-full bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isWorking ? "Finishing..." : "Complete Setup"}
                 </button>
@@ -1010,13 +1087,13 @@ export function SignupForm() {
 
           <button
             type="button"
-            className="mt-7 rounded-xl bg-[linear-gradient(90deg,_#c084fc,_#f472b6)] px-7 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(244,114,182,0.2)]"
+            className="mt-7 rounded-xl bg-blue-600 px-7 py-2.5 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(244,114,182,0.2)]"
           >
             Get Started
           </button>
 
           <div className="mt-5 flex items-center gap-5 text-xs">
-            <button type="button" className="text-[#8b5cf6] underline">
+            <button type="button" className="text-blue-600 underline">
               Chat with us
             </button>
             <button type="button" className="text-slate-500 underline">
@@ -1140,7 +1217,7 @@ export function SignupForm() {
               type="button"
               onClick={() => void handleVerifyOtpAndContinue()}
               disabled={isWorking || disableVerify}
-              className="h-11 w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 text-sm font-semibold text-white transition hover:brightness-105 disabled:opacity-50"
+              className="h-11 w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 text-sm font-semibold text-white transition hover:brightness-105 disabled:opacity-50"
             >
               {isWorking ? "Verifying..." : "Verify Account"}
             </button>
@@ -1149,7 +1226,7 @@ export function SignupForm() {
               type="button"
               onClick={() => void handleResendOtp()}
               disabled={isResendDisabled || isWorking}
-              className="h-11 w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 text-sm font-semibold text-white transition hover:brightness-105 disabled:opacity-50"
+              className="h-11 w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 text-sm font-semibold text-white transition hover:brightness-105 disabled:opacity-50"
             >
               {isResendDisabled
                 ? `Send new code in ${resendTimer}s`
@@ -1167,7 +1244,7 @@ export function SignupForm() {
             </button>
 
             <p className="text-xs text-slate-500">
-              Didn&apos;t receive the code? Check your spam folder or <span className="text-purple-600 hover:text-purple-500 font-medium">contact support</span>
+              Didn&apos;t receive the code? Check your spam folder or <span className="text-blue-600 hover:text-blue-500 font-medium">contact support</span>
             </p>
           </div>
         ) : null}
@@ -1201,14 +1278,14 @@ export function SignupForm() {
             I agree to the{" "}
             <Link
               href="/terms"
-              className="text-purple-600 hover:text-purple-500 underline"
+              className="text-blue-600 hover:text-blue-500 underline"
             >
               Terms of Service
             </Link>{" "}
             and{" "}
             <Link
               href="/privacy"
-              className="text-purple-600 hover:text-purple-500 underline"
+              className="text-blue-600 hover:text-blue-500 underline"
             >
               Privacy Policy
             </Link>
@@ -1222,19 +1299,19 @@ export function SignupForm() {
           type="button"
           onClick={handlePrimaryAction}
           disabled={isWorking || !isChecked}
-          className="mt-4 h-12 w-full rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_35px_rgba(15,23,42,0.16)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 sm:text-base"
+          className="mt-4 h-12 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_35px_rgba(15,23,42,0.16)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 sm:text-base"
         >
           {isWorking ? "Please wait..." : "Create account"}
         </button>
       ) : null}
 
       {step === 1 ? (
-        <div className="mt-6 text-center text-[11px] leading-5 text-purple-600 font-medium sm:text-base">
+        <div className="mt-6 text-center text-[11px] leading-5 text-blue-600 font-medium sm:text-base">
           <p className="mt-2">
             Already have an account?{" "}
             <Link
               href="/login?role=brand"
-              className="font-medium text-purple-600 transition hover:text-purple-500"
+              className="font-medium text-blue-600 transition hover:text-blue-500"
             >
               Sign in
             </Link>

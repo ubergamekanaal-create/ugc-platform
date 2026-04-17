@@ -1225,7 +1225,11 @@ function CreatorStepMiniPreview({ stepNum }: { stepNum: string }) {
               <motion.div
                 className="h-[7px] rounded-full bg-[linear-gradient(90deg,#1476ff_0%,#63a8ff_100%)]"
                 animate={{ width: ["26%", "88%", "88%", "26%"] }}
-                transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}
+                transition={{
+                  duration: 3.6,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
               />
             </div>
           </div>
@@ -1402,31 +1406,6 @@ function StepsSection({ steps, mode }: { steps: Step[]; mode: Mode }) {
         );
 
         return (
-          // <div
-          //   key={`${mode}-${i}`}
-          //   className="relative z-[2] flex items-center py-[40px] md:py-[60px]"
-          // >
-          //   {flip ? (
-          //     <>
-          //       <div className="w-1/2 flex justify-center pr-4 md:pr-[40px]">
-          //         {dot}
-          //       </div>
-          //       <div className="w-1/2 flex justify-center pl-4 md:pl-[40px]">
-          //         {card}
-          //       </div>
-          //     </>
-          //   ) : (
-          //     <>
-          //       <div className="w-1/2 flex justify-center pr-4 md:pr-[40px]">
-          //         {card}
-          //       </div>
-          //       <div className="w-1/2 flex justify-center pl-4 md:pl-[40px]">
-          //         {dot}
-          //       </div>
-          //     </>
-          //   )}
-          // </div>
-
           <div
             key={`${mode}-${i}`}
             className="relative z-[2] flex items-center gap-2 py-[24px] sm:py-[40px] md:py-[60px]"
@@ -1636,20 +1615,6 @@ function DashboardMock() {
 
   useEffect(() => {
     const id = setInterval(() => {
-      setBars((prev) => {
-        if (prev.length === 0) return prev;
-
-        return prev.map(
-          (v) => v + (Math.random() < 0.3 ? Math.floor(Math.random() * 3) : 0),
-        );
-      });
-    }, 3000);
-
-    return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    const id = setInterval(() => {
       setStats((s) => ({
         totalCreators: s.totalCreators + Math.floor(Math.random() * 4),
         activeCreators: s.activeCreators + Math.floor(Math.random() * 2),
@@ -1677,33 +1642,39 @@ function DashboardMock() {
     "Dec",
   ];
 
-  const chartData = useMemo(
-    () =>
-      bars.map((value, index) => ({
-        name: months[index],
-        value,
-      })),
-    [bars],
-  );
+  const chartData = useMemo(() => {
+    if (stats.submissions === 0) {
+      return months.map((m) => ({ name: m, value: 0 }));
+    }
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      setCreatorData((prev) =>
-        prev.map((item) => {
-          const base = Math.max(1, Math.floor(item.total * 0.05));
-          const delta = Math.floor(Math.random() * base) + 1;
+    const weights = months.map(() => Math.random());
 
-          return {
-            ...item,
-            total: item.total + delta,
-            active: item.active + Math.floor(delta / 2),
-          };
-        }),
-      );
-    }, 2000);
+    const sum = weights.reduce((a, b) => a + b, 0);
 
-    return () => clearInterval(id);
-  }, []);
+    return months.map((m, i) => ({
+      name: m,
+      value: Math.round((weights[i] / sum) * stats.submissions),
+    }));
+  }, [stats.submissions]);
+
+  const normalizedCreatorData = useMemo(() => {
+    if (stats.totalCreators === 0) {
+      return months.map((m) => ({
+        month: m,
+        total: 0,
+        active: 0,
+      }));
+    }
+
+    const weights = months.map(() => Math.random());
+    const sum = weights.reduce((a, b) => a + b, 0);
+
+    return months.map((m, i) => ({
+      month: m,
+      total: Math.round((weights[i] / sum) * stats.totalCreators),
+      active: Math.round((weights[i] / sum) * stats.activeCreators),
+    }));
+  }, [stats.totalCreators, stats.activeCreators]);
 
   const INIT_GMV = [48, 42, 34, 28, 20, 14, 9, 4, 1];
   const [gmvPoints, setGmvPoints] = useState(INIT_GMV);
@@ -1724,11 +1695,6 @@ function DashboardMock() {
     }, 2000);
     return () => clearInterval(id);
   }, []);
-
-  const gmvPolyline = gmvPoints
-    .map((y, i) => `${(i / (gmvPoints.length - 1)) * 200},${y}`)
-    .join(" ");
-  const gmvEndY = gmvPoints[gmvPoints.length - 1];
 
   return (
     <div className="mt-11 overflow-hidden rounded-[16px] border border-[#E2E0DB] bg-white">
@@ -1828,6 +1794,7 @@ function DashboardMock() {
                       tickLine={false}
                     />
                     <YAxis
+                      domain={[0, Math.ceil(stats.submissions / 4)]}
                       tick={{ fontSize: 10, fill: "#888" }}
                       axisLine={false}
                       tickLine={false}
@@ -1862,7 +1829,7 @@ function DashboardMock() {
 
               <div className="h-[180px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={creatorData}>
+                  <LineChart data={normalizedCreatorData}>
                     {/* GRID */}
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -1880,6 +1847,7 @@ function DashboardMock() {
 
                     {/* Y AXIS */}
                     <YAxis
+                      domain={[0, Math.ceil(stats.totalCreators / 4)]}
                       tick={{ fontSize: 10, fill: "#888" }}
                       axisLine={false}
                       tickLine={false}
@@ -2282,8 +2250,8 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
               </section>
 
               {/* ── Dashboard ── */}
-              {/* <section className="bg-[#f7f6f3] px-5 py-14 sm:px-12 sm:py-20"> */}
-              <section className="px-5 py-14 sm:px-12 sm:py-20">
+              <section className="bg-[#f7f6f3] px-5 py-14 sm:px-12 sm:py-20">
+                {/* <section className="px-5 py-14 sm:px-12 sm:py-20"> */}
                 <div className="max-w-[900px] mx-auto">
                   <FadeIn>
                     <div className="text-[11px] font-bold tracking-[0.1em] text-[#1476ff] uppercase text-center mb-[10px]">
@@ -2309,8 +2277,8 @@ export function HomePage({ isLoggedIn = false }: HomePageProps) {
               </section>
 
               {/* ── CTA ── */}
-              {/* <section className="bg-[#eef4ff] px-5 py-16 text-center sm:px-12 sm:py-20"> */}
-              <section className="px-5 py-16 text-center sm:px-12 sm:py-20">
+              <section className="bg-[#eef4ff] px-5 py-16 text-center sm:px-12 sm:py-20">
+                {/* <section className="px-5 py-16 text-center sm:px-12 sm:py-20"> */}
                 <FadeIn>
                   <h2 className="text-[28px] font-extrabold tracking-[-0.025em] text-[#0d1a2d] mb-3 sm:text-[36px]">
                     {c.ch}
