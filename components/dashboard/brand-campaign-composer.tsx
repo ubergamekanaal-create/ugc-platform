@@ -106,10 +106,10 @@ export function BrandCampaignComposer({
     };
     const query = isEditing
       ? supabase
-          .from("campaigns")
-          .update(payload)
-          .eq("id", campaign?.id ?? "")
-          .eq("brand_id", brandId)
+        .from("campaigns")
+        .update(payload)
+        .eq("id", campaign?.id ?? "")
+        .eq("brand_id", brandId)
       : supabase.from("campaigns").insert(payload);
     const { error } = await query;
 

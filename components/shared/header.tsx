@@ -3,6 +3,7 @@ import { BrandMark } from "@/components/shared/brand-mark";
 import Link from "next/link";
 import { UserProfile } from "@/lib/types";
 import { NotificationsCenter } from "../dashboard/notifications-center";
+import Image from "next/image";
 
 type Props = {
   tone?: String;
@@ -28,6 +29,7 @@ export default function Header({ tone, name, roleLabel, profile }: Props) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
   async function handleSignOut() {
     setIsPending(true);
     try {
@@ -62,8 +64,17 @@ export default function Header({ tone, name, roleLabel, profile }: Props) {
               className="flex items-center gap-3 rounded-full px-3 py-2 hover:bg-slate-100 transition"
             >
               {/* Avatar */}
-              <div className="h-9 w-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-semibold">
-                {name?.charAt(0)}
+
+              <div className="h-9 w-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-semibold overflow-hidden">
+                {profile?.avatar_url ? (
+                  <img
+                    src={profile?.avatar_url}
+                    alt="avatar"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  name?.charAt(0)
+                )}
               </div>
 
               {/* Name */}
@@ -76,8 +87,16 @@ export default function Header({ tone, name, roleLabel, profile }: Props) {
             {open && (
               <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-slate-200 bg-white shadow-lg p-2">
                 <div className="flex items-center gap-2 mb-2 px-2 py-2 hover:bg-slate-100 transition border-b border-b-slate-400">
-                  <div className="h-9 w-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-semibold">
-                    {name?.charAt(0)}
+                  <div className="h-9 w-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-semibold overflow-hidden">
+                    {profile?.avatar_url ? (
+                      <img
+                        src={profile?.avatar_url}
+                        alt="avatar"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      name?.charAt(0)
+                    )}
                   </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-medium text-black">

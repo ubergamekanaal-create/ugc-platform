@@ -133,9 +133,9 @@ export function BrandFinancePanel({
         });
         const payload = (await response.json().catch(() => null)) as
           | {
-              error?: string;
-              funding?: Pick<BrandFundingSummary, "status">;
-            }
+            error?: string;
+            funding?: Pick<BrandFundingSummary, "status">;
+          }
           | null;
 
         if (!response.ok) {
@@ -250,9 +250,9 @@ export function BrandFinancePanel({
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
-          <div className="flex items-center justify-between gap-4">
+          <div className="grid items-start justify-between sm:grid-cols-[1fr_auto] gap-4">
             <div>
               <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
                 Fund Campaigns
@@ -261,9 +261,12 @@ export function BrandFinancePanel({
                 Route brand payments into campaign balances before releasing creator payouts.
               </p>
             </div>
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-accent">
-              Stripe Checkout
-            </span>
+            <div className="flex justify-end">
+              <span className="w-fit rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-accent">
+                Stripe Checkout
+              </span>
+            </div>
+
           </div>
 
           {campaigns.length ? (
@@ -335,7 +338,7 @@ export function BrandFinancePanel({
         </div>
 
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
-          <div className="flex items-center justify-between gap-4">
+          <div className="grid sm:grid-cols-[1fr_auto] items-start justify-between gap-4">
             <div>
               <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
                 Release Creator Payouts
@@ -344,9 +347,12 @@ export function BrandFinancePanel({
                 Approved submissions land here as payout-ready obligations.
               </p>
             </div>
-              <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">
-              {actionablePayouts.length} actionable
+            <div className="flex justify-end">
+              <span className="rounded-full w-fit bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">
+                {actionablePayouts.length} actionable
               </span>
+            </div>
+
           </div>
 
           <div className="mt-8 space-y-4">
@@ -448,7 +454,7 @@ export function BrandFinancePanel({
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
           <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
             Funding Timeline
