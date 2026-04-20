@@ -479,7 +479,7 @@ export function BrandCreatorDirectory({
             onChange={(event) =>
               setSelectedPerformance(event.target.value as PerformanceFilter)
             }
-            className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+            className="h-12 rounded-2xl border truncate border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
           >
             <option value="all">All performance tiers</option>
             <option value="engagement_3_plus">3%+ engagement</option>
@@ -491,7 +491,7 @@ export function BrandCreatorDirectory({
             onChange={(event) =>
               setSelectedCollaboration(event.target.value as CollaborationFilter)
             }
-            className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+            className="h-12 rounded-2xl border truncate border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
           >
             <option value="all">All collaboration states</option>
             <option value="available">Ready to invite</option>
@@ -635,22 +635,22 @@ export function BrandCreatorDirectory({
                 )}
 
                 <div className="mt-5 flex flex-wrap gap-2">
-                {(creator.niches.length ? creator.niches : [creator.focus]).map((item) => (
-                  <span
-                    key={`${creator.id}-niche-${item}`}
-                    className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
-                  >
-                    {item}
-                  </span>
-                ))}
-                {creator.platform_specialties.map((platform) => (
-                  <span
-                    key={`${creator.id}-platform-${platform}`}
-                    className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-accent"
-                  >
-                    {platform}
-                  </span>
-                ))}
+                  {(creator.niches.length ? creator.niches : [creator.focus]).map((item) => (
+                    <span
+                      key={`${creator.id}-niche-${item}`}
+                      className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                  {creator.platform_specialties.map((platform) => (
+                    <span
+                      key={`${creator.id}-platform-${platform}`}
+                      className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-accent"
+                    >
+                      {platform}
+                    </span>
+                  ))}
                 </div>
               </div>
 
@@ -1287,40 +1287,40 @@ export function BrandCreatorDirectory({
                     {(selectedCreator.audience_summary ||
                       selectedCreator.past_work ||
                       selectedCreator.featured_result) && (
-                      <div className="mt-5 rounded-[1.3rem] bg-slate-50 p-4 text-sm text-slate-600">
-                        {selectedCreator.audience_summary ? (
-                          <p>
-                            <span className="font-medium text-slate-900">Audience:</span>{" "}
-                            {selectedCreator.audience_summary}
-                          </p>
-                        ) : null}
-                        {selectedCreator.past_work ? (
-                          <p
-                            className={cn(
-                              selectedCreator.audience_summary ? "mt-3" : "",
-                            )}
-                          >
-                            <span className="font-medium text-slate-900">Past work:</span>{" "}
-                            {selectedCreator.past_work}
-                          </p>
-                        ) : null}
-                        {selectedCreator.featured_result ? (
-                          <p
-                            className={cn(
-                              selectedCreator.audience_summary ||
-                                selectedCreator.past_work
-                                ? "mt-3"
-                                : "",
-                            )}
-                          >
-                            <span className="font-medium text-slate-900">
-                              Featured result:
-                            </span>{" "}
-                            {selectedCreator.featured_result}
-                          </p>
-                        ) : null}
-                      </div>
-                    )}
+                        <div className="mt-5 rounded-[1.3rem] bg-slate-50 p-4 text-sm text-slate-600">
+                          {selectedCreator.audience_summary ? (
+                            <p>
+                              <span className="font-medium text-slate-900">Audience:</span>{" "}
+                              {selectedCreator.audience_summary}
+                            </p>
+                          ) : null}
+                          {selectedCreator.past_work ? (
+                            <p
+                              className={cn(
+                                selectedCreator.audience_summary ? "mt-3" : "",
+                              )}
+                            >
+                              <span className="font-medium text-slate-900">Past work:</span>{" "}
+                              {selectedCreator.past_work}
+                            </p>
+                          ) : null}
+                          {selectedCreator.featured_result ? (
+                            <p
+                              className={cn(
+                                selectedCreator.audience_summary ||
+                                  selectedCreator.past_work
+                                  ? "mt-3"
+                                  : "",
+                              )}
+                            >
+                              <span className="font-medium text-slate-900">
+                                Featured result:
+                              </span>{" "}
+                              {selectedCreator.featured_result}
+                            </p>
+                          ) : null}
+                        </div>
+                      )}
                   </div>
                   <div className="space-y-4">
                     <div className="rounded-[1.6rem] border border-slate-200 bg-slate-50 p-5">
@@ -1345,8 +1345,8 @@ export function BrandCreatorDirectory({
                           </span>{" "}
                           {getCreatorCombinedAudience(selectedCreator) > 0
                             ? formatCompactNumber(
-                                getCreatorCombinedAudience(selectedCreator),
-                              )
+                              getCreatorCombinedAudience(selectedCreator),
+                            )
                             : "No linked audience data"}
                         </p>
                       </div>

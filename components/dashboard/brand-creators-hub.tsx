@@ -251,7 +251,7 @@ export function BrandCreatorsHub({
                     <th className="border-b border-slate-200 px-4 py-3 font-medium">
                       Status
                     </th>
-                    <th className="border-b border-slate-200 px-4 py-3 font-medium">
+                    <th className="border-b border-slate-200 px-4 py-3 text-center font-medium">
                       Actions
                     </th>
                   </tr>
@@ -328,7 +328,7 @@ export function BrandCreatorsHub({
                               )
                             }
                             disabled={pendingCampaignId === campaign.id}
-                            className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="h-9 rounded-xl border text-center border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)] disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <option value="open">Open</option>
                             <option value="in_review">In review</option>
