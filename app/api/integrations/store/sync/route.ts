@@ -81,30 +81,60 @@ export async function POST() {
       .delete()
       .eq("brand_id", user.id);
 
-    if (catalog.products.length) {
-      const { error: productError } = await admin.from("brand_store_products").insert(
-        catalog.products.map((product) => ({
-          connection_id: connection.id,
-          brand_id: user.id,
-          external_product_id: product.external_product_id,
-          title: product.title,
-          handle: product.handle,
-          vendor: product.vendor,
-          product_type: product.product_type,
-          image_url: product.image_url,
-          status: product.status,
-          price: product.price,
-          currency: product.currency,
-          raw_payload: {},
-          synced_at: product.synced_at,
-        })),
-      );
+    // if (catalog.products.length) {
+    //   const { error: productError } = await admin.from("brand_store_products").insert(
+    //     catalog.products.map((product) => ({
+    //       connection_id: connection.id,
+    //       brand_id: user.id,
+    //       external_product_id: product.external_product_id,
+    //       title: product.title,
+    //       handle: product.handle,
+    //       vendor: product.vendor,
+    //       product_type: product.product_type,
+    //       image_url: product.image_url,
+    //       status: product.status,
+    //       price: product.price,
+    //       currency: product.currency,
+    //       raw_payload: {},
+    //       synced_at: product.synced_at,
+    //     })),
+    //   );
 
-      if (productError) {
-        throw new Error(productError.message);
+    //   if (productError) {
+    //     throw new Error(productError.message);
+    //   }
+    // }
+    if (catalog.products.length) {
+      const BATCH_SIZE = 500;
+
+      for (let i = 0; i < catalog.products.length; i += BATCH_SIZE) {
+        const batch = catalog.products.slice(i, i + BATCH_SIZE);
+
+        const { error: productError } = await admin
+          .from("brand_store_products")
+          .insert(
+            batch.map((product) => ({
+              connection_id: connection.id,
+              brand_id: user.id,
+              external_product_id: product.external_product_id,
+              title: product.title,
+              handle: product.handle,
+              vendor: product.vendor,
+              product_type: product.product_type,
+              image_url: product.image_url,
+              status: product.status,
+              price: product.price,
+              currency: product.currency,
+              raw_payload: {},
+              synced_at: product.synced_at,
+            })),
+          );
+
+        if (productError) {
+          throw new Error(productError.message);
+        }
       }
     }
-
     const { data: updatedConnection, error: updateError } = await admin
       .from("brand_store_connections")
       .update({
@@ -133,7 +163,7 @@ export async function POST() {
       )
       .eq("brand_id", user.id)
       .order("synced_at", { ascending: false })
-      .limit(8);
+      .limit(12);
 
     return NextResponse.json({
       connection: sanitizeStoreConnection(

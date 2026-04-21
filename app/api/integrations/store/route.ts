@@ -60,7 +60,7 @@ async function readConnectionPayload(admin: NonNullable<ReturnType<typeof create
     )
     .eq("brand_id", brandId)
     .order("synced_at", { ascending: false })
-    .limit(8);
+    .limit(12);
 
   return {
     connection: connection

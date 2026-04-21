@@ -285,7 +285,7 @@ export function BrandIntegrationsPanel() {
                 }
                 placeholder={
                   selectedProvider === "shopify" ||
-                  selectedProvider === "headless_shopify"
+                    selectedProvider === "headless_shopify"
                     ? "brand-name.myshopify.com"
                     : "store.yourbrand.com"
                 }

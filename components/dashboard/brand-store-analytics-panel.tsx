@@ -148,7 +148,6 @@ export function BrandStoreAnalyticsPanel({
     ],
     [summary],
   );
-
   async function handleSave() {
     setIsSaving(true);
     setMessage(null);
@@ -507,7 +506,7 @@ export function BrandStoreAnalyticsPanel({
             </div>
 
             {recentEvents.length ? (
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 space-y-3 max-h-[400px] overflow-y-auto">
                 {recentEvents.map((event) => (
                   <div
                     key={event.id}
@@ -523,7 +522,7 @@ export function BrandStoreAnalyticsPanel({
                         </p>
                       </div>
                       <div className="text-sm text-slate-600">
-                        {event.value !== null ? formatCurrency(event.value) : "Value n/a"}
+                        {event.value !== null ? formatCurrency(event.value) : ""}
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">

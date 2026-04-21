@@ -16,6 +16,18 @@ type ShopifyCatalogResult = {
     Omit<BrandStoreProduct, "id" | "connection_id" | "brand_id">
   >;
 };
+type ShopifyProductsResponse = {
+  shop?: { name?: string; myshopifyDomain?: string };
+  products?: {
+    edges?: Array<{
+      cursor: string;
+      node: Record<string, unknown>;
+    }>;
+    pageInfo?: {
+      hasNextPage?: boolean;
+    };
+  };
+};
 
 type ShopifyGraphQLError = {
   message?: string;
@@ -108,14 +120,14 @@ export async function runShopifyAdminGraphql<T>(params: {
   if (!response.ok) {
     throw new Error(
       payload?.errors?.[0]?.message ??
-        "Unable to connect to Shopify. Check your admin API token.",
+      "Unable to connect to Shopify. Check your admin API token.",
     );
   }
 
   if (payload?.errors?.length) {
     throw new Error(
       payload.errors[0]?.message ??
-        "Shopify returned an error while processing the request.",
+      "Shopify returned an error while processing the request.",
     );
   }
 
@@ -222,56 +234,105 @@ export async function fetchShopifyCatalog(params: {
   const { provider, storeUrl, accessToken } = params;
   const normalized = normalizeStoreUrl(storeUrl, provider);
   const query = `#graphql
-    query GetStoreCatalog {
+    query GetStoreCatalog($cursor: String) {
       shop {
         name
         myshopifyDomain
       }
-      products(first: 12, sortKey: UPDATED_AT, reverse: true) {
-        nodes {
-          id
-          title
-          handle
-          vendor
-          productType
-          status
-          featuredImage {
-            url
-          }
-          priceRangeV2 {
-            minVariantPrice {
-              amount
-              currencyCode
+      products(first: 250, after: $cursor, sortKey: UPDATED_AT, reverse: true) {
+        edges {
+          cursor
+          node {
+            id
+            title
+            handle
+            vendor
+            productType
+            status
+            featuredImage {
+              url
             }
+            priceRangeV2 {
+              minVariantPrice {
+                amount
+                currencyCode
+              }
+            }
+            updatedAt
           }
-          updatedAt
+        }
+        pageInfo {
+          hasNextPage
         }
       }
     }
   `;
+  let hasNextPage = true;
+  let cursor: string | null = null;
+  let prevCursor: string | null = null;
+  let allProducts: any[] = [];
 
-  const payload = await runShopifyAdminGraphql<{
-    shop?: { name?: string; myshopifyDomain?: string };
-    products?: {
-      nodes?: Array<Record<string, unknown>>;
-    };
-  }>({
-    storeDomain: normalized.storeDomain,
-    accessToken,
-    query,
-  });
+  // const payload = await runShopifyAdminGraphql<{
+  //   shop?: { name?: string; myshopifyDomain?: string };
+  //   products?: {
+  //     nodes?: Array<Record<string, unknown>>;
+  //   };
+  // }>({
+  //   storeDomain: normalized.storeDomain,
+  //   accessToken,
+  //   query,
+  // });
+  let shopData: { name?: string; myshopifyDomain?: string } | null = null;
+  while (hasNextPage) {
+    const payload: ShopifyProductsResponse = await runShopifyAdminGraphql<{
+      shop?: { name?: string; myshopifyDomain?: string };
+      products?: {
+        edges?: Array<{
+          cursor: string;
+          node: Record<string, unknown>;
+        }>;
+        pageInfo?: {
+          hasNextPage?: boolean;
+        };
+      };
+    }>({
+      storeDomain: normalized.storeDomain,
+      accessToken,
+      query,
+      variables: {
+        cursor,
+      },
+    });
 
-  const storeName = payload.shop?.name?.trim();
+    const edges = payload.products?.edges ?? [];
+    if (edges.length === 0) break;
+    allProducts.push(...edges.map((e) => e.node));
+
+    hasNextPage = payload.products?.pageInfo?.hasNextPage ?? false;
+
+    cursor = edges.length ? edges[edges.length - 1].cursor : null;
+    if (cursor === prevCursor) {
+      break; // same cursor aa raha hai → infinite loop avoid
+    }
+    prevCursor = cursor;
+    if (!shopData && payload.shop) {
+      shopData = payload.shop;
+    }
+  }
+
+  // const storeName = payload.shop?.name?.trim();
+  // const storeDomain =
+  //   payload.shop?.myshopifyDomain?.trim() ?? normalized.storeDomain;
+  const storeName = shopData?.name?.trim();
   const storeDomain =
-    payload.shop?.myshopifyDomain?.trim() ?? normalized.storeDomain;
-
+    shopData?.myshopifyDomain?.trim() ?? normalized.storeDomain;
   if (!storeName) {
     throw new Error(
       "Shopify did not return store details. Make sure the token has read_products access.",
     );
   }
 
-  const products = (payload.products?.nodes ?? []).map((node) => ({
+  const products = allProducts.map((node) => ({
     external_product_id: safeString(node.id) ?? crypto.randomUUID(),
     title: safeString(node.title) ?? "Untitled product",
     handle: safeString(node.handle),
@@ -279,27 +340,27 @@ export async function fetchShopifyCatalog(params: {
     product_type: safeString(node.productType),
     image_url:
       node.featuredImage &&
-      typeof node.featuredImage === "object" &&
-      "url" in node.featuredImage
+        typeof node.featuredImage === "object" &&
+        "url" in node.featuredImage
         ? safeString(node.featuredImage.url)
         : null,
     status: safeString(node.status),
     price:
       node.priceRangeV2 &&
-      typeof node.priceRangeV2 === "object" &&
-      "minVariantPrice" in node.priceRangeV2 &&
-      node.priceRangeV2.minVariantPrice &&
-      typeof node.priceRangeV2.minVariantPrice === "object" &&
-      "amount" in node.priceRangeV2.minVariantPrice
+        typeof node.priceRangeV2 === "object" &&
+        "minVariantPrice" in node.priceRangeV2 &&
+        node.priceRangeV2.minVariantPrice &&
+        typeof node.priceRangeV2.minVariantPrice === "object" &&
+        "amount" in node.priceRangeV2.minVariantPrice
         ? safeNumber(node.priceRangeV2.minVariantPrice.amount)
         : null,
     currency:
       node.priceRangeV2 &&
-      typeof node.priceRangeV2 === "object" &&
-      "minVariantPrice" in node.priceRangeV2 &&
-      node.priceRangeV2.minVariantPrice &&
-      typeof node.priceRangeV2.minVariantPrice === "object" &&
-      "currencyCode" in node.priceRangeV2.minVariantPrice
+        typeof node.priceRangeV2 === "object" &&
+        "minVariantPrice" in node.priceRangeV2 &&
+        node.priceRangeV2.minVariantPrice &&
+        typeof node.priceRangeV2.minVariantPrice === "object" &&
+        "currencyCode" in node.priceRangeV2.minVariantPrice
         ? safeString(node.priceRangeV2.minVariantPrice.currencyCode)
         : null,
     synced_at: new Date().toISOString(),

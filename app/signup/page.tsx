@@ -39,7 +39,7 @@ export default async function SignupPage() {
       <div className="absolute inset-0 opacity-50 [background-image:radial-gradient(rgba(148,163,184,0.14)_1px,transparent_1px)] [background-size:24px_24px]" /> */}
 
       <div className="relative z-10 flex min-h-[100dvh] flex-col px-3 py-3 sm:px-5 sm:py-4">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-center">
+        <div className="mx-auto flex w-full pt-[13px] max-w-6xl items-center justify-center">
           <BrandMark href="/" tone="light" />
           {/* <Link
             href="/"
