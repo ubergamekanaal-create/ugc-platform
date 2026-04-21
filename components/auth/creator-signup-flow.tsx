@@ -303,7 +303,7 @@ const BIRTH_YEAR_OPTIONS = Array.from(
   (_, index) => String(MAX_YEAR - index)
 );
 const inputClassName =
-  "h-11 w-full rounded-xl border border-gray-300 bg-[#fbf8fe] px-4 text-sm text-gray-900 outline-none transition placeholder:text-gray-600 focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-base";
+  "h-11 w-full rounded-xl border border-gray-300 bg-[#fbf8fe] px-4 text-sm text-gray-900 outline-none transition placeholder:text-gray-600 focus:ring-purple-500 focus:border-blue-500 focus:z-10 sm:text-base";
 
 function normalizeHandle(value: string) {
   const trimmed = value.trim();
@@ -396,7 +396,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [creatorName, setCreatorName] = useState("");
-  const [birthYear, setBirthYear] = useState("");
+  const [birthYear, setBirthYear] = useState(BIRTH_YEAR_OPTIONS[0]);
   const [gender, setGender] = useState("");
   const [country, setCountry] = useState("");
   const [city, setCity] = useState("");
@@ -404,7 +404,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
   const [interests, setInterests] = useState<string[]>([]);
   const [instagramUsername, setInstagramUsername] = useState("");
   const [tiktokUsername, setTiktokUsername] = useState("");
-  const [monthlyVideos, setMonthlyVideos] = useState("");
+  const [monthlyVideos, setMonthlyVideos] = useState<number>(4);
   const [monthlyEarnings, setMonthlyEarnings] = useState(1748);
   const [monthlyEarningsGoal, setMonthlyEarningsGoal] = useState(3496);
   const [featuredLinks, setFeaturedLinks] = useState<string[]>([]);
@@ -421,7 +421,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
   const currentStep = CREATOR_SIGNUP_STEPS.find((item) => item.id === step)!;
   const otpValue = otpDigits.join("");
   const router = useRouter()
-  const parsedMonthlyVideos = Number.parseInt(monthlyVideos, 10);
+  const parsedMonthlyVideos = monthlyVideos;
   const monthlyVideoSliderValue =
     Number.isFinite(parsedMonthlyVideos) && parsedMonthlyVideos > 0
       ? Math.min(parsedMonthlyVideos, 24)
@@ -631,14 +631,51 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
   function handleVideoBoxClick(index: number) {
     videoInputRefs.current[index]?.click();
   }
+  // function handleVideoUpload(index: number, file: File | null) {
+  //   if (!file) return;
+
+  //   setFeaturedVideos((prev) => {
+  //     const updated = [...prev];
+  //     updated[index] = file;
+  //     return updated;
+  //   });
+  // }
+  const MAX_FILE_SIZE = 25 * 1024 * 1024;
+  const MAX_TOTAL_SIZE = 100 * 1024 * 1024;
+  const MAX_FILES = 5;
   function handleVideoUpload(index: number, file: File | null) {
     if (!file) return;
 
-    setFeaturedVideos((prev) => {
-      const updated = [...prev];
-      updated[index] = file;
-      return updated;
-    });
+    if (file.size > MAX_FILE_SIZE) {
+      setError(`${file.name} is too large. Please upload a video under 25MB.`);
+      return;
+    }
+
+    if (!file.type.startsWith("video/")) {
+      setError("Only video files are allowed");
+      return;
+    }
+
+    const updatedVideos = [...featuredVideos];
+    updatedVideos[index] = file;
+
+    const totalFiles = updatedVideos.filter((f) => f instanceof File).length;
+    if (totalFiles > MAX_FILES) {
+      setError(`You can upload max ${MAX_FILES} videos`);
+      return;
+    }
+
+    const totalSize = updatedVideos.reduce((acc, f) => {
+      return acc + (f instanceof File ? f.size : 0);
+    }, 0);
+
+    if (totalSize > MAX_TOTAL_SIZE) {
+      setError("Total upload size must be under 100MB");
+      return;
+    }
+
+    setFeaturedVideos(updatedVideos);
+    setError(null);
   }
   function handleRemoveVideo(index: number) {
     setFeaturedVideos((prev) => {
@@ -898,7 +935,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
         throw new Error("Add at least one social username before continuing.");
       }
 
-      const monthlyVideoCount = Number.parseInt(monthlyVideos, 10);
+      const monthlyVideoCount = monthlyVideos;
 
       if (!Number.isFinite(monthlyVideoCount) || monthlyVideoCount <= 0) {
         throw new Error("Enter how many UGC videos you create per month.");
@@ -914,7 +951,20 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
           "Add at least one video or portfolio link.",
         );
       }
+      const totalSize = featuredVideos.reduce((acc, f) => {
+        return acc + (f instanceof File ? f.size : 0);
+      }, 0);
+      const invalidFile = featuredVideos.find(
+        (f) => f instanceof File && f.size > MAX_FILE_SIZE
+      );
 
+      if (invalidFile) {
+        throw new Error(`${invalidFile.name} exceeds 25MB limit`);
+      }
+
+      if (totalSize > MAX_TOTAL_SIZE) {
+        throw new Error("Total upload size must be under 100MB");
+      }
       const normalizedLinks = cleanedLinks.map((link) => normalizeLink(link));
 
       if (normalizedLinks.some((link) => !link)) {
@@ -1199,7 +1249,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
     }
 
     if (step === 9) {
-      const monthlyVideoCount = Number.parseInt(monthlyVideos, 10);
+      const monthlyVideoCount = monthlyVideos;
 
       if (!Number.isFinite(monthlyVideoCount) || monthlyVideoCount <= 0) {
         setError("Enter how many UGC videos you create per month.");
@@ -1504,9 +1554,9 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
 
         {step === 3 ? (
           <div className="mx-auto flex min-h-[30rem] w-full max-w-[40rem] flex-col px-0 pt-1">
-            <div className="h-2  max-w-full rounded-full bg-white/80 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]">
+            <div className="h-2 w-full rounded-full bg-blue-50 border border-blue-200 overflow-hidden">
               <div
-                className="h-full rounded-full bg-[linear-gradient(90deg,_#f7a48f,_#b196ff)]"
+                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300"
                 style={{ width: getOnboardingProgressWidth(step) }}
               />
             </div>
@@ -1523,9 +1573,10 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                 </button>
               </div>
               <div className="pointer-events-none -mt-2 flex justify-center">
-                <span className="text-5xl font-black italic leading-none text-[#4b31da]">
+                {/* <span className="text-5xl font-black italic leading-none text-[#4b31da]">
                   t
-                </span>
+                </span> */}
+                <BrandMark href="/" tone="light" />
               </div>
               <button
                 type="button"
@@ -1551,7 +1602,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                     <AccountStepIcon className="h-9 w-9 text-[#d8befa]" />
                   </div>
                 </div> */}
-                <div className="flex h-[7.8rem] w-[7.8rem] items-center justify-center rounded-full overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(237,221,255,0.97),_rgba(225,205,255,0.92))]">
+                <div className="flex h-[7.8rem] w-[7.8rem] items-center justify-center rounded-full overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(219,234,254,0.97),_rgba(191,219,254,0.92))]">
                   {previewUrl ? (
                     <img
                       src={previewUrl}
@@ -1560,7 +1611,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                     />
                   ) : (
                     <div className="flex h-[4.6rem] w-[4.6rem] items-center justify-center rounded-full bg-white/10">
-                      <AccountStepIcon className="h-9 w-9 text-[#d8befa]" />
+                      <AccountStepIcon className="h-9 w-9 text-blue-500" />
                     </div>
                   )}
                 </div>
@@ -1577,7 +1628,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                     e.stopPropagation();
                     handleImageClick();
                   }}
-                  className="absolute bottom-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[linear-gradient(135deg,_#c44eff,_#a14cff)] text-white"
+                  className="absolute bottom-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-blue-600 text-white"
                 >
                   <StepCameraIcon className="h-3.5 w-3.5" />
                 </button>
@@ -1625,7 +1676,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                   value={creatorName}
                   onChange={(event) => setCreatorName(event.target.value)}
                   placeholder="@username"
-                  className="h-[3.2rem] w-full rounded-full border border-slate-200 bg-white px-4 text-[1rem] text-slate-900 outline-none shadow-[0_5px_14px_rgba(15,23,42,0.04)] transition placeholder:text-slate-400 focus:border-[#b493ff] focus:shadow-[0_0_0_4px_rgba(180,147,255,0.18)]"
+                  className="h-[3.2rem] w-full rounded-full border border-slate-200 bg-white px-4 text-[1rem] text-slate-900 outline-none shadow-[0_5px_14px_hex(#d5e7fe)] transition placeholder:text-slate-400 focus:border-blue-400 focus:shadow-[0_0_0_4px_#f2f7ff]"
                 />
                 {/* <div className="pointer-events-none absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md bg-[#f05149] text-white shadow-[0_8px_18px_rgba(240,81,73,0.2)]">
                   <CalendarStepIcon className="h-3.5 w-3.5" />
@@ -1637,9 +1688,9 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
 
         {step === 4 ? (
           <div className="mx-auto flex min-h-[30rem] w-full max-w-[40rem] flex-col px-0 pt-1">
-            <div className="h-2 max-w-full rounded-full bg-white/80 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]">
+            <div className="h-2 w-full rounded-full bg-blue-50 border border-blue-200 overflow-hidden">
               <div
-                className="h-full rounded-full bg-[linear-gradient(90deg,_#f7a48f,_#b196ff)]"
+                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300"
                 style={{ width: getOnboardingProgressWidth(step) }}
               />
             </div>
@@ -1657,9 +1708,11 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                 </button>
               </div>
               <div className="pointer-events-none -mt-2 flex justify-center">
-                <span className="text-5xl font-black italic leading-none text-[#4b31da]">
+                <BrandMark href="" tone="light" />
+                {/* <span className="text-5xl font-black italic leading-none text-[#4b31da]">
                   t
-                </span>
+                </span> */}
+
               </div>
               <button
                 type="button"
@@ -1693,7 +1746,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                     className={cn(
                       "flex h-[3.05rem] w-full items-center gap-3 rounded-full border bg-white px-4 text-left text-base font-semibold transition shadow-[0_5px_14px_rgba(15,23,42,0.04)]",
                       isSelected
-                        ? "border-[#b493ff] shadow-[0_0_0_3px_rgba(180,147,255,0.14)]"
+                        ? "border-blue-400 shadow-[0_0_0_3px_rgba(180,147,255,0.14)]"
                         : "border-slate-200 hover:border-slate-300",
                     )}
                   >
@@ -1712,9 +1765,9 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
 
         {step === 5 ? (
           <div className="mx-auto flex min-h-[30rem] w-full flex-col px-0 pt-1">
-            <div className="h-2 max-w-full rounded-full bg-white/80 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]">
+            <div className="h-2 w-full rounded-full bg-blue-50 border border-blue-200 overflow-hidden">
               <div
-                className="h-full rounded-full bg-[linear-gradient(90deg,_#f7a48f,_#b196ff)]"
+                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300"
                 style={{ width: getOnboardingProgressWidth(step) }}
               />
             </div>
@@ -1740,10 +1793,11 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
               </button>
             </div>
 
-            <div className="pointer-events-none -mt-8 flex justify-center">
-              <span className="text-[2.2rem] font-black italic leading-none text-[#4b31da]">
+            <div className="pointer-events-none -mt-9 flex justify-center">
+              {/* <span className="text-[2.2rem] font-black italic leading-none text-[#4b31da]">
                 t
-              </span>
+              </span> */}
+              <BrandMark href="" tone="light" />
             </div>
 
             <div className="mt-4">
@@ -1760,11 +1814,8 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                 <select
                   value={birthYear}
                   onChange={(event) => setBirthYear(event.target.value)}
-                  className="h-[3.2rem] w-full appearance-none rounded-full border border-slate-200 bg-white px-4 pr-12 text-[1rem] text-slate-500 outline-none shadow-[0_5px_14px_rgba(15,23,42,0.04)] transition focus:border-[#b493ff] focus:shadow-[0_0_0_4px_rgba(180,147,255,0.18)]"
+                  className="h-[3.2rem] w-full appearance-none rounded-full border border-slate-200 bg-white px-4 pr-12 text-[1rem] text-slate-500 outline-none shadow-[0_5px_14px_rgba(15,23,42,0.04)] transition focus:border-blue-400 focus:shadow-[0_0_0_4px_#f2f7ff]"
                 >
-                  <option value="" className="text-slate-400">
-                    i.e 2006
-                  </option>
                   {BIRTH_YEAR_OPTIONS.map((year) => (
                     <option key={year} value={year} className="text-slate-900">
                       {year}
@@ -1781,9 +1832,9 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
 
         {step === 6 ? (
           <div className="mx-auto flex min-h-[30rem] max-h-[30rem] w-full flex-col px-0 pt-1">
-            <div className="h-2 max-w-full rounded-full bg-white/80 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]">
+            <div className="h-2 w-full rounded-full bg-blue-50 border border-blue-200 overflow-hidden">
               <div
-                className="h-full rounded-full bg-[linear-gradient(90deg,_#f7a48f,_#b196ff)]"
+                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300"
                 style={{ width: getOnboardingProgressWidth(step) }}
               />
             </div>
@@ -1809,10 +1860,8 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
               </button>
             </div>
 
-            <div className="pointer-events-none -mt-8 flex justify-center">
-              <span className="text-[2.2rem] font-black italic leading-none text-[#4b31da]">
-                t
-              </span>
+            <div className="pointer-events-none -mt-9 flex justify-center">
+              <BrandMark href="" tone="light" />
             </div>
 
             <div className="mt-4">
@@ -1829,7 +1878,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                 <select
                   value={country}
                   onChange={(event) => setCountry(event.target.value)}
-                  className="h-[3.2rem] w-full appearance-none rounded-full border border-slate-200 bg-white px-4 pr-12 text-[1rem] text-slate-500 outline-none shadow-[0_5px_14px_rgba(15,23,42,0.04)] transition focus:border-[#b493ff] focus:shadow-[0_0_0_4px_rgba(180,147,255,0.18)]"
+                  className="h-[3.2rem] w-full appearance-none rounded-full border border-slate-200 bg-white px-4 pr-12 text-[1rem] text-slate-500 outline-none shadow-[0_5px_14px_rgba(15,23,42,0.04)] transition focus:border-blue-400 focus:shadow-[0_0_0_4px_#f2f7ff]"
                 >
                   <option value="" className="text-slate-400">
                     Select country
@@ -1850,7 +1899,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                 value={city}
                 onChange={(event) => setCity(event.target.value)}
                 placeholder="Search for your city"
-                className="h-[3.2rem] w-full rounded-full border border-slate-200 bg-white px-4 text-[1rem] text-slate-900 outline-none shadow-[0_5px_14px_rgba(15,23,42,0.04)] transition placeholder:text-slate-400 focus:border-[#b493ff] focus:shadow-[0_0_0_4px_rgba(180,147,255,0.18)]"
+                className="h-[3.2rem] w-full rounded-full border border-slate-200 bg-white px-4 text-[1rem] text-slate-900 outline-none shadow-[0_5px_14px_rgba(15,23,42,0.04)] transition placeholder:text-slate-400 focus:border-blue-400 focus:shadow-[0_0_0_4px_#f2f7ff]"
               />
 
               <input
@@ -1858,7 +1907,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                 value={stateRegion}
                 onChange={(event) => setStateRegion(event.target.value)}
                 placeholder="State / Region"
-                className="h-[3.2rem] w-full rounded-full border border-slate-200 bg-white px-4 text-[1rem] text-slate-900 outline-none shadow-[0_5px_14px_rgba(15,23,42,0.04)] transition placeholder:text-slate-400 focus:border-[#b493ff] focus:shadow-[0_0_0_4px_rgba(180,147,255,0.18)]"
+                className="h-[3.2rem] w-full rounded-full border border-slate-200 bg-white px-4 text-[1rem] text-slate-900 outline-none shadow-[0_5px_14px_rgba(15,23,42,0.04)] transition placeholder:text-slate-400 focus:border-blue-400 focus:shadow-[0_0_0_4px_#f2f7ff]"
               />
             </div>
           </div>
@@ -1866,9 +1915,9 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
 
         {step === 7 ? (
           <div className="mx-auto flex min-h-[30rem] w-full max-w-[40rem] flex-col px-0 pt-1">
-            <div className="h-2 max-w-full rounded-full bg-white/80 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]">
+            <div className="h-2 w-full rounded-full bg-blue-50 border border-blue-200 overflow-hidden">
               <div
-                className="h-full rounded-full bg-[linear-gradient(90deg,_#f7a48f,_#b196ff)]"
+                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300"
                 style={{ width: getOnboardingProgressWidth(step) }}
               />
             </div>
@@ -1894,10 +1943,8 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
               </button>
             </div>
 
-            <div className="pointer-events-none -mt-8 flex justify-center">
-              <span className="text-[2.2rem] font-black italic leading-none text-[#4b31da]">
-                t
-              </span>
+            <div className="pointer-events-none -mt-9 flex justify-center">
+              <BrandMark href="" tone="light" />
             </div>
 
             <div className="mt-4">
@@ -1936,7 +1983,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                     className={cn(
                       "inline-flex h-11 items-center gap-2 rounded-full border bg-white px-4 text-[0.95rem] font-medium text-slate-900 shadow-[0_5px_14px_rgba(15,23,42,0.04)] transition",
                       isSelected
-                        ? "border-[#b493ff] shadow-[0_0_0_3px_rgba(180,147,255,0.14)]"
+                        ? "border-blue-400 shadow-[0_0_0_4px_#f2f7ff]"
                         : "border-slate-200 hover:border-slate-300",
                     )}
                   >
@@ -1951,9 +1998,9 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
 
         {step === 8 ? (
           <div className="mx-auto flex min-h-[30rem] w-full max-w-[40rem] flex-col px-0 pt-1">
-            <div className="h-2 max-w-full rounded-full bg-white/80 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]">
+            <div className="h-2 w-full rounded-full bg-blue-50 border border-blue-200 overflow-hidden">
               <div
-                className="h-full rounded-full bg-[linear-gradient(90deg,_#f7a48f,_#b196ff)]"
+                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300"
                 style={{ width: getOnboardingProgressWidth(step) }}
               />
             </div>
@@ -1979,10 +2026,8 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
               </button>
             </div>
 
-            <div className="pointer-events-none -mt-8 flex justify-center">
-              <span className="text-[2.2rem] font-black italic leading-none text-[#4b31da]">
-                t
-              </span>
+            <div className="pointer-events-none -mt-9 flex justify-center">
+              <BrandMark href="" tone="light" />
             </div>
 
             <div className="mt-4">
@@ -2023,7 +2068,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                   max="24"
                   step="1"
                   value={monthlyVideoSliderValue}
-                  onChange={(event) => setMonthlyVideos(event.target.value)}
+                  onChange={(event) => setMonthlyVideos(Number(event.target.value))}
                   className="absolute inset-x-0 top-1/2 h-8 -translate-y-1/2 appearance-none bg-transparent [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#8f63ff] [&::-moz-range-thumb]:shadow-[0_4px_12px_rgba(143,99,255,0.45)] [&::-webkit-slider-runnable-track]:h-8 [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:mt-2 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#8f63ff] [&::-webkit-slider-thumb]:shadow-[0_4px_12px_rgba(143,99,255,0.45)]"
                 />
               </div>
@@ -2043,7 +2088,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                   value={instagramUsername}
                   onChange={(event) => setInstagramUsername(event.target.value)}
                   placeholder="@username"
-                  className="h-[3.15rem] w-full rounded-full border border-[#b86cff] bg-white pl-10 pr-12 text-[1rem] text-slate-900 outline-none shadow-[0_5px_14px_rgba(15,23,42,0.04)] transition placeholder:text-slate-400 focus:border-[#b86cff] focus:shadow-[0_0_0_4px_rgba(184,108,255,0.16)]"
+                  className="h-[3.15rem] w-full rounded-full border border-slate-200 bg-white pl-10 pr-12 text-[1rem] text-slate-900 outline-none shadow-[0_5px_14px_rgba(15,23,42,0.04)] transition placeholder:text-slate-400 focus:border-blue-400 focus:shadow-[0_0_0_4px_#f2f7ff]"
                 />
                 <div className="pointer-events-none absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md bg-[#f05149] text-[11px] text-white shadow-[0_8px_18px_rgba(240,81,73,0.2)]">
                   •••
@@ -2059,7 +2104,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                   value={tiktokUsername}
                   onChange={(event) => setTiktokUsername(event.target.value)}
                   placeholder="@username"
-                  className="h-[3.15rem] w-full rounded-full border border-slate-200 bg-white pl-10 pr-12 text-[1rem] text-slate-900 outline-none shadow-[0_5px_14px_rgba(15,23,42,0.04)] transition placeholder:text-slate-400 focus:border-[#b493ff] focus:shadow-[0_0_0_4px_rgba(180,147,255,0.18)]"
+                  className="h-[3.15rem] w-full rounded-full border border-slate-200 bg-white pl-10 pr-12 text-[1rem] text-slate-900 outline-none shadow-[0_5px_14px_rgba(15,23,42,0.04)] transition placeholder:text-slate-400 focus:border-blue-400 focus:shadow-[0_0_0_4px_#f2f7ff]"
                 />
                 <div className="pointer-events-none absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md bg-[#f05149] text-[11px] text-white shadow-[0_8px_18px_rgba(240,81,73,0.2)]">
                   •••
@@ -2086,9 +2131,9 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
 
         {step === 9 ? (
           <div className="mx-auto flex min-h-[30rem] w-full max-w-[40rem] flex-col px-0 pt-1">
-            <div className="h-2 max-w-full rounded-full bg-white/80 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]">
+            <div className="h-2 w-full rounded-full bg-blue-50 border border-blue-200 overflow-hidden">
               <div
-                className="h-full rounded-full bg-[linear-gradient(90deg,_#f7a48f,_#b196ff)]"
+                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300"
                 style={{ width: getOnboardingProgressWidth(step) }}
               />
             </div>
@@ -2114,10 +2159,8 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
               </button>
             </div>
 
-            <div className="pointer-events-none -mt-8 flex justify-center">
-              <span className="text-[2.2rem] font-black italic leading-none text-[#4b31da]">
-                t
-              </span>
+            <div className="pointer-events-none -mt-9 flex justify-center">
+              <BrandMark href="" tone="light" />
             </div>
 
             <div className="mt-4">
@@ -2126,7 +2169,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
               </h2>
             </div>
 
-            <div className="mt-20">
+            <div className="mt-20 z-0">
               <div className="text-center">
                 <span className="text-[2.3rem] font-semibold tracking-tight text-slate-950">
                   {monthlyVideoSliderValue}
@@ -2147,7 +2190,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                         className={cn(
                           "w-[2px] rounded-full transition-colors",
                           index < monthlyVideoSliderValue
-                            ? "bg-[#8f63ff]"
+                            ? "bg-blue-500"
                             : "bg-slate-300/90",
                         )}
                         style={{ height: `${height}px` }}
@@ -2156,7 +2199,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                   })}
 
                   <span
-                    className="absolute top-full h-5 w-5 -translate-x-1/2 rounded-full bg-[#8f63ff] shadow-[0_6px_16px_rgba(143,99,255,0.42)]"
+                    className="absolute top-full h-5 w-5 -translate-x-1/2 rounded-full bg-blue-600 shadow-[0_0_0_4px_#f2f7ff]"
                     style={{
                       left: `${monthlyVideoSliderThumbPosition}%`,
                       marginTop: "8px",
@@ -2170,7 +2213,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                   max="24"
                   step="1"
                   value={monthlyVideoSliderValue}
-                  onChange={(event) => setMonthlyVideos(event.target.value)}
+                  onChange={(event) => setMonthlyVideos(Number(event.target.value))}
                   className="absolute inset-x-0 -top-3 z-20 h-[64px] w-full cursor-pointer appearance-none bg-transparent opacity-0"
                 />
               </div>
@@ -2184,9 +2227,9 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
 
         {step === 10 ? (
           <div className="mx-auto flex min-h-[30rem] w-full max-w-[40rem] flex-col px-0 pt-1">
-            <div className="h-2 max-w-full rounded-full bg-white/80 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]">
+            <div className="h-2 w-full rounded-full bg-blue-50 border border-blue-200 overflow-hidden">
               <div
-                className="h-full rounded-full bg-[linear-gradient(90deg,_#f7a48f,_#b196ff)]"
+                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300"
                 style={{ width: getOnboardingProgressWidth(step) }}
               />
             </div>
@@ -2212,10 +2255,8 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
               </button>
             </div>
 
-            <div className="pointer-events-none -mt-8 flex justify-center">
-              <span className="text-[2.2rem] font-black italic leading-none text-[#4b31da]">
-                t
-              </span>
+            <div className="pointer-events-none -mt-9 flex justify-center">
+              <BrandMark href="" tone="light" />
             </div>
 
             <div className="mt-4">
@@ -2224,7 +2265,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
               </h2>
             </div>
 
-            <div className="mt-18">
+            <div className="mt-18 z-0">
               <div className="text-center">
                 <span className="text-[2.3rem] font-semibold tracking-tight text-slate-950">
                   {formatUsdWhole(monthlyEarningsSliderValue)}
@@ -2243,7 +2284,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                         className={cn(
                           "w-[2px] rounded-full transition-colors",
                           markerValue <= monthlyEarningsSliderValue
-                            ? "bg-[#8f63ff]"
+                            ? "bg-blue-500"
                             : "bg-slate-300/90",
                         )}
                         style={{ height: `${height}px` }}
@@ -2252,7 +2293,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                   })}
 
                   <span
-                    className="absolute top-full h-6 w-6 -translate-x-1/2 rounded-full bg-[#8f63ff] shadow-[0_8px_20px_rgba(143,99,255,0.42)]"
+                    className="absolute top-full h-6 w-6 -translate-x-1/2 rounded-full bg-blue-600 shadow-[0_0_0_4px_#f2f7ff]"
                     style={{
                       left: `${monthlyEarningsThumbPosition}%`,
                       marginTop: "10px",
@@ -2273,7 +2314,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                 />
               </div>
 
-              <p className="mt-8 text-center text-[1.05rem] font-medium text-[#8f31ff]">
+              <p className="mt-8 text-center text-[1.05rem] font-medium text-blue-600">
                 {getEarningsMessage(monthlyEarningsSliderValue)}
               </p>
             </div>
@@ -2282,9 +2323,9 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
 
         {step === 11 ? (
           <div className="mx-auto flex min-h-[30rem] w-full max-w-[40rem] flex-col px-0 pt-1">
-            <div className="h-2 max-w-full rounded-full bg-white/80 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]">
+            <div className="h-2 w-full rounded-full bg-blue-50 border border-blue-200 overflow-hidden">
               <div
-                className="h-full rounded-full bg-[linear-gradient(90deg,_#f7a48f,_#b196ff)]"
+                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300"
                 style={{ width: getOnboardingProgressWidth(step) }}
               />
             </div>
@@ -2310,10 +2351,8 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
               </button>
             </div>
 
-            <div className="pointer-events-none -mt-8 flex justify-center">
-              <span className="text-[2.2rem] font-black italic leading-none text-[#4b31da]">
-                t
-              </span>
+            <div className="pointer-events-none -mt-9 flex justify-center">
+              <BrandMark href="" tone="light" />
             </div>
 
             <div className="mt-4">
@@ -2329,7 +2368,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                 </span>
               </div>
 
-              <div className="relative mt-14 px-1 pb-12">
+              <div className="relative mt-14 px-1 pb-12 z-0">
                 <div className="pointer-events-none relative flex items-end justify-between">
                   {Array.from({ length: 24 }, (_, index) => {
                     const height = 3 + index * 1.45;
@@ -2341,7 +2380,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                         className={cn(
                           "w-[2px] rounded-full transition-colors",
                           markerValue <= monthlyEarningsGoalSliderValue
-                            ? "bg-[#8f63ff]"
+                            ? "bg-blue-500"
                             : "bg-slate-300/90",
                         )}
                         style={{ height: `${height}px` }}
@@ -2350,7 +2389,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                   })}
 
                   <span
-                    className="absolute top-full h-6 w-6 -translate-x-1/2 rounded-full bg-[#8f63ff] shadow-[0_8px_20px_rgba(143,99,255,0.42)]"
+                    className="absolute top-full h-6 w-6 -translate-x-1/2 rounded-full bg-blue-600 shadow-[0_0_0_4px_#f2f7ff]"
                     style={{
                       left: `${monthlyEarningsGoalThumbPosition}%`,
                       marginTop: "10px",
@@ -2376,9 +2415,9 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
         {step === 12 && (
           <div className="mx-auto flex min-h-[24rem] w-full max-w-[40rem] flex-col px-4 pt-2">
 
-            <div className="h-2 max-w-full rounded-full bg-white/80 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]">
+            <div className="h-2 w-full rounded-full bg-blue-50 border border-blue-200 overflow-hidden">
               <div
-                className="h-full rounded-full bg-[linear-gradient(90deg,_#f7a48f,_#b196ff)]"
+                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300"
                 style={{ width: getOnboardingProgressWidth(step) }}
               />
             </div>
@@ -2440,7 +2479,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                 <div
                   key={i}
                   onClick={() => handleVideoBoxClick(i)}
-                  className="relative flex w-[90px] h-[90px] sm:w-[107px] sm:h-[107px] aspect-square items-center justify-center rounded-2xl border-2 border-dashed border-[#b196ff] cursor-pointer overflow-hidden"
+                  className="relative flex w-[90px] h-[90px] sm:w-[107px] sm:h-[107px] aspect-square items-center justify-center rounded-2xl border-2 border-dashed border-blue-500 cursor-pointer overflow-hidden"
                 >
                   {featuredVideos[i] ? (
                     <>
@@ -2462,7 +2501,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
 
                   ) : (
                     <span className="text-[#b196ff] text-lg">
-                      <span className="text-[#b196ff] text-lg"><svg className="w-9 h-9 text-primary/60" viewBox="0 0 36 36" fill="none"><path d="M19.9375 16.5265C19.7355 17.3622 18.781 17.9527 16.8719 19.1337C15.0263 20.2754 14.1035 20.8462 13.3599 20.6168C13.0525 20.5219 12.7723 20.3418 12.5464 20.0936C12 19.4933 12 18.3289 12 16.0002C12 13.6714 12 12.5071 12.5464 11.9068C12.7723 11.6586 13.0525 11.4784 13.3599 11.3835C14.1035 11.1541 15.0263 11.7249 16.8719 12.8666C18.781 14.0476 19.7355 14.6381 19.9375 15.4738C20.0208 15.8187 20.0208 16.1816 19.9375 16.5265Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path><path d="M3.333 16C3.333 10.029 3.333 7.043 5.188 5.188C7.043 3.333 10.029 3.333 16 3.333C21.971 3.333 24.956 3.333 26.811 5.188C28.666 7.043 28.666 10.029 28.666 16C28.666 21.971 28.666 24.957 26.811 26.812C24.956 28.667 21.971 28.667 16 28.667C10.029 28.667 7.043 28.667 5.188 26.812C3.333 24.957 3.333 21.971 3.333 16Z" stroke="currentColor" stroke-width="1.5"></path><circle cx="27.5" cy="27.5" r="6.667" fill="var(--primary)"></circle><path d="M27.5 24.833V30.167M30.166 27.5H24.833" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+                      <span className="text-blue-500 text-lg"><svg className="w-9 h-9 text-primary/60" viewBox="0 0 36 36" fill="none"><path d="M19.9375 16.5265C19.7355 17.3622 18.781 17.9527 16.8719 19.1337C15.0263 20.2754 14.1035 20.8462 13.3599 20.6168C13.0525 20.5219 12.7723 20.3418 12.5464 20.0936C12 19.4933 12 18.3289 12 16.0002C12 13.6714 12 12.5071 12.5464 11.9068C12.7723 11.6586 13.0525 11.4784 13.3599 11.3835C14.1035 11.1541 15.0263 11.7249 16.8719 12.8666C18.781 14.0476 19.7355 14.6381 19.9375 15.4738C20.0208 15.8187 20.0208 16.1816 19.9375 16.5265Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path><path d="M3.333 16C3.333 10.029 3.333 7.043 5.188 5.188C7.043 3.333 10.029 3.333 16 3.333C21.971 3.333 24.956 3.333 26.811 5.188C28.666 7.043 28.666 10.029 28.666 16C28.666 21.971 28.666 24.957 26.811 26.812C24.956 28.667 21.971 28.667 16 28.667C10.029 28.667 7.043 28.667 5.188 26.812C3.333 24.957 3.333 21.971 3.333 16Z" stroke="currentColor" stroke-width="1.5"></path><circle cx="27.5" cy="27.5" r="6.667" fill="var(--primary)"></circle><path d="M27.5 24.833V30.167M30.166 27.5H24.833" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
                     </span>
                   )}
 
@@ -2493,7 +2532,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                     key={index}
                     type="text"
                     placeholder="Link"
-                    className=" relative h-[3rem] px-12 w-full rounded-full border border-slate-200 bg-white text-sm outline-none placeholder:text-slate-400 text-black focus:border-[#b493ff] focus:shadow-[0_0_0_3px_rgba(180,147,255,0.2)]"
+                    className=" relative h-[3rem] px-12 w-full rounded-full border border-slate-200 bg-white text-sm outline-none placeholder:text-slate-400 text-black focus:border-blue-400 focus:shadow-[0_0_0_3px_#f2f7ff]"
                     onChange={(e) =>
                       handleFeaturedLinkChange(index, e.target.value)
                     }
@@ -2580,8 +2619,8 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
           className={cn(
             "mt-4 h-12 w-full px-4 py-3 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 sm:text-base",
             isProfileIntroStep && step !== 12
-              ? "md:fixed h-14 md:bottom-10 md:left-1/2 md:-translate-x-1/2 max-w-[40rem] rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
-              : "rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50",
+              ? "md:fixed h-14 md:bottom-10 md:left-1/2 md:-translate-x-1/2 max-w-[40rem] rounded-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              : "rounded-2xl bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50",
           )}
         >
           {isWorking

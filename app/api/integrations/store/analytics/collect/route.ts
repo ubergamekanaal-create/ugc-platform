@@ -36,37 +36,37 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => null)) as
     | {
-        trackingToken?: string;
-        eventName?: string;
-        eventId?: string | null;
-        clientId?: string | null;
-        sessionId?: string | null;
-        shopDomain?: string | null;
-        orderId?: string | null;
-        pageUrl?: string | null;
-        landingUrl?: string | null;
-        referrerUrl?: string | null;
-        currency?: string | null;
-        value?: number | string | null;
-        utm?: {
-          source?: string | null;
-          medium?: string | null;
-          campaign?: string | null;
-          content?: string | null;
-          term?: string | null;
-        } | null;
-        identifiers?: {
-          fbclid?: string | null;
-          fbc?: string | null;
-          fbp?: string | null;
-        } | null;
-        circl?: {
-          campaignId?: string | null;
-          submissionId?: string | null;
-          metaCampaignId?: string | null;
-        } | null;
-        payload?: unknown;
-      }
+      trackingToken?: string;
+      eventName?: string;
+      eventId?: string | null;
+      clientId?: string | null;
+      sessionId?: string | null;
+      shopDomain?: string | null;
+      orderId?: string | null;
+      pageUrl?: string | null;
+      landingUrl?: string | null;
+      referrerUrl?: string | null;
+      currency?: string | null;
+      value?: number | string | null;
+      utm?: {
+        source?: string | null;
+        medium?: string | null;
+        campaign?: string | null;
+        content?: string | null;
+        term?: string | null;
+      } | null;
+      identifiers?: {
+        fbclid?: string | null;
+        fbc?: string | null;
+        fbp?: string | null;
+      } | null;
+      circl?: {
+        campaignId?: string | null;
+        submissionId?: string | null;
+        metaCampaignId?: string | null;
+      } | null;
+      payload?: unknown;
+    }
     | null;
 
   const trackingToken = body?.trackingToken?.trim() ?? "";

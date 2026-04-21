@@ -73,7 +73,7 @@ export async function POST(request: Request) {
   if (!connection) {
     return NextResponse.json({ received: true, ignored: true });
   }
-
+  
   try {
     const order = buildAttributedOrderFromWebhook({
       brandId: connection.brand_id,
@@ -85,9 +85,9 @@ export async function POST(request: Request) {
     const { error: upsertError } = await admin
       .from("brand_store_attributed_orders")
       .upsert(order, {
-      onConflict: "shop_domain,shop_order_id",
-    });
-
+        onConflict: "shop_domain,shop_order_id",
+      });
+    
     if (upsertError) {
       throw new Error(upsertError.message);
     }

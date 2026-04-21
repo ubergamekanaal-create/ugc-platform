@@ -39,7 +39,7 @@ export default function OnboardingPage() {
     // if (loading) return <div>Loading...</div>;
 
     return (
-        <div className="relative bg-[#fff3ef] h-screen overflow-y-scroll pt-8 pb-4 px-4 sm:px-0">
+        <div className="relative bg-[#fffff] h-screen overflow-y-scroll pt-8 pb-4 px-4 sm:px-0">
             <CreatorSignupFlow initialStep={3} />
         </div>
     );

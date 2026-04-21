@@ -17,7 +17,7 @@ const OTP_LENGTH = 6;
 const BRAND_SETUP_TOTAL_SUBSTEPS = 3;
 const DEFAULT_BRAND_HEADLINE = "Brand partnerships lead";
 const inputClassName =
-  "h-11 w-full rounded-xl border border-gray-300 bg-[#fbf8fe] px-4 text-sm text-gray-900 outline-none transition placeholder:text-gray-600 focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-base";
+  "h-11 w-full rounded-xl border border-gray-300 bg-[#fbf8fe] px-4 text-sm text-gray-900 outline-none transition placeholder:text-gray-600 focus:ring-purple-500 focus:border-blue-500 focus:z-10 sm:text-base";
 
 function createEmptyOtp() {
   return Array.from({ length: OTP_LENGTH }, () => "");
@@ -136,6 +136,7 @@ function ArrowRightIcon() {
 
 function UserPlusIcon() {
   return (
+    
     <svg
       viewBox="0 0 24 24"
       fill="none"
