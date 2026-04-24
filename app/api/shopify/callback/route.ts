@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchShopifyCatalog } from "@/lib/integrations/shopify";
 
+function getBaseUrl(req: Request) {
+    return process.env.FRONTEND_URL || new URL(req.url).origin;
+}
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
@@ -20,8 +23,9 @@ export async function GET(req: Request) {
             const state = JSON.parse(decodeURIComponent(stateParam));
             brandId = state.brandId;
         } catch {
+            const baseUrl = getBaseUrl(req);
             return NextResponse.redirect(
-                `${process.env.FRONTEND_URL}/dashboard/integrations?error=invalid_state`
+                `${baseUrl}/dashboard/integrations?error=invalid_state`
             );
         }
 
@@ -144,15 +148,17 @@ export async function GET(req: Request) {
             }
         }
 
+        const baseUrl = getBaseUrl(req);
         return NextResponse.redirect(
-            `${process.env.FRONTEND_URL}/dashboard/integrations?connected=true&autoSync=true`
+            `${baseUrl}/dashboard/integrations?connected=true&autoSync=true`
         );
 
     } catch (error) {
         console.error("Callback error:", error);
 
+        const baseUrl = getBaseUrl(req);
         return NextResponse.redirect(
-            `${process.env.FRONTEND_URL}/dashboard/integrations?error=connection_failed`
+            `${baseUrl}/dashboard/integrations?error=connection_failed`
         );
     }
 }

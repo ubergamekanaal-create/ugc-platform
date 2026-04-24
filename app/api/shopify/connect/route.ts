@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+function getBaseUrl(req: Request) {
+  return process.env.FRONTEND_URL || new URL(req.url).origin;
+}
 export async function POST(req: Request) {
   try {
     const { storeUrl } = await req.json();
@@ -61,7 +64,9 @@ export async function POST(req: Request) {
       throw new Error("SHOPIFY_SCOPES is not defined in env");
     }
 
-    const redirectUri = `${process.env.FRONTEND_URL}/api/shopify/callback`;
+    const baseUrl = process.env.FRONTEND_URL || new URL(req.url).origin;
+
+    const redirectUri = `${baseUrl}/api/shopify/callback`;
 
     const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${process.env.SHOPIFY_API_KEY
       }&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(
