@@ -44,7 +44,14 @@ async function requireBrandUser() {
   return { brandId: user.id };
 }
 
-async function readConnectionPayload(admin: NonNullable<ReturnType<typeof createAdminClient>>, brandId: string) {
+async function readConnectionPayload(
+  admin: NonNullable<ReturnType<typeof createAdminClient>>,
+  brandId: string,
+  page = 1,
+  limit = 20
+) {
+  const offset = (page - 1) * limit;
+
   const { data: connection } = await admin
     .from("brand_store_connections")
     .select(
@@ -53,42 +60,56 @@ async function readConnectionPayload(admin: NonNullable<ReturnType<typeof create
     .eq("brand_id", brandId)
     .maybeSingle();
 
-  const { data: products } = await admin
+  const { data: products, count } = await admin
     .from("brand_store_products")
     .select(
       "id, connection_id, brand_id, external_product_id, title, handle, vendor, product_type, image_url, status, price, currency, synced_at",
+      { count: "exact" }
     )
     .eq("brand_id", brandId)
     .order("synced_at", { ascending: false })
-    .limit(12);
+    .range(offset, offset + limit - 1);
 
   return {
     connection: connection
       ? sanitizeStoreConnection(connection as Record<string, unknown>)
       : null,
+
     products: (products ?? []).map((product) =>
-      sanitizeStoreProduct(product as Record<string, unknown>),
+      sanitizeStoreProduct(product as Record<string, unknown>)
     ),
+
+    pagination: {
+      page,
+      limit,
+      total: count || 0,
+      totalPages: Math.ceil((count || 0) / limit),
+    },
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const brand = await requireBrandUser();
-
-  if ("error" in brand) {
-    return brand.error;
-  }
+  if ("error" in brand) return brand.error;
 
   const admin = createAdminClient();
-
   if (!admin) {
     return NextResponse.json(
       { error: "Missing SUPABASE_SERVICE_ROLE_KEY." },
-      { status: 503 },
+      { status: 503 }
     );
   }
 
-  const payload = await readConnectionPayload(admin, brand.brandId);
+  const { searchParams } = new URL(request.url);
+  const page = Number(searchParams.get("page") || "1");
+  const limit = Number(searchParams.get("limit") || "20");
+
+  const payload = await readConnectionPayload(
+    admin,
+    brand.brandId,
+    page,
+    limit
+  );
 
   return NextResponse.json(payload);
 }
@@ -111,11 +132,11 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => null)) as
     | {
-        provider?: string;
-        storeUrl?: string;
-        accessToken?: string;
-        storefrontAccessToken?: string | null;
-      }
+      provider?: string;
+      storeUrl?: string;
+      accessToken?: string;
+      storefrontAccessToken?: string | null;
+    }
     | null;
 
   const provider = resolveStoreProvider(body?.provider);
@@ -130,13 +151,24 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!storeUrl || !accessToken) {
+  // if (!storeUrl || !accessToken) {
+  //   return NextResponse.json(
+  //     { error: "Store URL and access token are required." },
+  //     { status: 400 },
+  //   );
+  // }
+  if (!storeUrl) {
     return NextResponse.json(
-      { error: "Store URL and access token are required." },
+      { error: "Store URL is required." },
       { status: 400 },
     );
   }
-
+  if (!accessToken && provider !== "shopify") {
+    return NextResponse.json(
+      { error: "Access token is required." },
+      { status: 400 }
+    );
+  }
   if (provider === "headless_shopify" && !storefrontAccessToken) {
     return NextResponse.json(
       { error: "Storefront access token is required for headless Shopify." },
@@ -146,13 +178,21 @@ export async function POST(request: Request) {
 
   try {
     const normalized = normalizeStoreUrl(storeUrl, provider);
+    if (!accessToken && provider === "shopify") {
+      return NextResponse.json(
+        {
+          error: "Access token missing. Use Shopify OAuth connect flow.",
+        },
+        { status: 400 }
+      );
+    }
     const syncedCatalog =
       provider === "shopify" || provider === "headless_shopify"
         ? await fetchShopifyCatalog({
-            provider,
-            storeUrl,
-            accessToken,
-          })
+          provider,
+          storeUrl,
+          accessToken,
+        })
         : null;
 
     const { data: connectionRow, error: upsertError } = await admin
@@ -196,7 +236,7 @@ export async function POST(request: Request) {
       .delete()
       .eq("brand_id", brand.brandId);
 
-    if (syncedCatalog?.products.length) {
+    if (syncedCatalog?.products?.length) {
       const { error: productError } = await admin.from("brand_store_products").insert(
         syncedCatalog.products.map((product) => ({
           connection_id: connectionRow.id,
@@ -257,7 +297,11 @@ export async function DELETE() {
       { status: 503 },
     );
   }
-
+  const { data: connection } = await admin
+    .from("brand_store_connections")
+    .select("store_domain")
+    .eq("brand_id", brand.brandId)
+    .single();
   const { error } = await admin
     .from("brand_store_connections")
     .delete()
@@ -267,9 +311,17 @@ export async function DELETE() {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  // return NextResponse.json({
+  //   connection: null,
+  //   products: [],
+  //   message: "Store disconnected.",
+  // });
   return NextResponse.json({
     connection: null,
     products: [],
+    uninstallUrl: connection?.store_domain
+      ? `https://${connection.store_domain}/admin/apps/app_installations/app/circl-1`
+      : null,
     message: "Store disconnected.",
   });
 }

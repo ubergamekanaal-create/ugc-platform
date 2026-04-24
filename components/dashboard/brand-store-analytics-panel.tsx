@@ -122,7 +122,7 @@ export function BrandStoreAnalyticsPanel({
     setConnectionInfo(connection);
     void loadAnalytics();
   }, [connection, loadAnalytics]);
-
+  
   const metrics = useMemo(
     () => [
       {
@@ -355,24 +355,27 @@ export function BrandStoreAnalyticsPanel({
           </div>
 
           <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between gap-3">
+            <div className="grid items-start justify-between sm:grid-cols-[1fr_auto] gap-3">
               <div>
                 <p className="text-lg font-semibold text-slate-950">Install details</p>
                 <p className="mt-2 text-sm text-slate-500">
                   Paste the custom pixel code into Shopify Admin {" > "} Settings {" > "} Customer events.
                 </p>
               </div>
-              {settings ? (
-                <MotionScale
-                  type="button"
-                  onClick={() =>
-                    void handleCopy("token", settings.public_tracking_token)
-                  }
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                >
-                  {copiedField === "token" ? "Copied token" : "Copy token"}
-                </MotionScale>
-              ) : null}
+              <div className="flex ">
+                {settings ? (
+                  <MotionScale
+                    type="button"
+                    onClick={() =>
+                      void handleCopy("token", settings.public_tracking_token)
+                    }
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    {copiedField === "token" ? "Copied token" : "Copy token"}
+                  </MotionScale>
+                ) : null}
+              </div>
+
             </div>
             <div className="mt-5 space-y-3 text-sm text-slate-600">
               <div className="rounded-2xl bg-slate-50 px-4 py-4">
@@ -452,7 +455,7 @@ export function BrandStoreAnalyticsPanel({
 
         <div className="space-y-6">
           <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
-            <div className="flex items-center justify-between gap-3">
+            <div className="grid items-start justify-between sm:grid-cols-[1fr_auto] gap-3">
               <div>
                 <p className="text-lg font-semibold text-slate-950">
                   Shopify Custom Pixel Code
@@ -466,17 +469,19 @@ export function BrandStoreAnalyticsPanel({
                   </p>
                 ) : null}
               </div>
-              {install?.customPixelCode ? (
-                <MotionScale
-                  type="button"
-                  onClick={() =>
-                    void handleCopy("pixel", install.customPixelCode ?? "")
-                  }
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                >
-                  {copiedField === "pixel" ? "Copied code" : "Copy code"}
-                </MotionScale>
-              ) : null}
+              <div className="flex">
+                {install?.customPixelCode ? (
+                  <MotionScale
+                    type="button"
+                    onClick={() =>
+                      void handleCopy("pixel", install.customPixelCode ?? "")
+                    }
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    {copiedField === "pixel" ? "Copied code" : "Copy code"}
+                  </MotionScale>
+                ) : null}
+              </div>
             </div>
             <textarea
               readOnly
@@ -486,23 +491,25 @@ export function BrandStoreAnalyticsPanel({
           </div>
 
           <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between gap-3">
+            <div className="grid items-start justify-between sm:grid-cols-[1fr_auto] gap-3">
               <div>
                 <p className="text-lg font-semibold text-slate-950">Recent tracked events</p>
                 <p className="mt-2 text-sm text-slate-500">
                   Use this to verify the pixel is active and UTMs are being recorded.
                 </p>
               </div>
-              <span
-                className={cn(
-                  "rounded-full px-3 py-1 text-xs font-semibold",
-                  recentEvents.length
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-slate-100 text-slate-600",
-                )}
-              >
-                {recentEvents.length ? `${recentEvents.length} captured` : "No events yet"}
-              </span>
+              <div className="flex justify-end">
+                <span
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-semibold",
+                    recentEvents.length
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-slate-100 text-slate-600",
+                  )}
+                >
+                  {recentEvents.length ? `${recentEvents.length} captured` : "No events yet"}
+                </span>
+              </div>
             </div>
 
             {recentEvents.length ? (
@@ -554,27 +561,29 @@ export function BrandStoreAnalyticsPanel({
           </div>
 
           <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between gap-3">
+            <div className="grid items-start justify-between sm:grid-cols-[1fr_auto] gap-3">
               <div>
                 <p className="text-lg font-semibold text-slate-950">Attributed orders</p>
                 <p className="mt-2 text-sm text-slate-500">
                   Server-side Shopify orders matched back to your tracked landing URLs.
                 </p>
               </div>
-              <span
-                className={cn(
-                  "rounded-full px-3 py-1 text-xs font-semibold",
-                  recentOrders.length
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-slate-100 text-slate-600",
-                )}
-              >
-                {recentOrders.length ? `${recentOrders.length} orders` : "No orders yet"}
-              </span>
+              <div className="flex justify-end">
+                <span
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-semibold",
+                    recentOrders.length
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-slate-100 text-slate-600",
+                  )}
+                >
+                  {recentOrders.length ? `${recentOrders.length} orders` : "No orders yet"}
+                </span>
+              </div>
             </div>
 
             {recentOrders.length ? (
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 space-y-3 max-h-[400px] overflow-y-auto">
                 {recentOrders.map((order) => (
                   <div
                     key={order.id}

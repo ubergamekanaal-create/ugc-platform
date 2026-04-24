@@ -94,28 +94,28 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => null)) as
     | {
-        name?: string;
-        objective?: string;
-        status?: string;
-        sourceSubmissionId?: string | null;
-        destinationUrl?: string | null;
-        trackingUrl?: string | null;
-        utmSource?: string | null;
-        utmMedium?: string | null;
-        utmCampaign?: string | null;
-        utmContent?: string | null;
-        utmTerm?: string | null;
-        pageId?: string | null;
-        adSetName?: string | null;
-        adName?: string | null;
-        dailyBudget?: number | string | null;
-        countries?: string[] | string | null;
-        creativeSourceKey?: string | null;
-        primaryText?: string | null;
-        headline?: string | null;
-        description?: string | null;
-        callToActionType?: string | null;
-      }
+      name?: string;
+      objective?: string;
+      status?: string;
+      sourceSubmissionId?: string | null;
+      destinationUrl?: string | null;
+      trackingUrl?: string | null;
+      utmSource?: string | null;
+      utmMedium?: string | null;
+      utmCampaign?: string | null;
+      utmContent?: string | null;
+      utmTerm?: string | null;
+      pageId?: string | null;
+      adSetName?: string | null;
+      adName?: string | null;
+      dailyBudget?: number | string | null;
+      countries?: string[] | string | null;
+      creativeSourceKey?: string | null;
+      primaryText?: string | null;
+      headline?: string | null;
+      description?: string | null;
+      callToActionType?: string | null;
+    }
     | null;
   const name = body?.name?.trim() ?? "";
   const objective = body?.objective?.trim() ?? "";
@@ -140,13 +140,13 @@ export async function POST(request: Request) {
   const callToActionType = body?.callToActionType?.trim() || "LEARN_MORE";
   const wantsAdExecution = Boolean(
     pageId ||
-      adSetName ||
-      adName ||
-      dailyBudget !== null ||
-      creativeSourceKey ||
-      primaryText ||
-      headline ||
-      description,
+    adSetName ||
+    adName ||
+    dailyBudget !== null ||
+    creativeSourceKey ||
+    primaryText ||
+    headline ||
+    description,
   );
 
   if (!name) {
@@ -276,25 +276,25 @@ export async function POST(request: Request) {
     });
     const resolvedTrackingUrl = destinationUrl
       ? buildTrackedUrl({
-          destinationUrl,
-          utmSource,
-          utmMedium,
-          utmCampaign,
-          utmContent,
-          utmTerm,
-          campaignId: sourceSubmission?.campaign_id ?? null,
-          submissionId: sourceSubmissionId,
-          metaCampaignId,
-        })
+        destinationUrl,
+        utmSource,
+        utmMedium,
+        utmCampaign,
+        utmContent,
+        utmTerm,
+        campaignId: sourceSubmission?.campaign_id ?? null,
+        submissionId: sourceSubmissionId,
+        metaCampaignId,
+      })
       : trackingUrl;
 
     const { data: trackedCampaign, error: trackingError } = await admin
       .from("brand_meta_campaigns")
       .upsert(
         {
-            connection_id: connection.id,
-            brand_id: brand.brandId,
-            ad_account_id: selectedMetaAdAccountId,
+          connection_id: connection.id,
+          brand_id: brand.brandId,
+          ad_account_id: selectedMetaAdAccountId,
           meta_campaign_id: metaCampaignId,
           source_submission_id: sourceSubmissionId,
           destination_url: destinationUrl,
@@ -408,38 +408,38 @@ export async function POST(request: Request) {
       const metaCreativeId =
         sourceAssetKind === "video"
           ? await (async () => {
-              const videoId = await uploadMetaVideoFromUrl({
-                accessToken: connection.access_token,
-                adAccountId: selectedMetaAdAccountId,
-                name: `${finalAdName} Video`,
-                videoUrl: sourceAssetUrl!,
-              });
+            const videoId = await uploadMetaVideoFromUrl({
+              accessToken: connection.access_token,
+              adAccountId: selectedMetaAdAccountId,
+              name: `${finalAdName} Video`,
+              videoUrl: sourceAssetUrl!,
+            });
 
-              return createMetaVideoAdCreative({
-                accessToken: connection.access_token,
-                adAccountId: selectedMetaAdAccountId,
-                name: `${finalAdName} Creative`,
-                pageId: finalPageId,
-                linkUrl: finalTrackingUrl,
-                videoId,
-                headline: finalHeadline,
-                message: finalPrimaryText,
-                description,
-                callToActionType,
-              });
-            })()
-          : await createMetaImageAdCreative({
+            return createMetaVideoAdCreative({
               accessToken: connection.access_token,
               adAccountId: selectedMetaAdAccountId,
               name: `${finalAdName} Creative`,
               pageId: finalPageId,
               linkUrl: finalTrackingUrl,
-              imageUrl: sourceAssetUrl,
+              videoId,
               headline: finalHeadline,
               message: finalPrimaryText,
               description,
               callToActionType,
             });
+          })()
+          : await createMetaImageAdCreative({
+            accessToken: connection.access_token,
+            adAccountId: selectedMetaAdAccountId,
+            name: `${finalAdName} Creative`,
+            pageId: finalPageId,
+            linkUrl: finalTrackingUrl,
+            imageUrl: sourceAssetUrl,
+            headline: finalHeadline,
+            message: finalPrimaryText,
+            description,
+            callToActionType,
+          });
 
       const metaAdId = await createMetaAd({
         accessToken: connection.access_token,
