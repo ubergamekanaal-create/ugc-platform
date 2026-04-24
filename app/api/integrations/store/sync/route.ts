@@ -9,7 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
-
+export const maxDuration = 300;
 export async function POST() {
   const supabase = await createClient();
   const {
@@ -81,29 +81,7 @@ export async function POST() {
       .delete()
       .eq("brand_id", user.id);
 
-    // if (catalog.products.length) {
-    //   const { error: productError } = await admin.from("brand_store_products").insert(
-    //     catalog.products.map((product) => ({
-    //       connection_id: connection.id,
-    //       brand_id: user.id,
-    //       external_product_id: product.external_product_id,
-    //       title: product.title,
-    //       handle: product.handle,
-    //       vendor: product.vendor,
-    //       product_type: product.product_type,
-    //       image_url: product.image_url,
-    //       status: product.status,
-    //       price: product.price,
-    //       currency: product.currency,
-    //       raw_payload: {},
-    //       synced_at: product.synced_at,
-    //     })),
-    //   );
-
-    //   if (productError) {
-    //     throw new Error(productError.message);
-    //   }
-    // }
+    
     if (catalog.products.length) {
       const BATCH_SIZE = 500;
 

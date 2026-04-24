@@ -10,6 +10,8 @@ import type {
   StoreProvider,
 } from "@/lib/types";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { ProductTable } from "../shared/product-table";
+import { Pagination } from "../shared/pagination";
 
 type IntegrationResponse = {
   connection: BrandStoreConnectionSummary | null;
@@ -32,18 +34,18 @@ const providerCards: ProviderCard[] = [
     description: "Standard Shopify storefront",
     icon: "S",
   },
-  {
-    provider: "non_shopify",
-    title: "Non-Shopify Store",
-    description: "WooCommerce, BigCommerce, custom, etc.",
-    icon: "◎",
-  },
-  {
-    provider: "headless_shopify",
-    title: "Headless Shopify",
-    description: "Custom frontend with Shopify backend",
-    icon: "H",
-  },
+  // {
+  //   provider: "non_shopify",
+  //   title: "Non-Shopify Store",
+  //   description: "WooCommerce, BigCommerce, custom, etc.",
+  //   icon: "◎",
+  // },
+  // {
+  //   provider: "headless_shopify",
+  //   title: "Headless Shopify",
+  //   description: "Custom frontend with Shopify backend",
+  //   icon: "H",
+  // },
 ];
 
 const initialForm = {
@@ -69,15 +71,64 @@ export function BrandIntegrationsPanel() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+  });
+  const [shouldAutoSync, setShouldAutoSync] = useState(false);
+  const [autoSyncTriggered, setAutoSyncTriggered] = useState(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
 
-  async function loadConnection() {
+    if (params.get("autoSync") === "true") {
+      setShouldAutoSync(true);
+    }
+  }, []);
+  // async function loadConnection() {
+  //   setIsLoading(true);
+
+  //   try {
+  //     const response = await fetch("/api/integrations/store", {
+  //       cache: "no-store",
+  //     });
+  //     const payload = (await response.json()) as IntegrationResponse;
+
+  //     if (!response.ok) {
+  //       throw new Error(payload.error ?? "Unable to load integrations.");
+  //     }
+
+  //     setConnection(payload.connection);
+  //     setProducts(payload.products);
+
+  //     if (payload.connection) {
+  //       setSelectedProvider(payload.connection.provider);
+  //       setForm((current) => ({
+  //         ...current,
+  //         storeUrl: current.storeUrl || payload.connection?.store_url || "",
+  //       }));
+  //     }
+  //   } catch (error) {
+  //     setMessage(
+  //       error instanceof Error ? error.message : "Unable to load integrations.",
+  //     );
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // }
+  async function loadConnection(pageNumber = 1) {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/integrations/store", {
-        cache: "no-store",
-      });
-      const payload = (await response.json()) as IntegrationResponse;
+      const response = await fetch(
+        `/api/integrations/store?page=${pageNumber}&limit=10`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      const payload = await response.json();
 
       if (!response.ok) {
         throw new Error(payload.error ?? "Unable to load integrations.");
@@ -85,6 +136,11 @@ export function BrandIntegrationsPanel() {
 
       setConnection(payload.connection);
       setProducts(payload.products);
+
+      if (payload.pagination) {
+        setPagination(payload.pagination);
+        setPage(payload.pagination.page);
+      }
 
       if (payload.connection) {
         setSelectedProvider(payload.connection.provider);
@@ -95,23 +151,113 @@ export function BrandIntegrationsPanel() {
       }
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Unable to load integrations.",
+        error instanceof Error ? error.message : "Unable to load integrations."
       );
     } finally {
       setIsLoading(false);
     }
   }
-
   useEffect(() => {
-    void loadConnection();
+    void loadConnection(1);
   }, []);
+  useEffect(() => {
+    if (
+      shouldAutoSync &&
+      connection?.status === "connected" &&
+      !autoSyncTriggered
+    ) {
+      setAutoSyncTriggered(true);
 
+      setTimeout(() => {
+        setIsSyncing(true);
+
+        fetch("/api/integrations/store/sync", {
+          method: "POST",
+        })
+          .then(() => {
+            setTimeout(() => {
+              loadConnection(1);
+            }, 3000);
+          })
+          .catch((err) => console.error(err))
+          .finally(() => {
+            setIsSyncing(false);
+            window.history.replaceState({}, "", "/dashboard/integrations");
+          });
+      }, 2000);
+    }
+  }, [shouldAutoSync, connection, autoSyncTriggered]);
+
+  // async function handleConnect(event: FormEvent<HTMLFormElement>) {
+  //   event.preventDefault();
+  //   setMessage(null);
+  //   setIsSubmitting(true);
+
+  //   try {
+  //     const response = await fetch("/api/integrations/store", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         provider: selectedProvider,
+  //         storeUrl: form.storeUrl,
+  //         accessToken: form.accessToken,
+  //         storefrontAccessToken:
+  //           selectedProvider === "headless_shopify"
+  //             ? form.storefrontAccessToken
+  //             : null,
+  //       }),
+  //     });
+  //     const payload = (await response.json()) as IntegrationResponse;
+
+  //     if (!response.ok) {
+  //       throw new Error(payload.error ?? "Unable to connect your store.");
+  //     }
+
+  //     setConnection(payload.connection);
+  //     setProducts(payload.products);
+  //     setMessage(payload.message ?? "Store connected.");
+  //     setForm((current) => ({
+  //       ...current,
+  //       accessToken: "",
+  //       storefrontAccessToken: "",
+  //     }));
+  //   } catch (error) {
+  //     setMessage(
+  //       error instanceof Error ? error.message : "Unable to connect your store.",
+  //     );
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // }
   async function handleConnect(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
     setIsSubmitting(true);
 
     try {
+      if (selectedProvider === "shopify") {
+        const res = await fetch("/api/shopify/connect", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            storeUrl: form.storeUrl,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Unable to connect store");
+        }
+
+        window.location.href = data.url;
+        return;
+      }
+
       const response = await fetch("/api/integrations/store", {
         method: "POST",
         headers: {
@@ -127,7 +273,8 @@ export function BrandIntegrationsPanel() {
               : null,
         }),
       });
-      const payload = (await response.json()) as IntegrationResponse;
+
+      const payload = await response.json();
 
       if (!response.ok) {
         throw new Error(payload.error ?? "Unable to connect your store.");
@@ -136,20 +283,15 @@ export function BrandIntegrationsPanel() {
       setConnection(payload.connection);
       setProducts(payload.products);
       setMessage(payload.message ?? "Store connected.");
-      setForm((current) => ({
-        ...current,
-        accessToken: "",
-        storefrontAccessToken: "",
-      }));
+
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Unable to connect your store.",
+        error instanceof Error ? error.message : "Unable to connect your store."
       );
     } finally {
       setIsSubmitting(false);
     }
   }
-
   async function handleSync() {
     setMessage(null);
     setIsSyncing(true);
@@ -176,6 +318,33 @@ export function BrandIntegrationsPanel() {
     }
   }
 
+  // async function handleDisconnect() {
+  //   setMessage(null);
+  //   setIsDisconnecting(true);
+
+  //   try {
+  //     const response = await fetch("/api/integrations/store", {
+  //       method: "DELETE",
+  //     });
+  //     const payload = (await response.json()) as IntegrationResponse;
+
+  //     if (!response.ok) {
+  //       throw new Error(payload.error ?? "Unable to disconnect store.");
+  //     }
+
+  //     setConnection(null);
+  //     setProducts([]);
+  //     setMessage(payload.message ?? "Store disconnected.");
+  //     setForm(initialForm);
+  //     setSelectedProvider("shopify");
+  //   } catch (error) {
+  //     setMessage(
+  //       error instanceof Error ? error.message : "Unable to disconnect store.",
+  //     );
+  //   } finally {
+  //     setIsDisconnecting(false);
+  //   }
+  // }
   async function handleDisconnect() {
     setMessage(null);
     setIsDisconnecting(true);
@@ -184,7 +353,8 @@ export function BrandIntegrationsPanel() {
       const response = await fetch("/api/integrations/store", {
         method: "DELETE",
       });
-      const payload = (await response.json()) as IntegrationResponse;
+
+      const payload = await response.json();
 
       if (!response.ok) {
         throw new Error(payload.error ?? "Unable to disconnect store.");
@@ -195,15 +365,27 @@ export function BrandIntegrationsPanel() {
       setMessage(payload.message ?? "Store disconnected.");
       setForm(initialForm);
       setSelectedProvider("shopify");
+
+      // if (payload.uninstallUrl) {
+      //   window.open(payload.uninstallUrl, "_blank");
+      //   // window.location.href = "/dashboard/integrations";
+      // }
+      if (payload.uninstallUrl) {
+        const newTab = window.open(payload.uninstallUrl, "_blank");
+
+        if (newTab) {
+          newTab.focus();
+        }
+      }
+
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Unable to disconnect store.",
+        error instanceof Error ? error.message : "Unable to disconnect store."
       );
     } finally {
       setIsDisconnecting(false);
     }
   }
-
   return (
     <div className="space-y-6">
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
@@ -292,7 +474,7 @@ export function BrandIntegrationsPanel() {
                 className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
               />
             </div>
-            <div>
+            {/* <div>
               <label
                 htmlFor="integration-access-token"
                 className="mb-2 block text-sm font-medium text-slate-600"
@@ -302,7 +484,7 @@ export function BrandIntegrationsPanel() {
               <input
                 id="integration-access-token"
                 type="password"
-                required
+                // required
                 value={form.accessToken}
                 onChange={(event) =>
                   setForm((current) => ({
@@ -313,7 +495,7 @@ export function BrandIntegrationsPanel() {
                 placeholder="Paste your token"
                 className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
               />
-            </div>
+            </div> */}
           </div>
 
           {selectedProvider === "headless_shopify" ? (
@@ -428,60 +610,100 @@ export function BrandIntegrationsPanel() {
         </div>
 
         {isLoading ? (
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div
-                key={index}
-                className="h-48 animate-pulse rounded-[1.5rem] border border-slate-200 bg-slate-50"
-              />
-            ))}
-          </div>
-        ) : products.length ? (
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {products.map((product) => (
-              <div
-                key={product.id}
-                className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white"
-              >
-                <div className="aspect-[1.5/1] bg-slate-100">
-                  {product.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={product.image_url}
-                      alt={product.title}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-slate-400">
-                      No image
-                    </div>
+          <div className="mt-8 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-[0_12px_32px_rgba(15,23,42,0.04)]">
+            <div className="overflow-x-auto">
+              <div className="min-w-[860px]">
+                <div className="grid grid-cols-[2fr_1fr_1fr_0.8fr_0.9fr] gap-5 border-b border-slate-200 bg-slate-50/80 px-5 py-4">
+                  {["Product", "Vendor", "Type", "Price", "Status"].map(
+                    (heading) => (
+                      <div
+                        key={heading}
+                        className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400"
+                      >
+                        {heading}
+                      </div>
+                    ),
                   )}
                 </div>
-                <div className="space-y-3 p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold text-slate-950">
-                        {product.title}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {product.vendor ?? "Unknown vendor"}
-                      </p>
+
+                <div className="divide-y divide-slate-100">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="grid animate-pulse grid-cols-[2fr_1fr_1fr_0.8fr_0.9fr] items-center gap-5 px-5 py-4"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="h-14 w-14 rounded-2xl bg-slate-100" />
+                        <div className="min-w-0 space-y-2">
+                          <div className="h-4 w-48 rounded-full bg-slate-100" />
+                          <div className="h-3 w-28 rounded-full bg-slate-100" />
+                        </div>
+                      </div>
+                      <div className="h-4 w-24 rounded-full bg-slate-100" />
+                      <div className="h-7 w-28 rounded-full bg-slate-100" />
+                      <div className="h-4 w-16 rounded-full bg-slate-100" />
+                      <div className="h-7 w-24 rounded-full bg-slate-100" />
                     </div>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                      {product.status ?? "synced"}
-                    </span>
-                  </div>
-                  <div className="text-sm text-slate-500">
-                    <p>{product.product_type ?? "Uncategorized"}</p>
-                    <p className="mt-1">
-                      {product.price !== null
-                        ? formatCurrency(product.price)
-                        : "Price unavailable"}
-                    </p>
-                  </div>
+                  ))}
                 </div>
               </div>
-            ))}
+            </div>
+          </div>
+        ) : products.length ? (
+          // <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          //   {products.map((product) => (
+          //     <div
+          //       key={product.id}
+          //       className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white"
+          //     >
+          //       <div className="aspect-[1.5/1] bg-slate-100">
+          //         {product.image_url ? (
+          //           // eslint-disable-next-line @next/next/no-img-element
+          //           <img
+          //             src={product.image_url}
+          //             alt={product.title}
+          //             className="h-full w-full object-cover"
+          //           />
+          //         ) : (
+          //           <div className="flex h-full items-center justify-center text-sm text-slate-400">
+          //             No image
+          //           </div>
+          //         )}
+          //       </div>
+          //       <div className="space-y-3 p-5">
+          //         <div className="flex items-start justify-between gap-3">
+          //           <div>
+          //             <p className="font-semibold text-slate-950">
+          //               {product.title}
+          //             </p>
+          //             <p className="mt-1 text-sm text-slate-500">
+          //               {product.vendor ?? "Unknown vendor"}
+          //             </p>
+          //           </div>
+          //           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+          //             {product.status ?? "synced"}
+          //           </span>
+          //         </div>
+          //         <div className="text-sm text-slate-500">
+          //           <p>{product.product_type ?? "Uncategorized"}</p>
+          //           <p className="mt-1">
+          //             {product.price !== null
+          //               ? formatCurrency(product.price)
+          //               : "Price unavailable"}
+          //           </p>
+          //         </div>
+          //       </div>
+          //     </div>
+          //   ))}
+          // </div>
+          <div className="mt-8">
+            <ProductTable products={products as any} />
+
+            <Pagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              onChange={(p) => loadConnection(p)}
+            />
           </div>
         ) : (
           <div className="mt-8 rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">

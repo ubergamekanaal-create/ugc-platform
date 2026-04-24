@@ -144,20 +144,20 @@ export async function registerShopifyAnalyticsWebhooks(params: {
   callbackUrl: string;
 }) {
   const mutation = `#graphql
-    mutation RegisterWebhook($topic: WebhookSubscriptionTopic!, $webhookSubscription: WebhookSubscriptionInput!) {
-      webhookSubscriptionCreate(topic: $topic, webhookSubscription: $webhookSubscription) {
-        webhookSubscription {
-          id
-          topic
-          uri
-        }
-        userErrors {
-          field
-          message
+      mutation RegisterWebhook($topic: WebhookSubscriptionTopic!, $webhookSubscription: WebhookSubscriptionInput!) {
+        webhookSubscriptionCreate(topic: $topic, webhookSubscription: $webhookSubscription) {
+          webhookSubscription {
+            id
+            topic
+            uri
+          }
+          userErrors {
+            field
+            message
+          }
         }
       }
-    }
-  `;
+    `;
 
   const includeFields = [
     "id",
@@ -234,39 +234,39 @@ export async function fetchShopifyCatalog(params: {
   const { provider, storeUrl, accessToken } = params;
   const normalized = normalizeStoreUrl(storeUrl, provider);
   const query = `#graphql
-    query GetStoreCatalog($cursor: String) {
-      shop {
-        name
-        myshopifyDomain
-      }
-      products(first: 250, after: $cursor, sortKey: UPDATED_AT, reverse: true) {
-        edges {
-          cursor
-          node {
-            id
-            title
-            handle
-            vendor
-            productType
-            status
-            featuredImage {
-              url
-            }
-            priceRangeV2 {
-              minVariantPrice {
-                amount
-                currencyCode
+      query GetStoreCatalog($cursor: String) {
+        shop {
+          name
+          myshopifyDomain
+        }
+        products(first: 250, after: $cursor, sortKey: UPDATED_AT, reverse: true) {
+          edges {
+            cursor
+            node {
+              id
+              title
+              handle
+              vendor
+              productType
+              status
+              featuredImage {
+                url
               }
+              priceRangeV2 {
+                minVariantPrice {
+                  amount
+                  currencyCode
+                }
+              }
+              updatedAt
             }
-            updatedAt
+          }
+          pageInfo {
+            hasNextPage
           }
         }
-        pageInfo {
-          hasNextPage
-        }
       }
-    }
-  `;
+    `;
   let hasNextPage = true;
   let cursor: string | null = null;
   let prevCursor: string | null = null;

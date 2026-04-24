@@ -259,6 +259,16 @@ function getCheckoutCurrency(event) {
 function getOrderId(event) {
   return event?.data?.checkout?.order?.id ?? null;
 }
+function isWithin1Day(attribution) {
+  if (!attribution?.first_seen_at) return false;
+
+  const clickTime = new Date(attribution.first_seen_at).getTime();
+  const now = Date.now();
+
+  const diffHours = (now - clickTime) / (1000 * 60 * 60);
+
+  return diffHours <= 24;
+}
 
 async function sendEvent(eventName, event) {
   const pageUrl =
@@ -270,6 +280,10 @@ async function sendEvent(eventName, event) {
     init?.context?.document?.referrer ??
     null;
   const attribution = await storeAttributionFromUrl(pageUrl);
+  const isValidConversion =
+    eventName === "checkout_completed"
+      ? isWithin1Day(attribution)
+      : true;
 
   fetch(CIRCL_ENDPOINT, {
     method: "POST",
@@ -287,8 +301,15 @@ async function sendEvent(eventName, event) {
       referrerUrl,
       landingUrl: attribution?.last_touch?.landing_url ?? null,
       currency: getCheckoutCurrency(event),
-      value: eventName === "checkout_completed" ? getCheckoutValue(event) : null,
-      orderId: eventName === "checkout_completed" ? getOrderId(event) : null,
+      value:
+        eventName === "checkout_completed" && isValidConversion
+          ? getCheckoutValue(event)
+          : null,
+
+      orderId:
+        eventName === "checkout_completed" && isValidConversion
+          ? getOrderId(event)
+          : null,
       utm: {
         source: attribution?.last_touch?.utm_source ?? null,
         medium: attribution?.last_touch?.utm_medium ?? null,

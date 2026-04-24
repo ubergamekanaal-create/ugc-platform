@@ -99,6 +99,28 @@ export async function POST(request: Request) {
         ? Number(body.value)
         : null;
 
+  let isValidConversion = true;
+  if (eventName === "checkout_completed") {
+    const firstSeenAt =
+      (body?.payload as any)?.attribution?.firstTouch?.first_seen_at ||
+      (body?.payload as any)?.attribution?.firstTouch?.firstSeenAt;
+
+    if (firstSeenAt) {
+      const clickTime = new Date(firstSeenAt).getTime();
+      // const now = Date.now();
+
+      // const diffHours = (now - clickTime) / (1000 * 60 * 60);
+      const orderTime =
+        (body?.payload as any)?.timestamp
+          ? new Date((body?.payload as any).timestamp).getTime()
+          : Date.now();
+
+      const diffHours = (orderTime - clickTime) / (1000 * 60 * 60);
+      if (diffHours > 24) {
+        isValidConversion = false;
+      }
+    }
+  }
   const { error } = await admin.from("brand_store_analytics_events").insert({
     brand_id: settings.brand_id,
     connection_id: settings.connection_id,
@@ -115,7 +137,12 @@ export async function POST(request: Request) {
     landing_url: body?.landingUrl?.trim() || null,
     referrer_url: body?.referrerUrl?.trim() || null,
     currency: body?.currency?.trim() || null,
-    value: Number.isFinite(numericValue as number) ? numericValue : null,
+    value:
+      eventName === "checkout_completed" && !isValidConversion
+        ? null
+        : Number.isFinite(numericValue as number)
+          ? numericValue
+          : null,
     utm_source: body?.utm?.source?.trim() || null,
     utm_medium: body?.utm?.medium?.trim() || null,
     utm_campaign: body?.utm?.campaign?.trim() || null,
@@ -126,6 +153,7 @@ export async function POST(request: Request) {
     fbp: body?.identifiers?.fbp?.trim() || null,
     event_payload:
       body?.payload && typeof body.payload === "object" ? body.payload : {},
+    // is_attributed: isValidConversion,
   });
 
   if (error) {
