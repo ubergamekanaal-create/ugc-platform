@@ -3,7 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchShopifyCatalog } from "@/lib/integrations/shopify";
 
 function getBaseUrl(req: Request) {
-    return process.env.FRONTEND_URL || new URL(req.url).origin;
+    const url = process.env.FRONTEND_URL || new URL(req.url).origin;
+    return url.replace(/\/$/, "");
 }
 export async function GET(req: Request) {
     try {
