@@ -49,7 +49,7 @@ async function requireBrandUser() {
 
 export async function POST(request: Request) {
   const brand = await requireBrandUser();
-
+  console.log("BRAND RESULT:", brand);
   if ("error" in brand) {
     return brand.error;
   }
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     )
     .eq("brand_id", brand.brandId)
     .maybeSingle();
-
+  console.log("STORE CONNECTION:", connection);
   if (!connection) {
     return NextResponse.json(
       { error: "Connect your store first." },
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
   }
 
   const callbackUrl = `${getRequestOrigin(request)}/api/integrations/store/webhooks/shopify`;
-
+  console.log("CALLBACK URL:", callbackUrl);
   try {
     const subscriptions = await registerShopifyAnalyticsWebhooks({
       storeDomain: connection.store_domain,
