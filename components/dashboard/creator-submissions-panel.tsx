@@ -64,6 +64,50 @@ function getStatusClasses(status?: SubmissionStatus | null) {
   return "bg-slate-100 text-slate-600";
 }
 
+async function generateThumbnail(file: File): Promise<File | null> {
+  if (!file.type.startsWith("video/")) return null;
+
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.src = URL.createObjectURL(file);
+    video.muted = true;
+    video.playsInline = true;
+
+    video.onloadedmetadata = () => {
+      video.currentTime = 1;
+    };
+
+    video.onseeked = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(video, 0, 0);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob || blob.size < 10000) {
+            return resolve(null);
+          }
+
+          const cleanName = file.name.replace(/\.[^/.]+$/, "");
+
+          const thumbFile = new File(
+            [blob],
+            `${cleanName}-thumb.jpg`,
+            { type: "image/jpeg" }
+          );
+
+
+          resolve(thumbFile);
+        },
+        "image/jpeg",
+        0.9
+      );
+    };
+  });
+}
 export function CreatorSubmissionsPanel({
   opportunities,
   submissions,
@@ -88,7 +132,22 @@ export function CreatorSubmissionsPanel({
       .filter(Boolean);
     const notes = (draft?.notes ?? submission?.notes ?? "").trim();
     const files = draft?.files ?? [];
+    const thumbnails: (File | null)[] = [];
+    const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
+    const oversizedFile = files.find(file => file.size > MAX_FILE_SIZE);
+
+    if (oversizedFile) {
+      setFeedback((current) => ({
+        ...current,
+        [application.campaign_id]: `${oversizedFile.name} is larger than 25MB. Please upload a smaller file.`,
+      }));
+      return;
+    }
+    for (const file of files) {
+      const thumb = await generateThumbnail(file);
+      thumbnails.push(thumb);
+    }
     if (!links.length && !files.length) {
       setFeedback((current) => ({
         ...current,
@@ -107,6 +166,9 @@ export function CreatorSubmissionsPanel({
       formData.append("notes", notes);
       formData.append("contentLinks", JSON.stringify(links));
       files.forEach((file) => formData.append("files", file));
+      thumbnails.forEach((thumb) => {
+        formData.append("thumbnails", thumb ?? new Blob());
+      });
 
       const response = await fetch("/api/submissions", {
         method: "POST",
@@ -250,34 +312,34 @@ export function CreatorSubmissionsPanel({
               application.product_details ||
               application.usage_rights ||
               application.creator_requirements) && (
-              <div className="mt-5 grid gap-3 md:grid-cols-2">
-                <div className="rounded-[1.5rem] bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                  <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                    Product
-                  </p>
-                  <p className="mt-2 font-semibold text-slate-950">
-                    {application.product_name || "Shared in brief"}
-                  </p>
-                  {application.product_details ? (
-                    <p className="mt-2 leading-7">{application.product_details}</p>
-                  ) : null}
+                <div className="mt-5 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-[1.5rem] bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                    <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                      Product
+                    </p>
+                    <p className="mt-2 font-semibold text-slate-950">
+                      {application.product_name || "Shared in brief"}
+                    </p>
+                    {application.product_details ? (
+                      <p className="mt-2 leading-7">{application.product_details}</p>
+                    ) : null}
+                  </div>
+                  <div className="rounded-[1.5rem] bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                    <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                      Usage rights
+                    </p>
+                    <p className="mt-2 font-semibold text-slate-950">
+                      {application.usage_rights || "To be confirmed"}
+                    </p>
+                    <p className="mt-3 text-xs uppercase tracking-[0.16em] text-slate-400">
+                      Creator requirements
+                    </p>
+                    <p className="mt-2 font-semibold text-slate-950">
+                      {application.creator_requirements || "Open brief"}
+                    </p>
+                  </div>
                 </div>
-                <div className="rounded-[1.5rem] bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                  <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                    Usage rights
-                  </p>
-                  <p className="mt-2 font-semibold text-slate-950">
-                    {application.usage_rights || "To be confirmed"}
-                  </p>
-                  <p className="mt-3 text-xs uppercase tracking-[0.16em] text-slate-400">
-                    Creator requirements
-                  </p>
-                  <p className="mt-2 font-semibold text-slate-950">
-                    {application.creator_requirements || "Open brief"}
-                  </p>
-                </div>
-              </div>
-            )}
+              )}
 
             {submission?.feedback ? (
               <div className="mt-5 rounded-[1.5rem] bg-amber-50 px-4 py-4 text-sm text-amber-800">

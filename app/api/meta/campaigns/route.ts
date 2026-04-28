@@ -7,6 +7,7 @@ import {
   createMetaImageAdCreative,
   createMetaVideoAdCreative,
   uploadMetaVideoFromUrl,
+  getMetaThumbnailWithRetry
 } from "@/lib/integrations/meta";
 import {
   readMetaPayload,
@@ -17,6 +18,7 @@ import {
 import {
   getSignedSubmissionAssetUrls,
   getSubmissionAssetKind,
+  SUBMISSION_ASSETS_BUCKET,
 } from "@/lib/submissions/assets";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -333,12 +335,12 @@ export async function POST(request: Request) {
       let selectedAssetId: string | null = null;
       let sourceAssetKind: "image" | "video" | null = null;
       let sourceAssetUrl: string | null = null;
-
+      let thumbnailUrl: string | null = null;
       if (selectedCreativeSourceKey.startsWith("asset:")) {
         const assetId = selectedCreativeSourceKey.slice("asset:".length);
         const { data: rawAsset } = await admin
           .from("campaign_submission_assets")
-          .select("id, submission_id, file_name, storage_path, mime_type")
+          .select("id, submission_id, file_name, storage_path, mime_type,thumbnail_url")
           .eq("id", assetId)
           .eq("submission_id", sourceSubmission.id)
           .maybeSingle();
@@ -356,11 +358,16 @@ export async function POST(request: Request) {
 
         sourceAssetKind = assetKind;
 
-        const signedUrlMap = await getSignedSubmissionAssetUrls([
-          rawAsset.storage_path as string,
-        ]);
+        // const signedUrlMap = await getSignedSubmissionAssetUrls([
+        //   rawAsset.storage_path as string,
+        // ]);
+        const getPublicUrl = (path: string) =>
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${SUBMISSION_ASSETS_BUCKET}/${path}`;
+        sourceAssetUrl = getPublicUrl(rawAsset.storage_path as string);
 
-        sourceAssetUrl = signedUrlMap.get(rawAsset.storage_path as string) ?? null;
+        if (rawAsset.thumbnail_url) {
+          thumbnailUrl = getPublicUrl(rawAsset.thumbnail_url);
+        }
       } else if (selectedCreativeSourceKey.startsWith("link:")) {
         const linkIndex = Number(selectedCreativeSourceKey.slice("link:".length));
         const linkValue =
@@ -372,14 +379,23 @@ export async function POST(request: Request) {
           throw new Error("The selected content link could not be resolved.");
         }
 
-        sourceAssetUrl = linkValue;
-        sourceAssetKind = inferRemoteAssetKind(linkValue);
+        // sourceAssetUrl = linkValue;
+        // sourceAssetKind = inferRemoteAssetKind(linkValue);
 
-        if (!sourceAssetKind) {
+        // if (!sourceAssetKind) {
+        //   throw new Error(
+        //     "Content links used for ads must be direct image or video URLs.",
+        //   );
+        // }
+        const assetKind = inferRemoteAssetKind(linkValue);
+
+        if (!assetKind) {
           throw new Error(
-            "Content links used for ads must be direct image or video URLs.",
+            "Only direct image/video URLs are allowed (must end with .jpg, .png, .mp4, etc). Product page URLs are not supported."
           );
         }
+        sourceAssetUrl = linkValue;
+        sourceAssetKind = assetKind;
       } else {
         throw new Error("Unsupported creative source selected.");
       }
@@ -404,7 +420,6 @@ export async function POST(request: Request) {
         dailyBudgetMinorUnits,
         countries: targetingCountries,
       });
-
       const metaCreativeId =
         sourceAssetKind === "video"
           ? await (async () => {
@@ -414,6 +429,14 @@ export async function POST(request: Request) {
               name: `${finalAdName} Video`,
               videoUrl: sourceAssetUrl!,
             });
+            const metaThumbnail = await getMetaThumbnailWithRetry({
+              accessToken: connection.access_token,
+              videoId,
+            });
+
+            const finalThumbnail =
+              metaThumbnail ||
+              `${process.env.FRONTEND_URL}/default_image.png`;
 
             return createMetaVideoAdCreative({
               accessToken: connection.access_token,
@@ -426,6 +449,8 @@ export async function POST(request: Request) {
               message: finalPrimaryText,
               description,
               callToActionType,
+              imageUrl: finalThumbnail,
+              // imageUrl: thumbnailUrl,
             });
           })()
           : await createMetaImageAdCreative({
@@ -440,7 +465,6 @@ export async function POST(request: Request) {
             description,
             callToActionType,
           });
-
       const metaAdId = await createMetaAd({
         accessToken: connection.access_token,
         adAccountId: selectedMetaAdAccountId,
@@ -449,7 +473,6 @@ export async function POST(request: Request) {
         name: finalAdName,
         status,
       });
-
       const { data: localAdSet, error: adSetError } = await admin
         .from("brand_meta_ad_sets")
         .upsert(
