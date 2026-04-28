@@ -241,8 +241,8 @@ async function requestMetaGraph<T extends MetaGraphErrorPayload>(
     headers:
       method === "POST"
         ? {
-            "Content-Type": "application/x-www-form-urlencoded",
-          }
+          "Content-Type": "application/x-www-form-urlencoded",
+        }
         : undefined,
     cache: "no-store",
   });
@@ -250,6 +250,8 @@ async function requestMetaGraph<T extends MetaGraphErrorPayload>(
   const payload = (await response.json().catch(() => ({}))) as T;
 
   if (!response.ok || payload.error) {
+    console.error("META RAW ERROR:", payload);
+    console.error("STATUS:", response.status);
     throw new Error(normalizeMetaError(payload, "Meta request failed."));
   }
 
@@ -498,7 +500,6 @@ export async function createMetaCampaign({
   status: "ACTIVE" | "PAUSED";
 }) {
   const accountId = normalizeMetaAdAccountId(adAccountId);
-
   const payload = await requestMetaGraph<MetaCreateResponse>(
     `${accountId}/campaigns`,
     {
@@ -509,6 +510,7 @@ export async function createMetaCampaign({
         objective,
         status,
         special_ad_categories: "[]",
+        is_adset_budget_sharing_enabled: "0",
       },
     },
   );
@@ -697,6 +699,7 @@ export async function createMetaAdSet(params: {
       name: params.name,
       campaign_id: params.campaignId,
       daily_budget: String(Math.max(100, Math.round(params.dailyBudgetMinorUnits))),
+      is_adset_budget_sharing_enabled: "false",
       billing_event: params.billingEvent ?? "IMPRESSIONS",
       optimization_goal: params.optimizationGoal ?? "LINK_CLICKS",
       destination_type: params.destinationType ?? "WEBSITE",
@@ -716,7 +719,37 @@ export async function createMetaAdSet(params: {
 
   return payload.id;
 }
+export async function getMetaVideoThumbnail(params: {
+  accessToken: string;
+  videoId: string;
+}) {
+  const payload = await requestMetaGraph<MetaGraphErrorPayload & {
+    thumbnails?: {
+      data?: { uri?: string }[];
+    };
+  }>(`${params.videoId}`, {
+    accessToken: params.accessToken,
+    searchParams: {
+      fields: "thumbnails",
+    },
+  });
 
+  return payload?.thumbnails?.data?.[0]?.uri || null;
+}
+export async function getMetaThumbnailWithRetry(params: {
+  accessToken: string;
+  videoId: string;
+}) {
+  for (let i = 0; i < 3; i++) {
+    const thumb = await getMetaVideoThumbnail(params);
+
+    if (thumb) return thumb;
+
+    await new Promise((res) => setTimeout(res, 2000));
+  }
+
+  return null;
+}
 export async function uploadMetaVideoFromUrl(params: {
   accessToken: string;
   adAccountId: string;
@@ -804,8 +837,10 @@ export async function createMetaVideoAdCreative(params: {
   message: string;
   description?: string | null;
   callToActionType?: string | null;
+  imageUrl?: string | null;
 }) {
   const accountId = normalizeMetaAdAccountId(params.adAccountId);
+
   const objectStorySpec = {
     page_id: params.pageId,
     video_data: {
@@ -819,7 +854,8 @@ export async function createMetaVideoAdCreative(params: {
           link: params.linkUrl,
         },
       },
-      link: params.linkUrl,
+      image_url: params?.imageUrl,
+      // link: params.linkUrl,
     },
   };
 

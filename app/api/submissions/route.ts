@@ -43,30 +43,31 @@ export async function POST(request: Request) {
   let contentLinks: string[] = [];
   let files: File[] = [];
   let hasAssetUploads = false;
-
+  let thumbnails: File[] = [];
   if (contentType.includes("multipart/form-data")) {
     const formData = await request.formData();
     campaignId = String(formData.get("campaignId") ?? "").trim();
     notes = String(formData.get("notes") ?? "").trim();
     const rawLinks = String(formData.get("contentLinks") ?? "").trim();
+    thumbnails = formData.getAll("thumbnails") as File[];
     contentLinks = rawLinks
       ? (() => {
-          try {
-            const parsed = JSON.parse(rawLinks);
-            if (Array.isArray(parsed)) {
-              return parsed
-                .map((item) => String(item).trim())
-                .filter(Boolean);
-            }
-          } catch {
-            return rawLinks
-              .split(/\n+/)
-              .map((item) => item.trim())
+        try {
+          const parsed = JSON.parse(rawLinks);
+          if (Array.isArray(parsed)) {
+            return parsed
+              .map((item) => String(item).trim())
               .filter(Boolean);
           }
+        } catch {
+          return rawLinks
+            .split(/\n+/)
+            .map((item) => item.trim())
+            .filter(Boolean);
+        }
 
-          return [];
-        })()
+        return [];
+      })()
       : [];
     files = formData
       .getAll("files")
@@ -256,22 +257,74 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    const assetRows = await Promise.all(
+      uploadedPaths.map(async (path, index) => {
+        const file = files[index];
 
+        let thumb: File | null = null;
+        if (file?.type?.startsWith("video/")) {
+          thumb = thumbnails.shift() as File | null;
+        }
+
+        let thumbnailPath: string | null = null;
+
+        if (thumb && file?.type?.startsWith("video/")) {
+          const thumbStoragePath = buildSubmissionAssetPath({
+            campaignId,
+            creatorId: user.id,
+            submissionId: existingSubmission.id, // ya createdSubmission.id
+            revisionNumber,
+            fileName: `thumb-${file.name.replace(/\.[^/.]+$/, "")}.jpg`,
+          });
+
+          const thumbBuffer = Buffer.from(await thumb.arrayBuffer());
+
+          const { error: thumbUploadError } = await admin.storage
+            .from(SUBMISSION_ASSETS_BUCKET)
+            .upload(thumbStoragePath, thumbBuffer, {
+              contentType: "image/jpeg",
+              upsert: false,
+            });
+
+          if (thumbUploadError) {
+            throw new Error("Thumbnail upload failed: " + thumbUploadError.message);
+          }
+
+          thumbnailPath = thumbStoragePath;
+        }
+
+        return {
+          submission_id: existingSubmission.id,
+          campaign_id: campaignId,
+          brand_id: campaign.brand_id,
+          creator_id: user.id,
+          revision_number: revisionNumber,
+          file_name: file?.name ?? "Asset",
+          storage_path: path,
+          mime_type: file?.type || null,
+          size_bytes: file?.size ?? 0,
+          thumbnail_url: file?.type?.startsWith("video/")
+            ? thumbnailPath
+            : null,
+        };
+      })
+    );
     if (uploadedPaths.length) {
       const { error: assetInsertError } = await admin
         .from("campaign_submission_assets")
         .insert(
-          uploadedPaths.map((path, index) => ({
-            submission_id: existingSubmission.id,
-            campaign_id: campaignId,
-            brand_id: campaign.brand_id,
-            creator_id: user.id,
-            revision_number: revisionNumber,
-            file_name: files[index]?.name ?? "Asset",
-            storage_path: path,
-            mime_type: files[index]?.type || null,
-            size_bytes: files[index]?.size ?? 0,
-          })),
+          // uploadedPaths.map((path, index) => ({
+          //   submission_id: existingSubmission.id,
+          //   campaign_id: campaignId,
+          //   brand_id: campaign.brand_id,
+          //   creator_id: user.id,
+          //   revision_number: revisionNumber,
+          //   file_name: files[index]?.name ?? "Asset",
+          //   storage_path: path,
+          //   mime_type: files[index]?.type || null,
+          //   size_bytes: files[index]?.size ?? 0,
+          // })),
+          assetRows
         );
 
       if (assetInsertError) {
@@ -315,22 +368,75 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+  const assetRows = await Promise.all(
+    uploadedPaths.map(async (path, index) => {
+      const file = files[index];
 
+      let thumb: File | null = null;
+
+      if (file?.type?.startsWith("video/")) {
+        thumb = thumbnails[index] as File | null;
+      }
+
+      let thumbnailPath: string | null = null;
+
+      if (thumb && file?.type?.startsWith("video/")) {
+        const thumbStoragePath = buildSubmissionAssetPath({
+          campaignId,
+          creatorId: user.id,
+          submissionId: createdSubmission.id,
+          revisionNumber,
+          fileName: `thumb-${file.name.replace(/\.[^/.]+$/, "")}.jpg`,
+        });
+
+        const thumbBuffer = Buffer.from(await thumb.arrayBuffer());
+
+        const { error: thumbUploadError } = await admin.storage
+          .from(SUBMISSION_ASSETS_BUCKET)
+          .upload(thumbStoragePath, thumbBuffer, {
+            contentType: "image/jpeg",
+            upsert: false,
+          });
+
+        if (thumbUploadError) {
+          throw new Error("Thumbnail upload failed: " + thumbUploadError.message);
+        }
+
+        thumbnailPath = thumbStoragePath;
+      }
+
+      return {
+        submission_id: createdSubmission.id,
+        campaign_id: campaignId,
+        brand_id: campaign.brand_id,
+        creator_id: user.id,
+        revision_number: revisionNumber,
+        file_name: file?.name ?? "Asset",
+        storage_path: path,
+        mime_type: file?.type || null,
+        size_bytes: file?.size ?? 0,
+        thumbnail_url: file?.type?.startsWith("video/")
+          ? thumbnailPath
+          : null,
+      };
+    })
+  );
   if (uploadedPaths.length) {
     const { error: assetInsertError } = await admin
       .from("campaign_submission_assets")
       .insert(
-        uploadedPaths.map((path, index) => ({
-          submission_id: createdSubmission.id,
-          campaign_id: campaignId,
-          brand_id: campaign.brand_id,
-          creator_id: user.id,
-          revision_number: revisionNumber,
-          file_name: files[index]?.name ?? "Asset",
-          storage_path: path,
-          mime_type: files[index]?.type || null,
-          size_bytes: files[index]?.size ?? 0,
-        })),
+        // uploadedPaths.map((path, index) => ({
+        //   submission_id: createdSubmission.id,
+        //   campaign_id: campaignId,
+        //   brand_id: campaign.brand_id,
+        //   creator_id: user.id,
+        //   revision_number: revisionNumber,
+        //   file_name: files[index]?.name ?? "Asset",
+        //   storage_path: path,
+        //   mime_type: files[index]?.type || null,
+        //   size_bytes: files[index]?.size ?? 0,
+        // })),
+        assetRows
       );
 
     if (assetInsertError) {
