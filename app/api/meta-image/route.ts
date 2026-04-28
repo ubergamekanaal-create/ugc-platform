@@ -1,4 +1,3 @@
-// /api/meta-image
 export async function GET(req: Request) {
   const url = new URL(req.url).searchParams.get("url");
 
@@ -6,21 +5,20 @@ export async function GET(req: Request) {
     return new Response("Missing URL", { status: 400 });
   }
 
-  const res = await fetch(url, {
+  const upstream = await fetch(url, {
     headers: {
       "User-Agent": "Mozilla/5.0",
     },
   });
 
-  if (!res.ok) {
+  if (!upstream.ok || !upstream.body) {
     return new Response("Failed to fetch image", { status: 500 });
   }
 
-  const buffer = await res.arrayBuffer();
-
-  return new Response(buffer, {
+  return new Response(upstream.body, {
     headers: {
-      "Content-Type": "image/jpeg",
+      "Content-Type": upstream.headers.get("content-type") || "image/jpeg",
+      "Content-Length": upstream.headers.get("content-length") || "",
       "Cache-Control": "public, max-age=31536000",
     },
   });
