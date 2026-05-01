@@ -71,7 +71,6 @@ export function verifyShopifyWebhookSignature(params: {
     .createHmac("sha256", secret)
     .update(params.payload, "utf8")
     .digest("base64");
-
   const signatureBuffer = Buffer.from(params.signature, "utf8");
   const expectedBuffer = Buffer.from(expected, "utf8");
 
