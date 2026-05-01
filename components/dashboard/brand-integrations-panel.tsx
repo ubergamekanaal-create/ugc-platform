@@ -386,6 +386,7 @@ export function BrandIntegrationsPanel() {
       setIsDisconnecting(false);
     }
   }
+  const isConnected = connection?.status === "connected";
   return (
     <div className="space-y-6">
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
@@ -448,7 +449,7 @@ export function BrandIntegrationsPanel() {
 
         <form className="mt-8 space-y-5" onSubmit={handleConnect}>
           <div className="grid gap-5 md:grid-cols-2">
-            <div>
+            {!isConnected && <div>
               <label
                 htmlFor="integration-store-url"
                 className="mb-2 block text-sm font-medium text-slate-600"
@@ -473,7 +474,7 @@ export function BrandIntegrationsPanel() {
                 }
                 className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
               />
-            </div>
+            </div>}
             {/* <div>
               <label
                 htmlFor="integration-access-token"
@@ -568,13 +569,13 @@ export function BrandIntegrationsPanel() {
                   </MotionScale>
                 </>
               ) : null}
-              <MotionScale
+              {!isConnected && <MotionScale
                 type="submit"
                 disabled={isSubmitting}
                 className="rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.22)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting ? "Connecting..." : "Connect Store"}
-              </MotionScale>
+              </MotionScale>}
             </div>
           </div>
 

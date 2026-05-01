@@ -88,8 +88,8 @@ async function readAnalyticsPayload(
           "id, brand_id, connection_id, event_name, event_id, client_id, session_id, shop_domain, shop_order_id, campaign_id, submission_id, meta_campaign_id, page_url, landing_url, referrer_url, referral_code, currency, value, utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, fbc, fbp, created_at",
         )
         .eq("brand_id", brandId)
-        .order("created_at", { ascending: false })
-        .limit(20),
+        .order("created_at", { ascending: false }),
+      // .limit(20),
       admin
         .from("brand_store_attributed_orders")
         .select(
@@ -97,8 +97,8 @@ async function readAnalyticsPayload(
         )
         .eq("brand_id", brandId)
         .order("ordered_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false })
-        .limit(12),
+        .order("created_at", { ascending: false }),
+      // .limit(12),
     ]);
 
   const connection = rawConnection
@@ -107,6 +107,22 @@ async function readAnalyticsPayload(
   const settings = rawSettings
     ? sanitizeStoreAnalyticsSettings(rawSettings as Record<string, unknown>)
     : null;
+  // 🚨 ADD THIS BLOCK (important fix)
+  if (!connection || connection.status !== "connected") {
+    return {
+      connection,
+      settings,
+      summary: {
+        events: 0,
+        orders: 0,
+        tracked_orders: 0,
+        attributed_revenue: 0,
+      },
+      recentEvents: [],
+      recentOrders: [],
+      install: null,
+    };
+  }
   const recentEvents = (rawEvents ?? []).map((event) =>
     sanitizeStoreAnalyticsEvent(event as Record<string, unknown>),
   );
@@ -130,10 +146,10 @@ async function readAnalyticsPayload(
     install:
       settings !== null
         ? buildStoreAnalyticsInstallBundle({
-            origin: getRequestOrigin(request),
-            settings,
-            previewDestinationUrl: connection?.store_url ?? null,
-          })
+          origin: getRequestOrigin(request),
+          settings,
+          previewDestinationUrl: connection?.store_url ?? null,
+        })
         : null,
   };
 }
@@ -244,16 +260,16 @@ export async function PATCH(request: Request) {
   const current = await ensureSettings(admin, brand.brandId);
   const body = (await request.json().catch(() => null)) as
     | {
-        utmSourceDefault?: string;
-        utmMediumDefault?: string;
-        utmCampaignPrefix?: string;
-        utmTermDefault?: string | null;
-        enablePageView?: boolean;
-        enableProductView?: boolean;
-        enableAddToCart?: boolean;
-        enableCheckoutStarted?: boolean;
-        enableCheckoutCompleted?: boolean;
-      }
+      utmSourceDefault?: string;
+      utmMediumDefault?: string;
+      utmCampaignPrefix?: string;
+      utmTermDefault?: string | null;
+      enablePageView?: boolean;
+      enableProductView?: boolean;
+      enableAddToCart?: boolean;
+      enableCheckoutStarted?: boolean;
+      enableCheckoutCompleted?: boolean;
+    }
     | null;
 
   const { error } = await admin
