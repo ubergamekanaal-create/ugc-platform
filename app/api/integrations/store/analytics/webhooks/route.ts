@@ -71,8 +71,8 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => null)) as
     | {
-        force?: boolean;
-      }
+      force?: boolean;
+    }
     | null;
 
   const { data: connection } = await admin

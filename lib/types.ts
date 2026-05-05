@@ -397,6 +397,7 @@ export type BrandDashboardData = {
   fundings: BrandFundingSummary[];
   payouts: BrandPayoutSummary[];
   storeConnected?: boolean;
+  metaConnected?: boolean;
 };
 
 export type CreatorDashboardData = {

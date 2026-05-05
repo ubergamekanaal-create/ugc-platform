@@ -491,6 +491,13 @@ async function getBrandData(
   }
 
   const storeConnected = !!storeConnection;
+  const { data: metaConnection, error: metaError } = await supabase
+    .from("brand_meta_connections")
+    .select("id")
+    .eq("brand_id", userId)
+    .limit(1)
+    .maybeSingle();
+  const metaConnected = !!metaConnection;
   const { data: rawCampaigns, error: campaignError } = await supabase
     .from("campaigns")
     .select(campaignSelectFields)
@@ -897,6 +904,7 @@ async function getBrandData(
     fundings: enrichedFundings,
     payouts: enrichedPayouts,
     storeConnected: storeConnected,
+    metaConnected: metaConnected,
   };
 }
 

@@ -1404,7 +1404,7 @@ export function BrandCreatorDirectory({
           </div>
         )}
         {isRefreshing ? (
-          <div className="text-sm text-slate-500 md:col-span-2 xl:col-span-3">
+          <div className="text-sm text-slate-500 md:col-span-2 xl:col-span-2">
             Refreshing creator roster...
           </div>
         ) : null}

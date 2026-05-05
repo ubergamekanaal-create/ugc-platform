@@ -48,7 +48,9 @@ async function readConnectionPayload(
   admin: NonNullable<ReturnType<typeof createAdminClient>>,
   brandId: string,
   page = 1,
-  limit = 20
+  limit = 20,
+  search = "",
+  status = "",
 ) {
   const offset = (page - 1) * limit;
 
@@ -60,13 +62,28 @@ async function readConnectionPayload(
     .eq("brand_id", brandId)
     .maybeSingle();
 
-  const { data: products, count } = await admin
+  let productsQuery = admin
     .from("brand_store_products")
     .select(
       "id, connection_id, brand_id, external_product_id, title, handle, vendor, product_type, image_url, status, price, currency, synced_at",
-      { count: "exact" }
+      { count: "exact" },
     )
-    .eq("brand_id", brandId)
+    .eq("brand_id", brandId);
+
+  const normalizedSearch = search.trim();
+
+  if (normalizedSearch) {
+    const escapedSearch = normalizedSearch.replaceAll(",", " ");
+    productsQuery = productsQuery.or(
+      `title.ilike.%${escapedSearch}%,vendor.ilike.%${escapedSearch}%,product_type.ilike.%${escapedSearch}%`,
+    );
+  }
+
+  if (status.trim().toLowerCase() === "active") {
+    productsQuery = productsQuery.ilike("status", "active");
+  }
+
+  const { data: products, count } = await productsQuery
     .order("synced_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -103,12 +120,16 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const page = Number(searchParams.get("page") || "1");
   const limit = Number(searchParams.get("limit") || "20");
+  const search = searchParams.get("search") || "";
+  const status = searchParams.get("status") || "";
 
   const payload = await readConnectionPayload(
     admin,
     brand.brandId,
     page,
-    limit
+    limit,
+    search,
+    status,
   );
 
   return NextResponse.json(payload);
