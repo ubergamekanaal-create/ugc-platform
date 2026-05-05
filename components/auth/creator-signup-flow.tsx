@@ -1805,7 +1805,7 @@ export function CreatorSignupFlow({ initialStep = 1 }) {
                 What year were you born?
               </h2>
               <p className="mt-3 text-sm text-slate-500">
-                You must be at least 18 years old to use Trybe.
+                You must be at least 18 years old to use Circl.
               </p>
             </div>
 

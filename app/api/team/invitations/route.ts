@@ -73,11 +73,11 @@ export async function GET(req: Request) {
   try {
     const { data, count, error } = await supabase
       .from("team_invitations")
-      .select("id, email, role, permissions, status, invited_at", {
+      .select("id, email, role, permissions, status, invited_at , token, invited_by", {
         count: "exact",
       })
       .eq("brand_id", user.id)
-      .eq("status", "pending")
+      // .eq("status", "pending")
       .range(from, to)
       .order("invited_at", { ascending: false });
 

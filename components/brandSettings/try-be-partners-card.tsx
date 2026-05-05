@@ -7,7 +7,7 @@ const TrybePartnersCard = () => {
       {/* HEADER */}
       <div className="flex items-center justify-between p-6 border-b border-slate-200">
         <h2 className="text-lg font-semibold text-slate-900">
-          Trybe Partners
+          Circl Partners
         </h2>
 
         {/* Button + Tooltip */}

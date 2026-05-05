@@ -109,7 +109,9 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { Resend } from "resend";
 
+const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(req: Request) {
   const supabase = await createClient();
 
@@ -139,7 +141,12 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-
+    if (email === user.email) {
+      return NextResponse.json(
+        { error: "You cannot invite yourself" },
+        { status: 400 }
+      );
+    }
     if (!["owner", "admin", "member"].includes(role)) {
       return NextResponse.json(
         { error: "Invalid role" },
@@ -208,7 +215,7 @@ export async function POST(req: Request) {
         );
       }
     }
-
+    const token = crypto.randomUUID();
     // =========================
     // INSERT INVITATION
     // =========================
@@ -219,6 +226,11 @@ export async function POST(req: Request) {
         email,
         role,
         permissions,
+        token,
+        status: "pending",
+        invited_at: new Date().toISOString(),
+        invited_by: user.id,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
       })
       .select()
       .single();
@@ -230,6 +242,42 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+    // const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL}/accept-invite?token=${token}`;
+
+    // const emailRes = await resend.emails.send({
+    //   from: "Circl <onboarding@resend.dev>", // or your custom domain
+    //   to: email,
+    //   subject: "You're invited to join a team",
+    //   html: `
+    //     <div style="font-family:sans-serif;">
+    //       <h2>You've been invited to join a team 🎉</h2>
+    //       <p><b>${user.email}</b> invited you</p>
+    //       <p>Role: <b>${role}</b></p>
+    //       <p>This invite expires in 24 hours.</p>
+    //       <a href="${inviteLink}" 
+    //         style="padding:10px 16px;background:black;color:white;border-radius:6px;text-decoration:none;">
+    //         Accept Invitation
+    //       </a>
+    //     </div>
+    //   `,
+    // });
+
+    // if (emailRes.error) {
+    //   console.error("EMAIL FULL RESPONSE:", emailRes);
+
+    //   if (data?.id) {
+    //     await supabase
+    //       .from("team_invitations")
+    //       .delete()
+    //       .eq("id", data.id);
+    //   }
+
+    //   return NextResponse.json(
+    //     { error: "Failed to send invitation email. Please try again." },
+    //     { status: 500 }
+    //   );
+    // }
+
 
     return NextResponse.json({
       success: true,

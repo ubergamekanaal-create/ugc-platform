@@ -136,7 +136,7 @@ function ArrowRightIcon() {
 
 function UserPlusIcon() {
   return (
-    
+
     <svg
       viewBox="0 0 24 24"
       fill="none"
@@ -215,7 +215,7 @@ export function SignupForm() {
   const [storeCurrency, setStoreCurrency] = useState("USD");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("Member");
+  const [inviteRole, setInviteRole] = useState("default");
   const [teamMembers, setTeamMembers] = useState<
     { email: string; role: string }[]
   >([]);
@@ -483,7 +483,7 @@ export function SignupForm() {
 
     // reset input
     setInviteEmail("");
-    setInviteRole("Member");
+    setInviteRole("default");
   }
   function handleRemoveMember(index: number) {
     setTeamMembers((prev) => prev.filter((_, i) => i !== index));
@@ -582,9 +582,10 @@ export function SignupForm() {
       if (teamMemberError) {
         throw teamMemberError;
       }
+      await new Promise((resolve) => setTimeout(resolve, 1500));
       for (const member of teamMembers) {
         try {
-          const res = await fetch("/api/invite", {
+          const res = await fetch("/api/team/invite", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -868,7 +869,7 @@ export function SignupForm() {
                   value={brandName}
                   onChange={(event) => setBrandName(event.target.value)}
                   placeholder="Your Brand Name"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#7c1fff] focus:shadow-[0_0_0_4px_rgba(124,31,255,0.12)]"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-blue-500 focus:shadow-[0_0_0_4px_#dbeafe]"
                 />
               </div>
 
@@ -882,7 +883,7 @@ export function SignupForm() {
                   maxLength={200}
                   placeholder="Brief description of your brand..."
                   rows={3}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#7c1fff] focus:shadow-[0_0_0_4px_rgba(124,31,255,0.12)]"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-blue-500 focus:shadow-[0_0_0_4px_#dbeafe]"
                 />
                 <p className="text-xs text-slate-400">
                   {brandDescription.length}/200
@@ -896,7 +897,7 @@ export function SignupForm() {
                 <select
                   value={storeCurrency}
                   onChange={(event) => setStoreCurrency(event.target.value)}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f8fb] px-4 text-sm text-slate-900 outline-none transition focus:border-[#7c1fff] focus:shadow-[0_0_0_4px_rgba(124,31,255,0.12)]"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f8fb] px-4 text-sm text-slate-900 outline-none transition shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-blue-500 focus:shadow-[0_0_0_4px_#dbeafe]"
                 >
                   <option value="USD">US USD</option>
                   <option value="INR">Indian Rupee (INR)</option>
@@ -957,7 +958,7 @@ export function SignupForm() {
                       value={inviteEmail}
                       onChange={(event) => setInviteEmail(event.target.value)}
                       placeholder="roefiek@hotmail.com"
-                      className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#7c1fff] focus:shadow-[0_0_0_4px_rgba(124,31,255,0.12)]"
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-blue-500 focus:shadow-[0_0_0_4px_#dbeafe]"
                     />
                   </div>
                 </div>
@@ -969,9 +970,9 @@ export function SignupForm() {
                   <select
                     value={inviteRole}
                     onChange={(event) => setInviteRole(event.target.value)}
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f8fb] px-4 text-sm text-slate-900 outline-none transition focus:border-[#7c1fff] focus:shadow-[0_0_0_4px_rgba(124,31,255,0.12)]"
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f8fb] px-4 text-sm text-slate-900 outline-none transition shadow-[0_8px_24px_rgba(15,23,42,0.04)] focus:border-blue-500 focus:shadow-[0_0_0_4px_#dbeafe]"
                   >
-                    <option value="Member">Select role</option>
+                    <option value="default">Select role</option>
                     <option value="Admin">Admin</option>
                     <option value="Member">Member</option>
                   </select>

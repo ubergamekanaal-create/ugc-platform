@@ -19,6 +19,8 @@ type Invitation = {
     email: string;
     role: string;
     status: string;
+    token: string;
+    invited_at?: string;
 };
 type Permissions = {
     include_in_chats: boolean;
@@ -152,255 +154,6 @@ const EditPermissionsModal = ({
         </div>
     );
 };
-// const TeamMembers = ({ members }: { members: Member[] }) => {
-//     if (!members.length) {
-//         return <p className="text-sm text-slate-500">No members yet</p>;
-//     }
-
-//     return (
-//         <div className="space-y-3">
-//             {members.map((m) => (
-//                 <div
-//                     key={m.id}
-//                     className="border border-slate-200 p-4 rounded-xl flex justify-between"
-//                 >
-//                     <div className="flex items-center gap-3">
-//                         <div className="h-10 w-10 rounded-full bg-blue-500 text-white flex items-center justify-center overflow-hidden">
-//                             {m?.user?.avatar_url ? (
-//                                 <img
-//                                     src={m.user.avatar_url}
-//                                     alt="avatar"
-//                                     className="h-full w-full object-cover"
-//                                 />
-//                             ) : (
-//                                 <span className="text-sm font-semibold">
-//                                     {m?.user?.name?.charAt(0) || "U"}
-//                                 </span>
-//                             )}
-//                         </div>
-
-//                         <div>
-//                             <p className="text-sm font-medium">{m.user?.name}</p>
-//                             <p className="text-xs text-slate-500">{m.user?.email}</p>
-//                         </div>
-//                     </div>
-
-//                     <span className="flex items-center justify-centertext-xs bg-slate-100 px-3 py-1 rounded-full">
-//                         {m.role}
-//                     </span>
-//                 </div>
-//             ))}
-//         </div>
-//     );
-// };
-
-// const Invitations = ({ invites }: { invites: Invitation[] }) => {
-//     if (!invites.length) {
-//         return (
-//             <p className="text-sm text-slate-500">
-//                 No pending invitations
-//             </p>
-//         );
-//     }
-
-//     return (
-//         <div className="space-y-3">
-//             {invites.map((inv) => (
-//                 <div
-//                     key={inv.id}
-//                     className="border border-slate-200 p-4 rounded-xl flex justify-between"
-//                 >
-//                     <div>
-//                         <p className="text-sm font-medium">{inv.email}</p>
-//                         <p className="text-xs text-slate-500">{inv.role}</p>
-//                     </div>
-
-//                     <span className="flex items-center justify-center text-xs bg-yellow-100 px-3 py-1 rounded-full">
-//                         {inv.status}
-//                     </span>
-//                 </div>
-//             ))}
-//         </div>
-//     );
-// };
-
-// const InviteModal = ({
-//     onClose,
-//     onSuccess,
-// }: {
-//     onClose: () => void;
-//     onSuccess: () => void;
-// }) => {
-//     const [email, setEmail] = useState("");
-//     const [role, setRole] = useState("member");
-//     const [loading, setLoading] = useState(false);
-//     const defaultPermissions = {
-//         include_in_chats: true,
-//         view_analytics: true,
-//         manage_submissions: true,
-//         manage_creators: true,
-//         view_finance: true,
-//         manage_campaigns: true,
-//         manage_integrations: true,
-//         manage_settings: true,
-//     };
-
-//     const [permissions, setPermissions] = useState(defaultPermissions);
-
-//     useEffect(() => {
-//         if (role === "owner") {
-//             setPermissions({
-//                 include_in_chats: true,
-//                 view_analytics: true,
-//                 manage_submissions: true,
-//                 manage_creators: true,
-//                 view_finance: true,
-//                 manage_campaigns: true,
-//                 manage_integrations: true,
-//                 manage_settings: true,
-//             });
-//         }
-//     }, [role]);
-
-//     const togglePermission = (key: string) => {
-//         if (role === "owner") return;
-
-//         setPermissions((prev) => ({
-//             ...prev,
-//             [key]: !prev[key],
-//         }));
-//     };
-
-//     const handleDeselectAll = () => {
-//         if (role === "owner") return;
-
-//         const updated = Object.keys(permissions).reduce((acc, key) => {
-//             acc[key] = false;
-//             return acc;
-//         }, {} as any);
-
-//         setPermissions(updated);
-//     };
-//     const handleInvite = async () => {
-//         if (!email) return toast.error("Email required");
-
-//         try {
-//             setLoading(true);
-
-//             const res = await fetch("/api/team/invite", {
-//                 method: "POST",
-//                 body: JSON.stringify({
-//                     email,
-//                     role,
-//                     permissions,
-//                 }),
-//             });
-
-//             const data = await res.json();
-
-//             if (!res.ok) throw new Error(data.error);
-
-//             toast.success("Invitation sent");
-
-//             onSuccess();
-//             onClose();
-//         } catch (err: any) {
-//             toast.error(err.message);
-//         } finally {
-//             setLoading(false);
-//         }
-//     };
-
-//     return (
-//         <div className="fixed inset-0 flex items-center justify-center bg-black/40">
-
-//             <div className="bg-white p-6 rounded-xl w-full max-w-md">
-
-//                 <h3 className="font-semibold mb-4">
-//                     Invite New Team Member
-//                 </h3>
-
-//                 <input
-//                     placeholder="Email"
-//                     className="w-full mb-3 p-3 bg-slate-100 rounded-full"
-//                     value={email}
-//                     onChange={(e) => setEmail(e.target.value)}
-//                 />
-
-//                 <select
-//                     className="w-full mb-4 p-3 bg-slate-100 rounded-full"
-//                     value={role}
-//                     onChange={(e) => setRole(e.target.value)}
-//                 >
-//                     <option value="member">Member</option>
-//                     <option value="admin">Admin</option>
-//                     <option value="owner">Owner</option>
-//                 </select>
-//                 <div className="border-t pt-4">
-
-//                     <div className="flex justify-between items-center mb-3">
-//                         <p className="text-sm font-medium">Permissions</p>
-
-//                         <button
-//                             onClick={handleDeselectAll}
-//                             className="text-xs text-purple-600"
-//                         >
-//                             Deselect All
-//                         </button>
-//                     </div>
-
-//                     <div className="max-h-48 overflow-y-auto space-y-3">
-
-//                         {[
-//                             { key: "include_in_chats", label: "Include in Chats", desc: "Add to brand chat channels" },
-//                             { key: "view_analytics", label: "View Analytics", desc: "Access analytics dashboard" },
-//                             { key: "manage_submissions", label: "Manage Submissions", desc: "Approve/reject submissions" },
-//                             { key: "manage_creators", label: "Manage Creators", desc: "Invite/remove creators" },
-//                             { key: "view_finance", label: "View Finance", desc: "Payments & payouts" },
-//                             { key: "manage_campaigns", label: "Manage Campaigns", desc: "Create/manage campaigns" },
-//                             { key: "manage_integrations", label: "Manage Integrations", desc: "Shopify, Meta, etc." },
-//                             { key: "manage_settings", label: "Manage Settings", desc: "Brand settings" },
-//                         ].map((perm) => (
-//                             <div key={perm.key} className="flex items-center justify-between">
-
-//                                 <div>
-//                                     <p className="text-sm font-medium">{perm.label}</p>
-//                                     <p className="text-xs text-slate-500">{perm.desc}</p>
-//                                 </div>
-
-//                                 {/* TOGGLE */}
-//                                 <button
-//                                     onClick={() => togglePermission(perm.key)}
-//                                     className={`w-10 h-5 flex items-center rounded-full p-1 transition ${permissions[perm.key]
-//                                             ? "bg-purple-500"
-//                                             : "bg-slate-300"
-//                                         } ${role === "owner" && "opacity-50 cursor-not-allowed"}`}
-//                                 >
-//                                     <div
-//                                         className={`bg-white w-4 h-4 rounded-full shadow-md transform transition ${permissions[perm.key] ? "translate-x-5" : ""
-//                                             }`}
-//                                     />
-//                                 </button>
-
-//                             </div>
-//                         ))}
-//                     </div>
-//                 </div>
-//                 <div className="flex justify-end gap-3">
-//                     <button onClick={onClose}>Cancel</button>
-
-//                     <button
-//                         onClick={handleInvite}
-//                         disabled={loading}
-//                         className="bg-blue-500 text-white px-4 py-2 rounded-full"
-//                     >
-//                         {loading ? "Sending..." : "Invite"}
-//                     </button>
-//                 </div>
-//             </div>
-//         </div>
-//     );
-// };
 const TableSkeleton = ({ rows = 5 }: { rows?: number }) => {
     return (
         <div className="border border-slate-200 rounded-xl overflow-hidden animate-pulse">
@@ -608,7 +361,11 @@ const Invitations = ({ invites, setActiveTab }: { invites: any[], setActiveTab: 
             </div>
         );
     }
-
+    const handleCopy = (token: string) => {
+        const link = `${window.location.origin}/accept-invite?token=${token}`;
+        navigator.clipboard.writeText(link);
+        toast.success("Invite link copied!");
+    };
     const handleDelete = async (id: string) => {
         try {
             const res = await fetch(`/api/team/invite/${id}`, {
@@ -657,7 +414,7 @@ const Invitations = ({ invites, setActiveTab }: { invites: any[], setActiveTab: 
                     </div>
 
                     {/* INVITED BY */}
-                    <div className="text-sm text-slate-500">
+                    <div className="text-sm text-slate-500 text-center">
                         You
                     </div>
 
@@ -669,7 +426,25 @@ const Invitations = ({ invites, setActiveTab }: { invites: any[], setActiveTab: 
                     </div>
 
                     {/* ACTION */}
-                    <div className="flex justify-end">
+                    {/* <div className="flex justify-end">
+                        <button
+                            onClick={() => handleDelete(inv.id)}
+                            className="h-8 w-8 flex items-center justify-center rounded-full border border-slate-200 hover:bg-red-50 transition"
+                        >
+                            ✕
+                        </button>
+                    </div> */}
+                    <div className="flex justify-end gap-2">
+
+                        {/* COPY LINK */}
+                        <button
+                            onClick={() => handleCopy(inv.token)}
+                            className="h-8 px-2 text-xs rounded-md border border-slate-200 hover:bg-slate-100"
+                        >
+                            Copy
+                        </button>
+
+                        {/* DELETE */}
                         <button
                             onClick={() => handleDelete(inv.id)}
                             className="h-8 w-8 flex items-center justify-center rounded-full border border-slate-200 hover:bg-red-50 transition"

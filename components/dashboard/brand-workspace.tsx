@@ -713,7 +713,7 @@ export function BrandWorkspace({
     },
     {
       label: "Connect Meta",
-      complete: activeCampaigns.length > 0,
+      complete: data?.metaConnected,
       href: "/dashboard/integrations",
     },
     {

@@ -37,35 +37,35 @@ export function BrandCampaignEditorScreen({
           : "Set up a new campaign brief on its own page, then return to the creators workspace when the brief is ready for invites.",
         metaItems: isEditing
           ? [
-              {
-                label: "Status",
-                value: campaign?.status.replaceAll("_", " ") ?? "Unknown",
-              },
-              {
-                label: "Budget",
-                value: formatCurrency(campaign?.budget ?? 0),
-              },
-              {
-                label: "Deadline",
-                value: campaign?.deadline
-                  ? formatDate(campaign.deadline)
-                  : "Flexible",
-              },
-            ]
+            {
+              label: "Status",
+              value: campaign?.status.replaceAll("_", " ") ?? "Unknown",
+            },
+            {
+              label: "Budget",
+              value: formatCurrency(campaign?.budget ?? 0),
+            },
+            {
+              label: "Deadline",
+              value: campaign?.deadline
+                ? formatDate(campaign.deadline)
+                : "Flexible",
+            },
+          ]
           : [
-              {
-                label: "Mode",
-                value: "New brief",
-              },
-              {
-                label: "Campaigns",
-                value: String(data.campaigns.length),
-              },
-              {
-                label: "Open applications",
-                value: String(data.applications.length),
-              },
-            ],
+            {
+              label: "Mode",
+              value: "New brief",
+            },
+            {
+              label: "Campaigns",
+              value: String(data.campaigns.length),
+            },
+            {
+              label: "Open applications",
+              value: String(data.applications.length),
+            },
+          ],
         banner: (
           <WorkspacePanel className="bg-[linear-gradient(135deg,_rgba(231,242,255,0.95),_rgba(255,255,255,0.98),_rgba(239,246,255,0.94))]">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">

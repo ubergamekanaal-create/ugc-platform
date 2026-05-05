@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState, useTransition } from "react";
+import { FormEvent, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { BrandCampaignSummary, CampaignStatus } from "@/lib/types";
+import type {
+  BrandCampaignSummary,
+  BrandStoreProduct,
+  CampaignStatus,
+} from "@/lib/types";
 
 type BrandCampaignComposerProps = {
   brandId: string;
@@ -15,6 +19,19 @@ type BrandCampaignComposerProps = {
   cancelLabel?: string;
   redirectTo?: string;
 };
+
+type IntegrationResponse = {
+  products?: BrandStoreProduct[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  error?: string;
+};
+
+const PRODUCT_PAGE_SIZE = 20;
 
 const initialForm = {
   title: "",
@@ -58,6 +75,29 @@ function buildCampaignForm(campaign?: BrandCampaignSummary | null) {
   };
 }
 
+function buildProductDetailsSuggestion(product: BrandStoreProduct) {
+  return [
+    product.vendor,
+    product.product_type,
+    product.price !== null
+      ? `${product.currency ?? "USD"} ${product.price}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+}
+
+function buildCombinedProductName(products: BrandStoreProduct[]) {
+  return products.map((product) => product.title).join(", ");
+}
+
+function normalizeProductTokens(value: string) {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 export function BrandCampaignComposer({
   brandId,
   campaign = null,
@@ -70,13 +110,219 @@ export function BrandCampaignComposer({
   const router = useRouter();
   const [form, setForm] = useState(() => buildCampaignForm(campaign));
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [storeProducts, setStoreProducts] = useState<BrandStoreProduct[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<BrandStoreProduct[]>([]);
+  const [productSearch, setProductSearch] = useState("");
+  const [productPage, setProductPage] = useState(1);
+  const [hasMoreProducts, setHasMoreProducts] = useState(false);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [isLoadingMoreProducts, setIsLoadingMoreProducts] = useState(false);
   const [isPending, startTransition] = useTransition();
   const isEditing = Boolean(campaign);
+  const productListRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const latestSearchRef = useRef("");
+  const selectedProductIds = new Set(
+    selectedProducts.map((product) => product.id),
+  );
 
   useEffect(() => {
     setForm(buildCampaignForm(campaign));
     setFeedback(null);
   }, [campaign]);
+
+  // useEffect(() => {
+  //   const selectedTitles = new Set(normalizeProductTokens(form.productName));
+
+  //   setSelectedProducts((current) => {
+  //     const currentMap = new Map(current.map((product) => [product.id, product]));
+  //     const matchingProducts = storeProducts.filter((product) =>
+  //       selectedTitles.has(product.title),
+  //     );
+  //     const nextProducts = [...current];
+
+  //     for (const product of matchingProducts) {
+  //       if (!currentMap.has(product.id)) {
+  //         nextProducts.push(product);
+  //       }
+  //     }
+
+  //     return nextProducts.filter((product) => selectedTitles.has(product.title));
+  //   });
+  // }, [storeProducts, form.productName]);
+
+  useEffect(() => {
+    if (!campaign?.id) return;
+
+    const supabase = createClient();
+
+    async function loadSelectedProducts() {
+      const { data } = await supabase
+        .from("campaign_products")
+        .select("product_id")
+        .eq("campaign_id", campaign?.id);
+
+      if (!data) return;
+
+      const ids = data.map((item) => item.product_id);
+      const { data: products } = await supabase
+        .from("brand_store_products")
+        .select("*")
+        .in("id", ids);
+
+      if (products) {
+        setSelectedProducts(products);
+      }
+    }
+
+    loadSelectedProducts();
+  }, [campaign?.id]);
+
+  async function loadStoreProducts({
+    page,
+    search,
+    reset,
+  }: {
+    page: number;
+    search: string;
+    reset: boolean;
+  }) {
+    const trimmedSearch = search.trim();
+
+    if (reset) {
+      setIsLoadingProducts(true);
+    } else {
+      setIsLoadingMoreProducts(true);
+    }
+
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(PRODUCT_PAGE_SIZE),
+        status: "active",
+      });
+
+      if (trimmedSearch) {
+        params.set("search", trimmedSearch);
+      }
+
+      const response = await fetch(`/api/integrations/store?${params.toString()}`, {
+        cache: "no-store",
+      });
+      const payload = (await response.json()) as IntegrationResponse;
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Unable to load store products.");
+      }
+
+      const nextProducts = payload.products ?? [];
+      const totalPages = payload.pagination?.totalPages ?? 1;
+
+      latestSearchRef.current = trimmedSearch;
+      setStoreProducts((current) => {
+        if (reset) {
+          return nextProducts;
+        }
+
+        const seen = new Set(current.map((product) => product.id));
+        return [
+          ...current,
+          ...nextProducts.filter((product) => !seen.has(product.id)),
+        ];
+      });
+      setProductPage(page);
+      setHasMoreProducts(page < totalPages);
+    } catch (error) {
+      setFeedback(
+        error instanceof Error ? error.message : "Unable to load store products.",
+      );
+
+      if (reset) {
+        setStoreProducts([]);
+      }
+
+      setHasMoreProducts(false);
+    } finally {
+      setIsLoadingProducts(false);
+      setIsLoadingMoreProducts(false);
+    }
+  }
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      void loadStoreProducts({
+        page: 1,
+        search: productSearch,
+        reset: true,
+      });
+    }, 250);
+
+    return () => {
+      window.clearTimeout(handle);
+    };
+  }, [productSearch]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+
+    if (!target || !hasMoreProducts) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+
+        if (
+          entry?.isIntersecting &&
+          !isLoadingProducts &&
+          !isLoadingMoreProducts &&
+          hasMoreProducts
+        ) {
+          void loadStoreProducts({
+            page: productPage + 1,
+            search: latestSearchRef.current,
+            reset: false,
+          });
+        }
+      },
+      {
+        root: productListRef.current,
+        threshold: 0.2,
+      },
+    );
+
+    observer.observe(target);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMoreProducts, isLoadingMoreProducts, isLoadingProducts, productPage]);
+
+  function handleToggleProduct(product: BrandStoreProduct) {
+    const isSelected = selectedProductIds.has(product.id);
+
+    setSelectedProducts((current) => {
+      const nextProducts = isSelected
+        ? current.filter((item) => item.id !== product.id)
+        : [...current, product];
+
+      setForm((currentForm) => ({
+        ...currentForm,
+        productName:
+          nextProducts.length > 0
+            ? buildCombinedProductName(nextProducts)
+            : currentForm.productName
+              .split(",")
+              .map((item) => item.trim())
+              .filter((item) => item && item !== product.title)
+              .join(", "),
+        productDetails: currentForm.productDetails,
+      }));
+
+      return nextProducts;
+    });
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -111,8 +357,27 @@ export function BrandCampaignComposer({
         .eq("id", campaign?.id ?? "")
         .eq("brand_id", brandId)
       : supabase.from("campaigns").insert(payload);
-    const { error } = await query;
+    // const { error } = await query;
+    const { data, error } = await query.select().single();
+    if (data) {
+      const campaignId = isEditing ? campaign?.id : data.id;
 
+      if (isEditing && campaignId) {
+        await supabase
+          .from("campaign_products")
+          .delete()
+          .eq("campaign_id", campaignId);
+      }
+
+      if (campaignId && selectedProducts.length > 0) {
+        await supabase.from("campaign_products").insert(
+          selectedProducts.map((product) => ({
+            campaign_id: campaignId,
+            product_id: product.id,
+          }))
+        );
+      }
+    }
     if (error) {
       setFeedback(error.message);
       return;
@@ -130,6 +395,8 @@ export function BrandCampaignComposer({
 
     if (!isEditing) {
       setForm(initialForm);
+      setSelectedProducts([]);
+      setProductSearch("");
     }
 
     setFeedback(
@@ -161,7 +428,8 @@ export function BrandCampaignComposer({
             className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
           />
         </div>
-        <div>
+
+        {/* <div>
           <label
             htmlFor="brand-campaign-product-name"
             className="mb-2 block text-sm font-medium text-slate-600"
@@ -181,7 +449,7 @@ export function BrandCampaignComposer({
             placeholder="Hydrating serum launch"
             className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
           />
-        </div>
+        </div> */}
         <div>
           <label
             htmlFor="brand-campaign-content-type"
@@ -275,6 +543,143 @@ export function BrandCampaignComposer({
             }
             className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
           />
+        </div>
+        <div className="md:col-span-2">
+          <label
+            htmlFor="brand-campaign-product-search"
+            className="mb-2 block text-sm font-medium text-slate-600"
+          >
+            Product picker
+          </label>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
+            {selectedProducts.length > 0 && <input
+              id="brand-campaign-product-search"
+              value={productSearch}
+              onChange={(event) => setProductSearch(event.target.value)}
+              placeholder="Search synced products by title, vendor, or type"
+              className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+            />}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {selectedProducts.length > 0 ? (
+                selectedProducts.map((product) => (
+                  <button
+                    key={product.id}
+                    type="button"
+                    onClick={() => handleToggleProduct(product)}
+                    className="inline-flex items-center gap-3 rounded-full border border-accent/20 bg-white py-2 pl-2 pr-3 text-xs font-semibold text-slate-700 transition hover:border-accent/40 hover:bg-accent/5"
+                  >
+                    <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-100">
+                      {product.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={product.image_url}
+                          alt={product.title}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-[10px] font-bold uppercase text-slate-400">
+                          {product.title.slice(0, 1)}
+                        </span>
+                      )}
+                    </span>
+                    <span>{product.title}</span>
+                    <span className="text-slate-400">✕</span>
+                  </button>
+                ))
+              ) : (
+                <p className="text-xs text-slate-500">
+                  No product selected yet. Search and tap products to add them.
+                </p>
+              )}
+            </div>
+            <div
+              ref={productListRef}
+              className="mt-4 max-h-80 overflow-y-auto rounded-2xl border border-slate-200 bg-white"
+            >
+              <div className="grid gap-3 p-3">
+                {storeProducts.map((product) => {
+                  const isSelected = selectedProductIds.has(product.id);
+
+                  return (
+                    <button
+                      key={product.id}
+                      type="button"
+                      onClick={() => handleToggleProduct(product)}
+                      className={`rounded-3xl border px-4 py-4 text-left transition ${isSelected
+                        ? "border-accent/30 bg-[rgba(7,107,210,0.06)] shadow-[0_10px_30px_rgba(7,107,210,0.08)]"
+                        : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                        }`}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-100">
+                          {product.image_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={product.image_url}
+                              alt={product.title}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-lg font-bold uppercase text-slate-400">
+                              {product.title.slice(0, 1)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">
+                                {product.title}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {[product.vendor, product.product_type]
+                                  .filter(Boolean)
+                                  .join(" | ") || "Synced brand product"}
+                              </p>
+                            </div>
+                            <span
+                              className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${isSelected
+                                ? "bg-accent text-white"
+                                : "bg-slate-100 text-slate-600"
+                                }`}
+                            >
+                              {isSelected ? "Selected" : "Select"}
+                            </span>
+                          </div>
+                          {product.price !== null ? (
+                            <p className="mt-3 text-sm font-medium text-slate-700">
+                              {product.currency ?? "USD"} {product.price}
+                            </p>
+                          ) : null}
+                          {/* <p className="mt-2 text-xs text-slate-400">
+                            Click to {isSelected ? "remove from" : "add to"} campaign
+                          </p> */}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+                {isLoadingProducts ? (
+                  <p className="px-1 py-6 text-center text-sm text-slate-500">
+                    Loading products...
+                  </p>
+                ) : null}
+                {!isLoadingProducts && storeProducts.length === 0 ? (
+                  <p className="px-1 py-6 text-center text-sm text-slate-500">
+                    {productSearch.trim()
+                      ? "No products matched your search."
+                      : "No synced brand products available yet."}
+                  </p>
+                ) : null}
+                {isLoadingMoreProducts ? (
+                  <p className="px-1 py-4 text-center text-xs text-slate-500">
+                    Loading more products...
+                  </p>
+                ) : null}
+                <div ref={loadMoreRef} className="h-1 w-full" />
+              </div>
+            </div>
+          </div>
         </div>
         <div className="md:col-span-2">
           <label
