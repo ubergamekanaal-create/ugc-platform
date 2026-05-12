@@ -14,6 +14,9 @@ export function SignOutButton({ variant = "dark" }: SignOutButtonProps) {
     setIsPending(true);
 
     try {
+      localStorage.removeItem(
+        "last-selected-org-id"
+      );
       const response = await fetch("/api/auth/logout", {
         method: "POST",
       });

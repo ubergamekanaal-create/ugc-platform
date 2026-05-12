@@ -33,6 +33,9 @@ export default function Header({ tone, name, roleLabel, profile }: Props) {
   async function handleSignOut() {
     setIsPending(true);
     try {
+      localStorage.removeItem(
+        "last-selected-org-id"
+      );
       const response = await fetch("/api/auth/logout", {
         method: "POST",
       });

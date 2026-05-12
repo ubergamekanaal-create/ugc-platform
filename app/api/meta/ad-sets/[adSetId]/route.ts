@@ -32,8 +32,8 @@ export async function PATCH(
   const { adSetId } = await params;
   const body = (await request.json().catch(() => null)) as
     | {
-        status?: string;
-      }
+      status?: string;
+    }
     | null;
   const status = body?.status === "ACTIVE" ? "ACTIVE" : "PAUSED";
 

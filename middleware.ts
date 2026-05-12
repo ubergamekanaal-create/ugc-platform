@@ -44,7 +44,10 @@ export async function middleware(request: NextRequest) {
   const isBrandRoute = pathname.startsWith(BRAND_PREFIX);
   const isCreatorRoute = pathname.startsWith(CREATOR_PREFIX);
   const isDashboardRoute = pathname.startsWith(DASHBOARD_PREFIX);
-
+  const isBrandSetupPage =
+    pathname.startsWith(
+      "/brand/brand-setup"
+    );
   if (!isBrandRoute && !isCreatorRoute && !isDashboardRoute) {
     return response;
   }
@@ -101,9 +104,47 @@ export async function middleware(request: NextRequest) {
       );
     }
   }
+  if (profile.role === "brand") {
+
+    const { data: brandProfile } =
+      await supabase
+        .from("brands")
+        .select(
+          "onboarding_completed_at"
+        )
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+    const isOnboardingComplete =
+      !!brandProfile?.onboarding_completed_at;
+
+    if (!isOnboardingComplete) {
+
+      if (!isBrandSetupPage) {
+        return NextResponse.redirect(
+          new URL(
+            "/brand/brand-setup",
+            request.url
+          )
+        );
+      }
+    }
+
+    if (
+      isOnboardingComplete &&
+      isBrandSetupPage
+    ) {
+      return NextResponse.redirect(
+        new URL(
+          "/dashboard",
+          request.url
+        )
+      );
+    }
+  }
   return response;
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/brand/:path*", "/creator/:path*"],
+  matcher: ["/dashboard/:path*", "/brand/:path*", "/creator/:path*", "/brand/brand-setup",],
 };

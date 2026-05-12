@@ -9,6 +9,7 @@ export type Invitation = {
   permissions?: Record<string, boolean>;
   invited_at?: string;
   brand_id?: string;
+  brand_name?: string;
 };
 
 export const usePendingInvites = () => {

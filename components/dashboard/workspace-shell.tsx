@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import Header from "../shared/header";
 import { UserProfile } from "@/lib/types";
 import { createPortal } from "react-dom";
+import { useClickOutside } from "@/hooks/useClickOutside";
 // import Header from "../shared/header";
 
 export type WorkspaceShellTone = "brand" | "creator";
@@ -37,6 +38,7 @@ type WorkspaceSidebarProps = {
   initials: string;
   navGroups: WorkspaceNavGroup[];
   sidebarFooter?: ReactNode;
+  brands?: any[];
 };
 
 type WorkspaceMainContentProps = {
@@ -63,7 +65,9 @@ type WorkspaceViewportProps = {
 };
 
 type WorkspaceShellProps = WorkspaceSidebarProps &
-  WorkspaceMainContentProps;
+  WorkspaceMainContentProps & {
+    brands?: any[];
+  };;
 
 type Props = {
   name?: string;
@@ -139,7 +143,9 @@ export default function BottomNav({
     "/dashboard/payouts",
     "/dashboard/profile",
   ];
+
   const routes = (tone === "brand") ? brandRoutes : creatorRoutes;
+
   const navItems = [
     {
       id: "home",
@@ -287,9 +293,79 @@ export function WorkspaceSidebar({
   initials,
   navGroups,
   sidebarFooter,
+  brands = [],
 }: WorkspaceSidebarProps) {
   const theme = toneClasses[tone];
+  const [selectedWorkspaceId,
+    setSelectedWorkspaceId] =
+    useState<string | null>(null);
+  // const [brands, setBrands] = useState([]);
+  const [isWorkspaceOpen,
+    setIsWorkspaceOpen] =
+    useState(false);
+  const workspaceDropdownRef =
+    useRef<HTMLDivElement | null>(null);
 
+  useClickOutside(
+    workspaceDropdownRef,
+    () => {
+      setIsWorkspaceOpen(false);
+    }
+  );
+  useEffect(() => {
+
+    const storedWorkspaceId =
+      localStorage.getItem(
+        "last-selected-org-id"
+      );
+
+    if (storedWorkspaceId) {
+
+      setSelectedWorkspaceId(
+        storedWorkspaceId
+      );
+
+      return;
+    }
+
+    if (brands.length > 0) {
+
+      localStorage.setItem(
+        "last-selected-org-id",
+        brands[0].workspace_id
+      );
+
+      setSelectedWorkspaceId(
+        brands[0].workspace_id
+      );
+    }
+
+  }, [brands]);
+  const currentBrand =
+    brands.find(
+      (b) =>
+        b.workspace_id ===
+        selectedWorkspaceId
+    ) || brands[0];
+  const handleWorkspaceSwitch = (
+    workspaceId: string
+  ) => {
+
+    localStorage.setItem(
+      "last-selected-org-id",
+      workspaceId
+    );
+
+    setSelectedWorkspaceId(
+      workspaceId
+    );
+
+    setIsWorkspaceOpen(false);
+
+    window.location.reload();
+  };
+  const isBrandsLoading =
+    brands.length === 0;
   return (
     <aside className="hidden md:block flex-1 z-200 md:sticky md:top-[75px] h-fit md:h-auto md:max-h-[calc(100vh-76px)] md:overflow-y-auto overflow-x-hidden border-r border-r-slate-300 bg-[#f1f2f4] py-5">
       {/* <div className="flex items-start justify-between pb-6 border-b border-b-white/80">
@@ -304,7 +380,7 @@ export function WorkspaceSidebar({
         </span>
       </div> */}
       <div className="px-4 mb-4">
-        <div className="border-b border-b-slate-200">
+        {tone === "creator" && <div className="border-b border-b-slate-200">
           <div
             className={cn(
               "relative overflow-hidden rounded-3xl px-3 py-3 mb-6 text-black bg-white", // Slightly smaller radius
@@ -331,9 +407,294 @@ export function WorkspaceSidebar({
               </div>
             </div>
           </div>
-        </div>
+        </div>}
 
+        {tone === "brand" && (
+          <div className="mb-6 relative" ref={workspaceDropdownRef}>
+
+            <button
+              onClick={() => {
+
+                if (isBrandsLoading) return;
+
+                setIsWorkspaceOpen(
+                  !isWorkspaceOpen
+                );
+              }}
+              className={cn(
+                "w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-slate-300",
+                isBrandsLoading &&
+                "cursor-default"
+              )}
+            >
+
+              <div className="flex items-center justify-between">
+
+                <div className="flex items-center gap-3">
+
+                  {isBrandsLoading ? (
+                    <>
+                      <div className="h-11 w-11 rounded-full bg-slate-200 animate-pulse" />
+
+                      <div className="space-y-2">
+                        <div className="h-4 w-28 rounded bg-slate-200 animate-pulse" />
+
+                        <div className="h-3 w-16 rounded bg-slate-100 animate-pulse" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black text-sm font-semibold text-white">
+
+                        {currentBrand?.brand?.full_name
+                          ?.charAt(0)
+                          ?.toUpperCase()}
+
+                      </div>
+
+                      <div className="text-left">
+
+                        <p className="text-sm font-semibold text-slate-900">
+                          {currentBrand?.brand
+                            ?.full_name}
+                        </p>
+
+                        <p className="text-xs text-slate-500 capitalize">
+                          {currentBrand?.role}
+                        </p>
+
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={cn(
+                    "transition-transform duration-200",
+                    isWorkspaceOpen &&
+                    "rotate-180"
+                  )}
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+
+              </div>
+            </button>
+
+            {isWorkspaceOpen && (
+              <div className="absolute left-0 right-0 z-50 mt-2 rounded-3xl border border-slate-200 bg-white p-2 shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
+
+                <div className="space-y-1">
+
+                  {brands.map((item) => {
+
+                    const isSelected =
+                      item.workspace_id ===
+                      selectedWorkspaceId;
+
+                    return (
+                      <button
+                        key={
+                          item.workspace_id
+                        }
+                        onClick={() =>
+                          handleWorkspaceSwitch(
+                            item.workspace_id
+                          )
+                        }
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-2xl px-3 py-3 transition",
+                          isSelected
+                            ? "bg-slate-100"
+                            : "hover:bg-slate-50"
+                        )}
+                      >
+
+                        <div className="flex items-center gap-3">
+
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-sm font-semibold text-white">
+
+                            {item.brand?.full_name
+                              ?.charAt(0)
+                              ?.toUpperCase()}
+
+                          </div>
+
+                          <div className="text-left">
+
+                            <p className="text-sm font-semibold text-slate-900">
+                              {item.brand
+                                ?.full_name}
+                            </p>
+
+                            <p className="text-xs text-slate-500 capitalize">
+                              Team • {item.role}
+                            </p>
+
+                          </div>
+                        </div>
+
+                        {isSelected && (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="text-slate-700"
+                          >
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {/* {tone === "brand" && (
+          <div className="mb-6 relative">
+
+            <button
+              onClick={() =>
+                setIsWorkspaceOpen(
+                  !isWorkspaceOpen
+                )
+              }
+              className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-slate-300"
+            >
+              <div className="flex items-center justify-between">
+
+                <div className="flex items-center gap-3">
+
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-violet-600 text-sm font-semibold text-white">
+                    {currentBrand?.brand?.full_name
+                      ?.charAt(0)
+                      ?.toUpperCase() || "B"}
+                  </div>
+
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-slate-900">
+                      {currentBrand?.brand
+                        ?.full_name || "Select Brand"}
+                    </p>
+
+                    <p className="text-xs text-slate-500 capitalize">
+                      {currentBrand?.role}
+                    </p>
+                  </div>
+                </div>
+
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={cn(
+                    "transition-transform duration-200",
+                    isWorkspaceOpen &&
+                    "rotate-180"
+                  )}
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </div>
+            </button>
+
+            {isWorkspaceOpen && (
+              <div className="absolute left-0 right-0 z-50 mt-2 rounded-3xl border border-slate-200 bg-white p-2 shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
+
+                <div className="space-y-1">
+
+                  {brands.map((item) => {
+
+                    const isSelected =
+                      item.workspace_id ===
+                      selectedWorkspaceId;
+
+                    return (
+                      <button
+                        key={
+                          item.workspace_id
+                        }
+                        onClick={() =>
+                          handleWorkspaceSwitch(
+                            item.workspace_id
+                          )
+                        }
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-2xl px-3 py-3 transition",
+                          isSelected
+                            ? "bg-slate-100"
+                            : "hover:bg-slate-50"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-600 text-sm font-semibold text-white">
+                            {item.brand?.full_name
+                              ?.charAt(0)
+                              ?.toUpperCase()}
+                          </div>
+
+                          <div className="text-left">
+                            <p className="text-sm font-semibold text-slate-900">
+                              {item.brand
+                                ?.full_name}
+                            </p>
+
+                            <p className="text-xs text-slate-500 capitalize">
+                              Team • {item.role}
+                            </p>
+                          </div>
+                        </div>
+
+                        {isSelected && (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="text-slate-700"
+                          >
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )} */}
         <nav className="mt-6 space-y-3">
+
           {navGroups.map((group) => (
             <div key={group.label ?? "primary"}>
               {group.label ? (
@@ -400,7 +761,7 @@ export function WorkspaceMainContent({
 }: WorkspaceMainContentProps) {
   const theme = toneClasses[tone];
   const content = (
-    <main className="min-w-0 max-w-[1720px] mx-auto pt-[88px] md:pt-[94px] space-y-4 md:py-4 md:pr-4">
+    <main className="min-w-0 max-w-[1720px] mx-auto pt-[88px] md:pt-[94px] space-y-4 md:py-4 md:pr-4 min-h-screen">
       {showTopBanner ? topBanner : null}
 
       {/* {showHeroSection ? (
@@ -470,6 +831,7 @@ export function WorkspaceShell({
   topBanner,
   headerActions,
   sidebarFooter,
+  brands = [],
   showTopBanner = true,
   showHeroSection = true,
   children,
@@ -490,6 +852,7 @@ export function WorkspaceShell({
           initials={initials}
           navGroups={navGroups}
           sidebarFooter={sidebarFooter}
+          brands={brands}
         />
         <WorkspaceMainContent
           tone={tone}
