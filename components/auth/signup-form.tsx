@@ -200,11 +200,11 @@ function CreatorTileIcon() {
   );
 }
 
-export function SignupForm() {
+export function SignupForm({ initialStep = 1 }: { initialStep?: number }) {
   const supabase = useMemo(() => createClient(), []);
   const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(initialStep);
   const [subStep, setSubStep] = useState(1);
   const [brandName, setBrandName] = useState("");
   const [email, setEmail] = useState("");
@@ -451,20 +451,44 @@ export function SignupForm() {
         throw userRowError;
       }
 
-      const { error: teamMemberError } = await supabase
-        .from("team_members")
-        .upsert(
-          {
-            brand_id: user.id,
-            user_id: user.id,
-            role: "owner",
-          },
-          { onConflict: "brand_id,user_id" },
-        );
+      // const { error: teamMemberError } = await supabase
+      //   .from("team_members")
+      //   .upsert(
+      //     {
+      //       brand_id: user.id,
+      //       user_id: user.id,
+      //       role: "owner",
+      //     },
+      //     { onConflict: "brand_id,user_id" },
+      //   );
+      // const { data: brand, error: brandError } =
+      //   await supabase
+      //     .from("brands")
+      //     .select("id")
+      //     .eq("user_id", user.id)
+      //     .single();
 
-      if (teamMemberError) {
-        throw teamMemberError;
-      }
+      // if (brandError || !brand) {
+      //   throw new Error("Brand not found");
+      // }
+
+      // const { error: teamMemberError } =
+      //   await supabase
+      //     .from("team_members")
+      //     .upsert(
+      //       {
+      //         brand_id: brand.id,
+      //         user_id: user.id,
+      //         role: "owner",
+      //       },
+      //       {
+      //         onConflict:
+      //           "brand_id,user_id",
+      //       },
+      //     );
+      // if (teamMemberError) {
+      //   throw teamMemberError;
+      // }
       // SEND INVITES ONE BY ONE
 
       setHasPasswordApplied(true);
@@ -494,8 +518,35 @@ export function SignupForm() {
 
     try {
       await verifyOtpAndPrepareAccount();
-      setSuccess("Email verified. Add your website to finish signup.");
-      setStep(3);
+      setSuccess(
+        "Email verified successfully."
+      );
+      // setStep(3);
+      let sessionReady = false;
+
+      for (let i = 0; i < 5; i++) {
+        const { data } =
+          await supabase.auth.getSession();
+
+        if (data.session) {
+          sessionReady = true;
+          break;
+        }
+
+        await new Promise((res) =>
+          setTimeout(res, 300)
+        );
+      }
+
+      if (!sessionReady) {
+        throw new Error(
+          "Session not ready. Try again."
+        );
+      }
+
+      window.location.assign(
+        "/brand/brand-setup"
+      );
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -519,12 +570,20 @@ export function SignupForm() {
       manage_campaigns: true,
       manage_integrations: true,
       manage_settings: true,
+
     };
     try {
-      if (!isOtpVerified || !hasPasswordApplied) {
-        throw new Error("Verify your email before finishing signup.");
-      }
+      // if (!isOtpVerified || !hasPasswordApplied) {
+      //   throw new Error("Verify your email before finishing signup.");
+      // }
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
+      if (userError || !user) {
+        throw new Error("Session expired. Please login again.");
+      }
       const normalizedWebsite = normalizeWebsiteUrl(websiteUrl);
 
       if (!normalizedWebsite) {
@@ -556,29 +615,58 @@ export function SignupForm() {
         );
       }
 
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      // const {
+      //   data: { user },
+      //   error: userError,
+      // } = await supabase.auth.getUser();
 
-      if (userError || !user) {
-        throw (
-          userError ??
-          new Error("Your session expired. Verify again to continue.")
+      // if (userError || !user) {
+      //   throw (
+      //     userError ??
+      //     new Error("Your session expired. Verify again to continue.")
+      //   );
+      // }
+
+      // const { error: teamMemberError } = await supabase
+      //   .from("team_members")
+      //   .upsert(
+      //     {
+      //       brand_id: user.id,
+      //       user_id: user.id,
+      //       role: "owner",
+      //     },
+      //     { onConflict: "brand_id,user_id" },
+      //   );
+      const { data: brand, error: brandError } =
+        await supabase
+          .from("brands")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+
+      if (brandError || !brand) {
+        throw new Error("Brand not found");
+      }
+      if (brand?.id) {
+        localStorage.setItem(
+          "last-selected-org-id",
+          brand.id
         );
       }
-
-      const { error: teamMemberError } = await supabase
-        .from("team_members")
-        .upsert(
-          {
-            brand_id: user.id,
-            user_id: user.id,
-            role: "owner",
-          },
-          { onConflict: "brand_id,user_id" },
-        );
-
+      const { error: teamMemberError } =
+        await supabase
+          .from("team_members")
+          .upsert(
+            {
+              brand_id: brand.id,
+              user_id: user.id,
+              role: "owner",
+            },
+            {
+              onConflict:
+                "workspace_id,user_id",
+            },
+          );
       if (teamMemberError) {
         throw teamMemberError;
       }

@@ -6,6 +6,7 @@ import {
   type ReactNode,
   useMemo,
   useState,
+  useEffect,
 } from "react";
 import { BrandCreatorsHub } from "@/components/dashboard/brand-creators-hub";
 import { BrandFinancePanel } from "@/components/dashboard/brand-finance-panel";
@@ -60,10 +61,12 @@ import { CountUp } from "../shared/count-up";
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
+import { GlobalInviteModal } from "../creators/global-invite-modal";
 type BrandWorkspaceProps = {
   profile: UserProfile & { role: "brand" };
   data: BrandDashboardData;
   section: BrandWorkspaceSection;
+  brands?: any[];
   renderMode?: "full" | "content";
   detailView?: {
     title: string;
@@ -458,7 +461,9 @@ export function BrandWorkspace({
   section,
   renderMode = "full",
   detailView,
+
 }: BrandWorkspaceProps) {
+
   const activeSection =
     brandWorkspaceSections.find((item) => item.slug === section) ??
     brandWorkspaceSections[0];
@@ -1992,25 +1997,29 @@ export function BrandWorkspace({
 
   if (renderMode === "content") {
     return (
-      <WorkspaceMainContent
-        tone="brand"
-        eyebrow={
-          detailView
-            ? "Review detail"
-            : section === "dashboard"
-              ? "Brand operating system"
-              : "Brand workspace"
-        }
-        title={heroTitle}
-        description={heroDescription}
-        metaItems={detailView?.metaItems ?? primaryStats}
-        // topBanner={topBanner}
-        showTopBanner={!isSubmissionsOverview}
-        showHeroSection={!isSubmissionsOverview}
-        headerActions={headerActions}
-      >
-        {content}
-      </WorkspaceMainContent>
+      <>
+        <GlobalInviteModal />
+        <WorkspaceMainContent
+          tone="brand"
+          eyebrow={
+            detailView
+              ? "Review detail"
+              : section === "dashboard"
+                ? "Brand operating system"
+                : "Brand workspace"
+          }
+          title={heroTitle}
+          description={heroDescription}
+          metaItems={detailView?.metaItems ?? primaryStats}
+          // topBanner={topBanner}
+          showTopBanner={!isSubmissionsOverview}
+          showHeroSection={!isSubmissionsOverview}
+          headerActions={headerActions}
+        >
+          {content}
+        </WorkspaceMainContent>
+      </>
+
     );
   }
 
@@ -2048,6 +2057,7 @@ export function BrandWorkspaceChrome({
   section,
   children,
 }: BrandWorkspaceChromeProps) {
+  const [brands, setBrands] = useState([]);
   const displayName = getDisplayName(profile.company_name, "CIRCL Brand");
   const userName = profile?.full_name;
   const pendingReviews = data.applications.filter(
@@ -2059,6 +2069,23 @@ export function BrandWorkspaceChrome({
   const revisionRequests = data.submissions.filter(
     (submission) => submission.status === "revision_requested",
   ).length;
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const res = await fetch(
+          "/api/brands/my-brands"
+        );
+
+        const data = await res.json();
+
+        setBrands(data.data || []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchBrands();
+  }, []);
   const navGroups: WorkspaceNavGroup[] = [
     {
       label: "Operations",
@@ -2131,6 +2158,7 @@ export function BrandWorkspaceChrome({
         initials={getInitials(displayName)}
         navGroups={navGroups}
         sidebarFooter={sidebarFooter}
+        brands={brands}
       />
       <div className="min-w-0">{children}</div>
     </WorkspaceViewport>

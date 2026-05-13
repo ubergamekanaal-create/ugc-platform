@@ -1,87 +1,6 @@
-// import { NextResponse } from "next/server";
-// import { createClient } from "@/lib/supabase/server";
-
-// export async function POST() {
-//   const supabase = await createClient();
-
-//   // 🔐 Get logged-in user (creator)
-//   const {
-//     data: { user },
-//     error: userError,
-//   } = await supabase.auth.getUser();
-
-//   if (!user || userError) {
-//     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-//   }
-
-//   try {
-//     // =========================
-//     //  FIND PENDING INVITE
-//     // =========================
-//     const { data: invite, error: inviteError } = await supabase
-//       .from("team_invitations")
-//       .select("*")
-//       .eq("email", user.email)
-//       .eq("status", "pending")
-//       .maybeSingle();
-
-//     if (inviteError) throw inviteError;
-
-//     if (!invite) {
-//       return NextResponse.json(
-//         { error: "No pending invitation found" },
-//         { status: 404 }
-//       );
-//     }
-
-//     // =========================
-//     //  ADD TO TEAM
-//     // =========================
-//     const { error: memberError } = await supabase
-//       .from("team_members")
-//       .upsert(
-//         {
-//           brand_id: invite.brand_id,
-//           user_id: user.id,
-//           role: invite.role,
-//         },
-//         { onConflict: "brand_id,user_id" }
-//       );
-
-//     if (memberError) throw memberError;
-
-//     // =========================
-//     //  UPDATE INVITE STATUS
-//     // =========================
-//     const { error: updateError } = await supabase
-//       .from("team_invitations")
-//       .update({
-//         status: "accepted",
-//         accepted_at: new Date(),
-//       })
-//       .eq("id", invite.id);
-
-//     if (updateError) throw updateError;
-
-//     return NextResponse.json({
-//       success: true,
-//       message: "Invitation accepted",
-//     });
-
-//   } catch (err: any) {
-//     console.error("ACCEPT ERROR:", err);
-//     return NextResponse.json(
-//       { error: "Failed to accept invitation" },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-
-
-
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type AcceptInviteBody = {
   inviteId: string;
@@ -89,6 +8,14 @@ type AcceptInviteBody = {
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
+  const admin = createAdminClient();
+
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Missing service role key" },
+      { status: 503 }
+    );
+  }
 
   // =========================
   // AUTH
@@ -117,9 +44,9 @@ export async function POST(req: NextRequest) {
     }
 
     // =========================
-    //  GET INVITE
+    // GET INVITE
     // =========================
-    const { data: invite, error: inviteError } = await supabase
+    const { data: invite, error: inviteError } = await admin
       .from("team_invitations")
       .select("*")
       .eq("id", inviteId)
@@ -133,21 +60,97 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    //  Ensure same email
-    if (invite.email !== user.email) {
+    // =========================
+    // EXPIRED CHECK
+    // =========================
+    // const isExpired =
+    //   new Date(invite.expires_at).getTime() < Date.now();
+
+    // if (isExpired) {
+    //   return NextResponse.json(
+    //     { error: "Invitation expired" },
+    //     { status: 400 }
+    //   );
+    // }
+
+    // =========================
+    // EXPIRED CHECK (7 DAYS)
+    // =========================
+    const invitedTime = new Date(invite.invited_at).getTime();
+
+    const sevenDaysInMs =
+      7 * 24 * 60 * 60 * 1000;
+
+    const isExpired =
+      Date.now() > invitedTime + sevenDaysInMs;
+
+    if (isExpired) {
+
+      await admin
+        .from("team_invitations")
+        .update({
+          status: "expired",
+        })
+        .eq("id", invite.id);
+
       return NextResponse.json(
-        { error: "This invitation is not for you" },
+        { error: "Invitation expired" },
+        { status: 400 }
+      );
+    }
+
+    if (
+      invite.email.toLowerCase() !==
+      user.email?.toLowerCase()
+    ) {
+      return NextResponse.json(
+        {
+          error: "This invitation is not for you",
+          currentUserEmail: user.email,
+          invitedEmail: invite.email,
+        },
         { status: 403 }
       );
     }
 
     // =========================
-    //  CHECK IF ALREADY MEMBER
+    // CHECK USER ROLE
     // =========================
-    const { data: existingMember } = await supabase
+    const { data: existingUser, error: userProfileError } =
+      await admin
+        .from("users")
+        .select("id, role")
+        .eq("id", user.id)
+        .single();
+
+    if (userProfileError || !existingUser) {
+      return NextResponse.json(
+        { error: "User profile not found" },
+        { status: 404 }
+      );
+    }
+
+    if (existingUser.role === "creator") {
+      return NextResponse.json(
+        {
+          error:
+            "Creators cannot join brand teams",
+        },
+        { status: 403 }
+      );
+    }
+
+    // =========================
+    // CHECK EXISTING MEMBER
+    // =========================
+    const { data: existingMember } = await admin
       .from("team_members")
       .select("id")
-      .eq("brand_id", invite.brand_id)
+      // .eq("brand_id", invite.brand_id)
+      .eq(
+        "workspace_id",
+        invite.workspace_id
+      )
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -159,23 +162,29 @@ export async function POST(req: NextRequest) {
     }
 
     // =========================
-    //  ADD MEMBER
+    // ADD MEMBER
     // =========================
-    const { error: memberError } = await supabase
+    const { error: memberError } = await admin
       .from("team_members")
       .insert({
+        workspace_id:
+          invite.workspace_id,
         brand_id: invite.brand_id,
         user_id: user.id,
         role: invite.role,
         permissions: invite.permissions || {},
+        // invited_by: invite.invited_by,
+        // joined_at: new Date().toISOString(),
       });
 
-    if (memberError) throw memberError;
+    if (memberError) {
+      throw memberError;
+    }
 
     // =========================
-    //  UPDATE INVITE
+    // UPDATE INVITATION
     // =========================
-    const { error: updateError } = await supabase
+    const { error: updateError } = await admin
       .from("team_invitations")
       .update({
         status: "accepted",
@@ -183,7 +192,9 @@ export async function POST(req: NextRequest) {
       })
       .eq("id", inviteId);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      throw updateError;
+    }
 
     return NextResponse.json({
       success: true,

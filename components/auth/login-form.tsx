@@ -26,13 +26,23 @@ export function LoginForm() {
       const payload = (await response.json()) as {
         error?: string;
         redirectTo?: string;
+        workspaceId?: string | null;
       };
 
       if (!response.ok || !payload.redirectTo) {
         throw new Error(payload.error ?? "Unable to sign in.");
       }
 
-      window.location.assign(payload.redirectTo);
+      window.location.assign(payload.redirectTo); if (payload.workspaceId) {
+        localStorage.setItem(
+          "last-selected-org-id",
+          payload.workspaceId
+        );
+      }
+
+      window.location.assign(
+        payload.redirectTo
+      );
     } catch (submitError) {
       setError(
         submitError instanceof Error

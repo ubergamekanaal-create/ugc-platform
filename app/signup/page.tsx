@@ -29,7 +29,25 @@ export default async function SignupPage() {
         redirect("/creator/onboarding");
       }
     }
+    if (userProfile?.role === "brand") {
 
+      const { data: brandProfile } =
+        await supabase
+          .from("brands")
+          .select(
+            "onboarding_completed_at"
+          )
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+      if (
+        !brandProfile?.onboarding_completed_at
+      ) {
+        redirect(
+          "/brand/brand-setup"
+        );
+      }
+    }
     redirect("/dashboard");
   }
 

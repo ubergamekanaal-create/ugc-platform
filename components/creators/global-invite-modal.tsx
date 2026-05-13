@@ -169,7 +169,6 @@ export const GlobalInviteModal = () => {
     const [open, setOpen] = useState(true);
     const [acceptingId, setAcceptingId] = useState<string | null>(null);
 
-    // 🔥 NEW STATES
     const [rejectingId, setRejectingId] = useState<string | null>(null);
     const [confirmRejectId, setConfirmRejectId] = useState<string | null>(null);
 
@@ -179,6 +178,9 @@ export const GlobalInviteModal = () => {
 
             const res = await fetch("/api/team/accept-invite", {
                 method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify({ inviteId }),
             });
 
@@ -189,9 +191,9 @@ export const GlobalInviteModal = () => {
             await refetch();
             router.refresh();
 
-            if (invites.length === 1) {
-                router.push("/dashboard/my-brands");
-            }
+            // if (invites.length === 1) {
+            //     router.push("/dashboard/my-brands");
+            // }
         } catch (err: any) {
             console.error(err);
             alert(err.message);
@@ -257,9 +259,8 @@ export const GlobalInviteModal = () => {
                             key={inv.id}
                             className="border border-slate-200 rounded-xl p-4 flex gap-4 items-start"
                         >
-
                             {/* AVATAR */}
-                            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 text-white flex items-center justify-center font-semibold shrink-0">
+                            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-600 to-indigo-500 text-white flex items-center justify-center font-semibold shrink-0">
                                 {inv.email?.charAt(0).toUpperCase()}
                             </div>
 
@@ -267,7 +268,8 @@ export const GlobalInviteModal = () => {
 
                                 <div className="flex-col sm:flex-row flex sm:items-center gap-2">
                                     <p className="font-medium text-slate-900">
-                                        {inv.email}
+                                        {/* {inv.email} */}
+                                        {inv.brand_name || inv.email}
                                     </p>
 
                                     <span className="text-xs mr-auto sm:mr-0 bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full capitalize">
@@ -310,7 +312,7 @@ export const GlobalInviteModal = () => {
                                         <button
                                             onClick={() => handleAccept(inv.id)}
                                             disabled={acceptingId === inv.id}
-                                            className="flex-1 h-10 rounded-full bg-gradient-to-r from-purple-600 to-indigo-500 text-white font-medium hover:opacity-90 transition disabled:opacity-60"
+                                            className="flex-1 h-10 rounded-full bg-gradient-to-r from-blue-600 to-indigo-500 text-white font-medium hover:opacity-90 transition disabled:opacity-60"
                                         >
                                             {acceptingId === inv.id ? "Accepting..." : "Accept"}
                                         </button>
@@ -332,7 +334,7 @@ export const GlobalInviteModal = () => {
 
                 </div>
 
-                <div className="border-t mt-6 pt-4 text-center text-xs text-slate-400">
+                <div className="border-t border-t-slate-200 mt-6 pt-4 text-center text-xs text-slate-400">
                     Invitations expire after 7 days
                 </div>
             </div>

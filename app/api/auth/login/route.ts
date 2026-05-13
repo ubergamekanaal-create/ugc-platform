@@ -62,6 +62,31 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ redirectTo });
   }
+  if (profile.role === "brand") {
 
-  return NextResponse.json({ redirectTo: "/dashboard" });
+    const { data: brandProfile } =
+      await supabase
+        .from("brands")
+        .select(`
+        id,
+        onboarding_completed_at
+      `)
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+
+    const redirectTo =
+      brandProfile?.onboarding_completed_at
+        ? "/dashboard"
+        : "/brand/brand-setup";
+
+    return NextResponse.json({
+      redirectTo,
+
+      workspaceId:
+        brandProfile?.id || null,
+    });
+  }
+  return NextResponse.json({
+    redirectTo: "/dashboard",
+  });
 }

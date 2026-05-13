@@ -18,13 +18,13 @@ export default async function CreatorDashboardRedirectPage() {
   if (!user) {
     redirect("/login");
   }
-  
+
   const { data: profile } = await supabase
     .from("creator_profiles")
     .select("onboarding_completed_at")
     .eq("user_id", user.id)
     .single();
-  
+
   if (!profile?.onboarding_completed_at) {
     redirect("/creator/onboarding");
   }
