@@ -44,15 +44,15 @@ export async function POST(req: Request) {
     shop = shop.split("/")[0];
 
     // ensure .myshopify.com
-    if (!shop.endsWith(".myshopify.com")) {
-      shop = shop + ".myshopify.com";
-    }
-    if (!shop.endsWith(".myshopify.com")) {
-      return NextResponse.json(
-        { error: "Invalid Shopify store domain" },
-        { status: 400 }
-      );
-    }
+    // if (!shop.endsWith(".myshopify.com")) {
+    //   shop = shop + ".myshopify.com";
+    // }
+    // if (!shop.endsWith(".myshopify.com")) {
+    //   return NextResponse.json(
+    //     { error: "Invalid Shopify store domain" },
+    //     { status: 400 }
+    //   );
+    // }
     const state = JSON.stringify({
       brandId: user.id,
       nonce: crypto.randomUUID(),
