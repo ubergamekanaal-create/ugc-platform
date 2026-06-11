@@ -7,11 +7,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const { searchParams } = new URL(request.url);
+
+  const connectionId = searchParams.get("connectionId");
   const admin = createAdminClient();
   const signature = request.headers.get("x-shopify-hmac-sha256");
   const shopDomain = request.headers.get("x-shopify-shop-domain")?.trim() || "";
   const topic = request.headers.get("x-shopify-topic")?.trim() || "";
-
   if (!admin) {
     return NextResponse.json(
       { error: "Missing SUPABASE_SERVICE_ROLE_KEY." },
@@ -34,7 +36,6 @@ export async function POST(request: Request) {
   }
 
   const payloadText = await request.text();
-
   try {
     if (!verifyShopifyWebhookSignature({ payload: payloadText, signature })) {
       return NextResponse.json(
@@ -69,6 +70,7 @@ export async function POST(request: Request) {
     .from("brand_store_connections")
     .select("id, brand_id, store_domain")
     .eq("store_domain", shopDomain)
+    .eq("id", connectionId)
     .maybeSingle();
 
   if (!connection) {
