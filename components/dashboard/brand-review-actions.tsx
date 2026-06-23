@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ApplicationStatus, SubmissionStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type ActionVariant = "table" | "detail";
+type ActionVariant = "table" | "detail" | "card";
 
 type BrandApplicationActionButtonsProps = {
   applicationId: string;
@@ -275,6 +275,40 @@ export function BrandSubmissionActionButtons({
         >
           {pendingStatus === quickStatus ? "Updating..." : actionMeta.label}
         </button>
+        {error ? <p className="max-w-[12rem] text-xs text-rose-600">{error}</p> : null}
+      </div>
+    );
+  }
+
+  if (variant === "card") {
+    if (isFinal) {
+      return (
+        <span className="text-xs font-medium text-slate-400">
+          {status === "approved" ? "Approved" : "Rejected"}
+        </span>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void updateSubmission("revision_requested")}
+            disabled={pendingStatus !== null || status === "revision_requested"}
+            className="inline-flex h-8 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {pendingStatus === "revision_requested" ? "Updating..." : "Revise"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void updateSubmission("approved")}
+            disabled={pendingStatus !== null}
+            className="inline-flex h-8 items-center justify-center rounded-xl border border-transparent bg-slate-950 px-4 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {pendingStatus === "approved" ? "Updating..." : "Approve"}
+          </button>
+        </div>
         {error ? <p className="max-w-[12rem] text-xs text-rose-600">{error}</p> : null}
       </div>
     );

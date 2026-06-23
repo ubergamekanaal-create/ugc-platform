@@ -36,6 +36,13 @@ export const brandWorkspaceSections = [
     description: "Build a roster of high-fit creators for repeat programs.",
   },
   {
+    slug: "discovery",
+    label: "Discovery",
+    group: "primary",
+    description:
+      "Discover and invite creators for campaigns.",
+  },
+  {
     slug: "finance",
     label: "Finance",
     group: "primary",
@@ -58,10 +65,10 @@ export const brandWorkspaceSections = [
 export type BrandWorkspaceSection = (typeof brandWorkspaceSections)[number]["slug"];
 
 export const brandWorkspaceSectionAliases: Record<string, BrandWorkspaceSection> =
-  {
-    analyatics: "analytics",
-    intigrations: "integrations",
-  };
+{
+  analyatics: "analytics",
+  intigrations: "integrations",
+};
 
 export function isBrandWorkspaceSection(
   value: string,

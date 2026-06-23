@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { CreatorInvitationSummary, InvitationStatus } from "@/lib/types";
-import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate, getInitials } from "@/lib/utils";
+import { HoverLift } from "@/components/shared/motion";
 
 type CreatorInvitationsPanelProps = {
   invitations: CreatorInvitationSummary[];
@@ -19,6 +20,16 @@ function getStatusClasses(status: InvitationStatus) {
   }
 
   return "bg-blue-50 text-blue-700";
+}
+
+function getShortText(value: string | null | undefined, limit = 110) {
+  const text = value?.trim();
+
+  if (!text) {
+    return "";
+  }
+
+  return text.length > limit ? `${text.slice(0, limit - 3).trim()}...` : text;
 }
 
 export function CreatorInvitationsPanel({
@@ -78,157 +89,145 @@ export function CreatorInvitationsPanel({
   }
 
   return (
-    <div className="space-y-4">
-      {invitations.map((invitation) => (
-        <div
-          key={invitation.id}
-          className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.05)]"
-        >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-3xl">
-              <div className="flex flex-wrap items-center gap-3">
-                <h3 className="text-2xl font-semibold text-slate-950">
-                  {invitation.campaign_title}
-                </h3>
-                <span
-                  className={cn(
-                    "rounded-full px-3 py-1 text-xs font-semibold",
-                    getStatusClasses(invitation.status),
-                  )}
-                >
-                  {invitation.status}
-                </span>
+    <div className="grid gap-4 xl:grid-cols-2">
+      {invitations.map((invitation) => {
+        const note =
+          getShortText(invitation.message, 120) ||
+          getShortText(invitation.campaign_description, 120) ||
+          "This brand wants to work with you on this campaign.";
+
+        return (
+          <HoverLift
+            key={invitation.id}
+            className="flex h-full flex-col rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-[0_14px_32px_rgba(15,23,42,0.05)]"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="uppercase flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-sm font-semibold uppercase text-accent">
+                  {getInitials(invitation.brand_name)}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="capitalize text-base font-semibold leading-6 text-slate-950">
+                    {invitation.campaign_title}
+                  </h3>
+                  <p className="mt-0.5 text-xs font-semibold leading-5 text-accent">
+                    {invitation.brand_name}
+                    {invitation.brand_headline ? ` - ${invitation.brand_headline}` : ""}
+                  </p>
+                </div>
               </div>
-              <p className="mt-3 text-sm font-medium text-accent">
-                {invitation.brand_name}
-              </p>
-              <p className="mt-3 text-sm leading-7 text-slate-600">
-                {invitation.message?.trim() ||
-                  invitation.campaign_description ||
-                  "This brand wants to work with you on the campaign below."}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {invitation.platforms.map((platform) => (
-                  <span
-                    key={platform}
-                    className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500"
-                  >
-                    {platform}
-                  </span>
-                ))}
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize",
+                  getStatusClasses(invitation.status),
+                )}
+              >
+                {invitation.status}
+              </span>
+            </div>
+
+            <div className="mt-4 rounded-[1.25rem] border border-blue-100 bg-[linear-gradient(135deg,rgba(7,107,210,0.08),rgba(59,130,246,0.04))] p-4">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    Offer
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
+                    {invitation.offered_rate > 0
+                      ? formatCurrency(invitation.offered_rate)
+                      : "TBD"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    Deadline
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-slate-950">
+                    {invitation.deadline ? formatDate(invitation.deadline) : "Flexible"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    Timeline
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-slate-950">
+                    {invitation.duration}
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="grid min-w-[250px] gap-3 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-              <div className="flex items-center justify-between gap-3">
-                <span>Offer</span>
-                <span className="font-semibold text-slate-950">
-                  {invitation.offered_rate > 0
-                    ? formatCurrency(invitation.offered_rate)
-                    : "TBD"}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[invitation.content_type, ...invitation.platforms.slice(0, 2)].map(
+                (platform, index) => (
+                  <span
+                    key={`${platform}-${index}`}
+                    className="rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200"
+                  >
+                    {platform}
+                  </span>
+                ),
+              )}
+              {invitation.deliverables ? (
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-accent">
+                  {invitation.deliverables}
+                </span>
+              ) : null}
+            </div>
+
+            <p className="mt-3 text-sm leading-6 text-slate-600">{note}</p>
+
+            <div className="mt-4 grid gap-2 rounded-[1.1rem] border border-slate-100 bg-slate-50 p-3 text-xs">
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-slate-500">Product</span>
+                <span className="max-w-[65%] text-right font-semibold text-slate-950">
+                  {invitation.product_name || "Shared after accept"}
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>Budget</span>
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-slate-500">Campaign budget</span>
                 <span className="font-semibold text-slate-950">
                   {formatCurrency(invitation.campaign_budget)}
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>Deliverables</span>
-                <span className="max-w-[140px] text-right font-medium text-slate-950">
-                  {invitation.deliverables || "Shared in brief"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>Content type</span>
-                <span className="max-w-[140px] text-right font-medium text-slate-950">
-                  {invitation.content_type}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>Deadline</span>
-                <span className="max-w-[140px] text-right font-medium text-slate-950">
-                  {invitation.deadline ? formatDate(invitation.deadline) : "Flexible"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>Timeline</span>
-                <span className="font-medium text-slate-950">
-                  {invitation.duration}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span>Sent</span>
-                <span className="font-medium text-slate-950">
-                  {formatDate(invitation.created_at)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {(invitation.product_name ||
-            invitation.product_details ||
-            invitation.usage_rights ||
-            invitation.creator_requirements) && (
-            <div className="mt-5 grid gap-3 md:grid-cols-2">
-              <div className="rounded-[1.25rem] bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                  Product
-                </p>
-                <p className="mt-2 font-semibold text-slate-950">
-                  {invitation.product_name || "Shared after accept"}
-                </p>
-                {invitation.product_details ? (
-                  <p className="mt-2 leading-6">{invitation.product_details}</p>
-                ) : null}
-              </div>
-              <div className="rounded-[1.25rem] bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                  Usage rights
-                </p>
-                <p className="mt-2 font-semibold text-slate-950">
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-slate-500">Usage rights</span>
+                <span className="max-w-[65%] text-right font-semibold text-slate-950">
                   {invitation.usage_rights || "To be confirmed"}
-                </p>
-                <p className="mt-3 text-xs uppercase tracking-[0.16em] text-slate-400">
-                  Creator requirements
-                </p>
-                <p className="mt-2 font-semibold text-slate-950">
-                  {invitation.creator_requirements || "Open brief"}
-                </p>
+                </span>
               </div>
             </div>
-          )}
 
-          {invitation.status === "pending" ? (
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => void handleInvitationAction(invitation.id, "accept")}
-                disabled={pendingInvitationId === invitation.id}
-                className="inline-flex h-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {pendingInvitationId === invitation.id ? "Processing..." : "Accept invitation"}
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleInvitationAction(invitation.id, "decline")}
-                disabled={pendingInvitationId === invitation.id}
-                className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Decline
-              </button>
-            </div>
-          ) : null}
+            {invitation.status === "pending" ? (
+              <div className="mt-auto flex flex-col gap-3 pt-4 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => void handleInvitationAction(invitation.id, "accept")}
+                  disabled={pendingInvitationId === invitation.id}
+                  className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(7,107,210,0.18)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {pendingInvitationId === invitation.id ? "Processing..." : "Accept invitation"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleInvitationAction(invitation.id, "decline")}
+                  disabled={pendingInvitationId === invitation.id}
+                  className="inline-flex h-11 flex-1 items-center justify-center rounded-full border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Decline
+                </button>
+              </div>
+            ) : null}
 
-          {feedback[invitation.id] ? (
-            <p className="mt-4 text-sm text-slate-500">{feedback[invitation.id]}</p>
-          ) : null}
-        </div>
-      ))}
+            {feedback[invitation.id] ? (
+              <p className="mt-4 text-sm text-slate-500">{feedback[invitation.id]}</p>
+            ) : null}
+          </HoverLift>
+        );
+      })}
 
       {isRefreshing ? (
-        <p className="text-sm text-slate-500">Refreshing invitations...</p>
+        <p className="text-sm text-slate-500 xl:col-span-2">Refreshing invitations...</p>
       ) : null}
     </div>
   );

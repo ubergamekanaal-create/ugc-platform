@@ -234,7 +234,7 @@ export function CreatorSubmissionsPanel({
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-3xl">
                 <div className="flex flex-wrap items-center gap-3">
-                  <h3 className="text-2xl font-semibold text-slate-950">
+                  <h3 className="text-[1rem] font-semibold text-slate-950">
                     {application.campaign_title}
                   </h3>
                   <span

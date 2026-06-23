@@ -203,6 +203,7 @@ export function BrandCreatorDirectory({
   creators,
   preferredCampaignId = null,
 }: BrandCreatorDirectoryProps) {
+
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedNiche, setSelectedNiche] = useState("all");
@@ -347,8 +348,11 @@ export function BrandCreatorDirectory({
       {
         onConflict: "campaign_id,creator_id",
       },
+    ).select();
+    console.log(
+      "invite result",
+      error
     );
-
     if (error) {
       setFeedback((current) => ({
         ...current,
@@ -393,10 +397,10 @@ export function BrandCreatorDirectory({
       <div className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p className="text-sm font-medium uppercase tracking-[0.18em] text-accent">
+            <p className="text-[2rem] font-medium uppercase text-accent">
               Creator Discovery
             </p>
-            <h2 className="mt-3 text-[2rem] font-semibold tracking-tight text-slate-950">
+            <h2 className="mt-3 text-[1rem] font-semibold tracking-tight text-slate-950">
               Search, filter, and invite the right creators
             </h2>
             <p className="mt-2 max-w-3xl text-sm text-slate-500">

@@ -56,11 +56,19 @@ export async function POST(request: Request) {
       .eq("id", body.campaignId)
       .eq("brand_id", profile.id)
       .single();
-
+    // if (campaign) {
+    //   resolvedCampaignId = campaign.id;
+    //   title = campaign.title;
+    //   amount = Number(campaign.budget);
+    // }
     if (campaign) {
       resolvedCampaignId = campaign.id;
       title = campaign.title;
-      amount = Number(campaign.budget);
+
+      amount =
+        typeof body.amount === "number"
+          ? body.amount
+          : Number(body.amount ?? campaign.budget);
     }
   }
 

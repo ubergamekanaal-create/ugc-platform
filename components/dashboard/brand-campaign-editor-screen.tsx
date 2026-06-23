@@ -96,9 +96,9 @@ export function BrandCampaignEditorScreen({
         content: (
           <WorkspacePanel>
             <div className="max-w-5xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+              {/* <p className="text-[2rem] font-semibold uppercase text-slate-900">
                 Campaign form
-              </p>
+              </p> */}
               <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
                 {isEditing ? "Update campaign brief" : "Launch a new campaign brief"}
               </h2>

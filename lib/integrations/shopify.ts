@@ -375,3 +375,68 @@ export async function fetchShopifyCatalog(params: {
     products,
   } satisfies ShopifyCatalogResult;
 }
+
+export async function updateShopifyWebhookSubscription({
+  storeDomain,
+  accessToken,
+  webhookId,
+  callbackUrl,
+}: {
+  storeDomain: string;
+  accessToken: string;
+  webhookId: string;
+  callbackUrl: string;
+}) {
+  const mutation = `
+    mutation webhookSubscriptionUpdate(
+      $id: ID!,
+      $webhookSubscription: WebhookSubscriptionInput!
+    ) {
+      webhookSubscriptionUpdate(
+        id: $id,
+        webhookSubscription: $webhookSubscription
+      ) {
+        webhookSubscription {
+          id
+          topic
+          uri
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+
+  const response = await fetch(
+    `https://${storeDomain}/admin/api/2026-01/graphql.json`,
+    {
+      method: "POST",
+      headers: {
+        "X-Shopify-Access-Token": accessToken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: mutation,
+        variables: {
+          id: webhookId,
+          webhookSubscription: {
+            uri: callbackUrl,
+          },
+        },
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  const errors =
+    data?.data?.webhookSubscriptionUpdate?.userErrors ?? [];
+
+  if (errors.length) {
+    throw new Error(errors[0]?.message);
+  }
+
+  return data?.data?.webhookSubscriptionUpdate?.webhookSubscription;
+}

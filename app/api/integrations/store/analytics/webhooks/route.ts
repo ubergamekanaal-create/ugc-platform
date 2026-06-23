@@ -105,14 +105,48 @@ export async function POST(request: Request) {
     });
   }
 
-  const callbackUrl = `${getRequestOrigin(request)}/api/integrations/store/webhooks/shopify`;
+  const { data: brandData } = await admin
+    .from("brands")
+    .select("custom_domain, domain_verified")
+    .eq("user_id", brand.brandId)
+    .single();
+
+  // const callbackUrl = `${getRequestOrigin(request)}/api/integrations/store/webhooks/shopify`;
+  const callbackUrl =
+    brandData?.custom_domain &&
+      brandData?.domain_verified
+      ? `https://${brandData.custom_domain}/api/integrations/store/webhooks/shopify?connectionId=${connection.id}`
+      : `${getRequestOrigin(request)}/api/integrations/store/webhooks/shopify?connectionId=${connection.id}`;
   try {
     const subscriptions = await registerShopifyAnalyticsWebhooks({
       storeDomain: connection.store_domain,
       accessToken: connection.access_token,
       callbackUrl,
     });
+    if (!subscriptions.length) {
+      throw new Error("No Shopify webhook subscriptions were created.");
+    }
+    await admin
+      .from("shopify_webhook_subscriptions")
+      .delete()
+      .eq("connection_id", connection.id);
 
+    const webhookRows = subscriptions.map((subscription) => ({
+      connection_id: connection.id,
+      shopify_webhook_id: subscription.id,
+      topic: subscription.topic,
+      uri: subscription.uri,
+    }));
+
+    const { error: webhookInsertError } = await admin
+      .from("shopify_webhook_subscriptions")
+      .insert(webhookRows);
+
+    if (webhookInsertError) {
+      throw new Error(
+        `Unable to save Shopify webhook subscriptions. ${webhookInsertError.message}`,
+      );
+    }
     const { error: updateError } = await admin
       .from("brand_store_connections")
       .update({
@@ -128,7 +162,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       subscriptions,
-      message: `Registered ${subscriptions.length} Shopify analytics webhooks.`,
+      savedWebhookCount: webhookRows.length,
+      message: `Registered and store ${subscriptions.length} Shopify analytics webhooks.`,
     });
   } catch (error) {
     await admin

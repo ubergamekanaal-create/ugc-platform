@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
+  ChatCounterpartProfileSummary,
   ChatConversationSummary,
   ChatMessage,
   PublicProfile,
@@ -40,12 +41,20 @@ function readNullableString(value: unknown) {
   return typeof value === "string" ? value : null;
 }
 
+function readNullableNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 function normalizePublicProfile(row: Record<string, unknown>): PublicProfile {
   const role = row.role === "brand" ? "brand" : "creator";
 
   return {
     id: readString(row.id),
     role,
+    active:
+      typeof row.active === "boolean"
+        ? row.active
+        : undefined,
     display_name: readNullableString(row.display_name),
     full_name: readNullableString(row.full_name),
     company_name: readNullableString(row.company_name),
@@ -113,7 +122,7 @@ async function getProfilesMap(
   const uniqueIds = [...new Set(ids)];
   const { data } = await supabase
     .from("public_profiles")
-    .select("id, role, display_name, full_name, company_name, headline, avatar_url")
+    .select("id, role, display_name, full_name, company_name, headline, avatar_url, active")
     .in("id", uniqueIds);
 
   return new Map(
@@ -124,22 +133,29 @@ async function getProfilesMap(
   );
 }
 
-async function getCampaignTitleMap(
+async function getCampaignMap(
   supabase: SupabaseServerClient,
   ids: string[],
 ) {
   if (!ids.length) {
-    return new Map<string, string>();
+    return new Map<string, { title: string; deadline: string | null; duration: string | null }>();
   }
 
   const uniqueIds = [...new Set(ids)];
   const { data } = await supabase
     .from("campaigns")
-    .select("id, title")
+    .select("id, title, deadline, duration")
     .in("id", uniqueIds);
 
   return new Map(
-    (data ?? []).map((row) => [readString(row.id), readString(row.title)]),
+    (data ?? []).map((row) => [
+      readString(row.id),
+      {
+        title: readString(row.title),
+        deadline: readNullableString(row.deadline),
+        duration: readNullableString(row.duration),
+      },
+    ]),
   );
 }
 
@@ -170,6 +186,126 @@ async function getLatestMessagesMap(
   return latest;
 }
 
+async function getCreatorProfileSummaryMap(params: {
+  supabase: SupabaseServerClient;
+  brandId: string;
+  creatorIds: string[];
+  campaignMap: Map<string, { title: string; deadline: string | null; duration: string | null }>;
+}) {
+  const { supabase, brandId, creatorIds, campaignMap } = params;
+
+  if (!creatorIds.length) {
+    return new Map<string, ChatCounterpartProfileSummary>();
+  }
+
+  const uniqueCreatorIds = [...new Set(creatorIds)];
+  const [{ data: submissions }, { data: payouts }, { data: orders }] = await Promise.all([
+    supabase
+      .from("campaign_submissions")
+      .select("id, creator_id, campaign_id")
+      .eq("brand_id", brandId)
+      .in("creator_id", uniqueCreatorIds),
+    supabase
+      .from("campaign_payouts")
+      .select("creator_id, submission_id, creator_amount")
+      .eq("brand_id", brandId)
+      .in("creator_id", uniqueCreatorIds),
+    supabase
+      .from("brand_store_attributed_orders")
+      .select("submission_id, total")
+      .eq("brand_id", brandId),
+  ]);
+
+  const submissionsByCreator = new Map<
+    string,
+    Array<{ id: string; campaign_id: string | null }>
+  >();
+
+  for (const row of submissions ?? []) {
+    const creatorId = readString(row.creator_id);
+    const existing = submissionsByCreator.get(creatorId) ?? [];
+    existing.push({
+      id: readString(row.id),
+      campaign_id: readNullableString(row.campaign_id),
+    });
+    submissionsByCreator.set(creatorId, existing);
+  }
+
+  const spendByCreator = new Map<string, number>();
+
+  for (const row of payouts ?? []) {
+    const creatorId = readString(row.creator_id);
+    spendByCreator.set(
+      creatorId,
+      (spendByCreator.get(creatorId) ?? 0) +
+      (readNullableNumber(row.creator_amount) ?? 0),
+    );
+  }
+
+  const creatorIdBySubmission = new Map<string, string>();
+
+  submissionsByCreator.forEach((creatorSubmissions, creatorId) => {
+    creatorSubmissions.forEach((submission) => {
+      creatorIdBySubmission.set(submission.id, creatorId);
+    });
+  });
+
+  const gmvByCreator = new Map<string, number>();
+
+  for (const row of orders ?? []) {
+    const submissionId = readNullableString(row.submission_id);
+
+    if (!submissionId) {
+      continue;
+    }
+
+    const creatorId = creatorIdBySubmission.get(submissionId);
+
+    if (!creatorId) {
+      continue;
+    }
+
+    gmvByCreator.set(
+      creatorId,
+      (gmvByCreator.get(creatorId) ?? 0) + (readNullableNumber(row.total) ?? 0),
+    );
+  }
+
+  const summaryMap = new Map<string, ChatCounterpartProfileSummary>();
+
+  uniqueCreatorIds.forEach((creatorId) => {
+    const creatorSubmissions = submissionsByCreator.get(creatorId) ?? [];
+    const briefMap = new Map<string, { title: string; subtitle: string | null }>();
+
+    creatorSubmissions.forEach((submission) => {
+      const campaign = submission.campaign_id
+        ? campaignMap.get(submission.campaign_id) ?? null
+        : null;
+      const title = campaign?.title ?? "Untitled brief";
+      const subtitle = campaign?.deadline
+        ? `Due ${campaign.deadline}`
+        : campaign?.duration ?? null;
+
+      if (!briefMap.has(title)) {
+        briefMap.set(title, { title, subtitle });
+      }
+    });
+
+    const gmv = gmvByCreator.get(creatorId) ?? 0;
+    const spend = spendByCreator.get(creatorId) ?? 0;
+
+    summaryMap.set(creatorId, {
+      posts: creatorSubmissions.length,
+      roas: spend > 0 ? gmv / spend : null,
+      gmv: gmv > 0 ? gmv : null,
+      rating: null,
+      active_briefs: [...briefMap.values()].slice(0, 3),
+    });
+  });
+
+  return summaryMap;
+}
+
 export async function getConversationSummaries(
   supabase: SupabaseServerClient,
   actor: ChatActor,
@@ -187,7 +323,8 @@ export async function getConversationSummaries(
     actor.role === "brand" ? conversation.creator_id : conversation.brand_id,
   );
   const profiles = await getProfilesMap(supabase, counterpartIds);
-  const campaignTitles = await getCampaignTitleMap(
+
+  const campaignMap = await getCampaignMap(
     supabase,
     conversations
       .map((conversation) => conversation.campaign_id)
@@ -197,6 +334,15 @@ export async function getConversationSummaries(
     supabase,
     conversations.map((conversation) => conversation.id),
   );
+  const creatorProfileSummaryMap =
+    actor.role === "brand"
+      ? await getCreatorProfileSummaryMap({
+        supabase,
+        brandId: actor.id,
+        creatorIds: counterpartIds,
+        campaignMap,
+      })
+      : new Map<string, ChatCounterpartProfileSummary>();
 
   return conversations.map((conversation) => {
     const counterpartId =
@@ -210,7 +356,7 @@ export async function getConversationSummaries(
       creator_id: conversation.creator_id,
       campaign_id: conversation.campaign_id,
       campaign_title: conversation.campaign_id
-        ? campaignTitles.get(conversation.campaign_id) ?? null
+        ? campaignMap.get(conversation.campaign_id)?.title ?? null
         : null,
       counterpart_id: counterpartId,
       counterpart_name:
@@ -219,9 +365,14 @@ export async function getConversationSummaries(
         counterpart?.full_name ??
         "Member",
       counterpart_headline: counterpart?.headline ?? null,
+      active: counterpart?.active ?? false,
       latest_message_preview: latestMessage?.body ?? null,
       latest_message_at: latestMessage?.created_at ?? conversation.last_message_at,
       created_at: conversation.created_at,
+      counterpart_profile:
+        actor.role === "brand"
+          ? creatorProfileSummaryMap.get(counterpartId) ?? null
+          : null,
     } satisfies ChatConversationSummary;
   });
 }
@@ -309,15 +460,15 @@ export async function resolveConversationSeed(params: {
   const { data: applications } =
     actor.role === "brand"
       ? await supabase
-          .from("campaign_applications")
-          .select("campaign_id, created_at")
-          .eq("creator_id", creatorId)
-          .order("created_at", { ascending: false })
+        .from("campaign_applications")
+        .select("campaign_id, created_at")
+        .eq("creator_id", creatorId)
+        .order("created_at", { ascending: false })
       : await supabase
-          .from("campaign_applications")
-          .select("campaign_id, created_at")
-          .eq("creator_id", creatorId)
-          .order("created_at", { ascending: false });
+        .from("campaign_applications")
+        .select("campaign_id, created_at")
+        .eq("creator_id", creatorId)
+        .order("created_at", { ascending: false });
 
   const campaignIds = (applications ?? []).map((application) =>
     readString(application.campaign_id),

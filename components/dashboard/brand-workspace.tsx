@@ -18,6 +18,14 @@ import { RealtimeChatPanel } from "@/components/dashboard/realtime-chat-panel";
 import { SignOutButton } from "@/components/dashboard/sign-out-button";
 import { EarningsChart } from "../charts/earnings-chart";
 import {
+  PipelineRevenueChart,
+  type TimeFilter,
+} from "@/components/dashboard/pipeline-revenue-chart";
+import { BrandPerformanceCards } from "@/components/dashboard/brand-performance-cards";
+import { BrandActivityPanels } from "@/components/dashboard/brand-activity-panels";
+import { BrandTopBreakdownPanel } from "@/components/dashboard/brand-top-breakdown-panel";
+import { BrandAnalyticsContent } from "@/components/dashboard/brand-analytics-content";
+import {
   WorkspaceMainContent,
   WorkspacePanel,
   WorkspaceSidebar,
@@ -62,6 +70,7 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { GlobalInviteModal } from "../creators/global-invite-modal";
+import Header from "../shared/header";
 type BrandWorkspaceProps = {
   profile: UserProfile & { role: "brand" };
   data: BrandDashboardData;
@@ -128,6 +137,7 @@ const sectionIcons: Record<
   ads: AdsIcon,
   analytics: AnalyticsIcon,
   creators: CreatorsIcon,
+  discovery: AnalyticsIcon,
   finance: FinanceIcon,
   integrations: IntegrationsIcon,
   settings: SettingsIcon,
@@ -463,12 +473,30 @@ export function BrandWorkspace({
   detailView,
 
 }: BrandWorkspaceProps) {
+  const [activeRevenueFilter, setActiveRevenueFilter] = useState<TimeFilter>("30D");
+  const [showOnboarding, setShowOnboarding] = useState(true);
 
+  useEffect(() => {
+    const onboardingHidden =
+      localStorage.getItem("hideOnboardingCard");
+
+    if (onboardingHidden === "true") {
+      setShowOnboarding(false);
+    }
+  }, []);
+  const handleCloseOnboarding = () => {
+    localStorage.setItem(
+      "hideOnboardingCard",
+      "true"
+    );
+
+    setShowOnboarding(false);
+  };
   const activeSection =
     brandWorkspaceSections.find((item) => item.slug === section) ??
     brandWorkspaceSections[0];
   const displayName = getDisplayName(profile.company_name, "CIRCL Brand");
-
+  const userName = profile?.full_name;
   const welcomeName = getDisplayName(
     profile.full_name || profile.company_name,
     "team",
@@ -829,7 +857,88 @@ export function BrandWorkspace({
     });
     return (
       <div className="space-y-6">
-        <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-6",
+            showOnboarding && hasWorkspaceActivity
+              ? "xl:grid-cols-[auto,1fr]"
+              : "xl:grid-cols-1"
+          )}
+        >
+          {hasWorkspaceActivity && showOnboarding && <div className="grid grid-cols-1">
+            <FadeIn>
+              <SectionPanel className=" flex flex-col">
+                <div className="grid grid-cols-[1fr,auto] justify-center items-center">
+                  <h2 className="text-[1.2rem] font-semibold tracking-tight text-slate-950">
+                    Campaign Onboarding
+                  </h2>
+                  <div
+                    className="cursor-pointer"
+                    onClick={handleCloseOnboarding}
+                  >
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path fill-rule="evenodd" clip-rule="evenodd" d="M19.207 6.207a1 1 0 0 0-1.414-1.414L12 10.586 6.207 4.793a1 1 0 0 0-1.414 1.414L10.586 12l-5.793 5.793a1 1 0 1 0 1.414 1.414L12 13.414l5.793 5.793a1 1 0 0 0 1.414-1.414L13.414 12l5.793-5.793z" fill="#000000"></path></g></svg>
+                  </div>
+                </div>
+
+                <div className=" mt-8 space-y-4">
+
+                  {onboardingSteps.map((step) => (
+                    <Link
+                      href={step.href}
+                      key={step.label}
+                      className="flex items-center justify-between rounded-[1.5rem] border border-slate-200 px-2 py-2 hover:bg-slate-50 transition"
+                    >
+                      <div className="flex items-center gap-4">
+                        <span
+                          className={cn(
+                            "flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold",
+                            step.complete
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                              : "border-slate-300 bg-white text-slate-400",
+                          )}
+                        >
+                          {step.complete ? <CheckIcon className="h-4 w-4" /> : null}
+                        </span>
+
+                        <span
+                          className={cn(
+                            "text-sm font-medium",
+                            step.complete
+                              ? "text-slate-400 line-through"
+                              : "text-slate-900",
+                          )}
+                        >
+                          {step.label}
+                        </span>
+                      </div>
+
+                      <ArrowUpRightIcon className="h-5 w-5 text-slate-400" />
+                    </Link>
+                  ))}
+                </div>
+              </SectionPanel>
+
+            </FadeIn>
+
+          </div>}
+          <PipelineRevenueChart
+            data={data}
+            activeFilter={activeRevenueFilter}
+            onFilterChange={setActiveRevenueFilter}
+          />
+        </div>
+
+        <BrandPerformanceCards
+          data={data}
+          activeFilter={activeRevenueFilter}
+        />
+        <BrandActivityPanels data={data} />
+        <BrandTopBreakdownPanel
+          data={data}
+          activeFilter={activeRevenueFilter}
+        />
+
+        {/* <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
           <FadeIn>
             <SectionPanel className="relative h-full">
 
@@ -970,7 +1079,6 @@ export function BrandWorkspace({
                   <div className="w-full px-4 py-4 sm:py-8 sm:px-8">
                     <div className="mb-4 flex flex-wrap items-center gap-3">
                       <span className="rounded-full bg-[rgba(7,107,210,0.1)] px-3 py-1 text-sm font-medium text-accent">
-                        {/* {formatCompactCurrency(recentPayoutActivity.committedTotal)} committed */}
                         <CountUp
                           value={recentPayoutActivity.committedTotal}
                           formatter={formatCompactCurrency}
@@ -980,7 +1088,6 @@ export function BrandWorkspace({
                         committed
                       </span>
                       <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
-                        {/* {formatCompactCurrency(recentPayoutActivity.releasedTotal)}  */}
                         <CountUp
                           value={recentPayoutActivity.releasedTotal}
                           formatter={formatCompactCurrency}
@@ -991,7 +1098,6 @@ export function BrandWorkspace({
                         released
                       </span>
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-500">
-                        {/* {formatCompactCurrency(payoutReadyTotal)} ready */}
                         <CountUp
                           value={payoutReadyTotal}
                           formatter={formatCompactCurrency}
@@ -1387,7 +1493,7 @@ export function BrandWorkspace({
 
           </FadeIn>
 
-        </div>}
+        </div>} */}
 
       </div>
     );
@@ -1396,7 +1502,7 @@ export function BrandWorkspace({
   function renderSubmissionsSection() {
     return (
       <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-3">
+        {/* <div className="grid gap-4 md:grid-cols-3">
           {[
             {
               label: "Pending applicants",
@@ -1425,7 +1531,7 @@ export function BrandWorkspace({
               <p className="mt-3 text-3xl font-semibold">{metric.value}</p>
             </HoverLift>
           ))}
-        </div>
+        </div> */}
         <BrandSubmissionsPanel
           applications={data.applications}
           submissions={data.submissions}
@@ -1442,6 +1548,7 @@ export function BrandWorkspace({
     return (
       <BrandMetaPanel
         mode="ads"
+        view="reporting"
         approvedSubmissions={data.submissions.filter(
           (submission) => submission.status === "approved",
         )}
@@ -1450,6 +1557,8 @@ export function BrandWorkspace({
   }
 
   function renderAnalyticsSection() {
+    // return <BrandAnalyticsContent data={data} view="overview" />;
+
     return (
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -1793,6 +1902,7 @@ export function BrandWorkspace({
         brandId={profile.id}
         campaigns={data.campaigns}
         creators={data.creators}
+        payouts={data.payouts}
       />
     );
   }
@@ -1806,7 +1916,7 @@ export function BrandWorkspace({
       />
     );
   }
-
+  
   function renderIntegrationsSection() {
     return <BrandIntegrationsPanel />;
   }
@@ -1861,6 +1971,16 @@ export function BrandWorkspace({
         return renderAnalyticsSection();
       case "creators":
         return renderCreatorsSection();
+      case "discovery":
+        return (
+          <BrandCreatorsHub
+            brandId={profile.id}
+            campaigns={data.campaigns}
+            creators={data.creators}
+            payouts={data.payouts}
+            view="invite_creators"
+          />
+        );
       case "finance":
         return renderFinanceSection();
       case "integrations":
@@ -1882,12 +2002,31 @@ export function BrandWorkspace({
           return {
             href: getBrandWorkspaceHref(item.slug),
             label: item.label,
-            active: item.slug === section,
+            active:
+              item.slug === section ||
+              (item.slug === "analytics" &&
+                (detailView?.title === "Analytics / Ads" ||
+                  detailView?.title === "Analytics / Creators")),
             icon: <Icon className="h-6 w-6" />,
             badge:
               item.slug === "submissions" && pendingReviews > 0
                 ? String(pendingReviews)
                 : null,
+            children:
+              item.slug === "analytics"
+                ? [
+                  {
+                    href: "/dashboard/analytics/ads",
+                    label: "Ads",
+                    active: detailView?.title === "Analytics / Ads",
+                  },
+                  {
+                    href: "/dashboard/analytics/creators",
+                    label: "Creators",
+                    active: detailView?.title === "Analytics / Creators",
+                  },
+                ]
+                : undefined,
           };
         }),
     },
@@ -1970,9 +2109,6 @@ export function BrandWorkspace({
     <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(239,246,255,0.96))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
       <div className="absolute -right-10 top-0 h-20 w-20 rounded-full bg-[radial-gradient(circle,_rgba(7,107,210,0.18),_transparent_70%)]" />
       <div className="relative">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-          Pipeline
-        </p>
         <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
           {pendingReviews + pendingSubmissionReviews > 0
             ? `${pendingReviews + pendingSubmissionReviews} items need action`
@@ -2045,6 +2181,9 @@ export function BrandWorkspace({
       showHeroSection={!isSubmissionsOverview}
       headerActions={headerActions}
       sidebarFooter={sidebarFooter}
+      name={userName}
+      profile={profile}
+
     >
       {content}
     </WorkspaceShell>
@@ -2103,6 +2242,19 @@ export function BrandWorkspaceChrome({
               item.slug === "submissions" && pendingReviews > 0
                 ? String(pendingReviews)
                 : null,
+            children:
+              item.slug === "analytics"
+                ? [
+                  {
+                    href: "/dashboard/analytics/ads",
+                    label: "Ads",
+                  },
+                  {
+                    href: "/dashboard/analytics/creators",
+                    label: "Creators",
+                  },
+                ]
+                : undefined,
           };
         }),
     },
@@ -2123,25 +2275,22 @@ export function BrandWorkspaceChrome({
     },
   ];
   const sidebarFooter = (
-    <div className="mx-2 relative rounded-[2rem] border border-slate-100 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(239,246,255,0.96))] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
-      <div className="absolute -right-10 top-0 h-20 w-20 rounded-full bg-[radial-gradient(circle,_rgba(7,107,210,0.18),_transparent_70%)]" />
+    <div className="mx-2 rounded-[1rem] border border-slate-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(239,246,255,0.96))] p-2 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+      {/* <div className="absolute -right-10 top-10 h-20 w-20 rounded-full bg-[radial-gradient(circle,_rgba(7,107,210,0.18),_transparent_70%)]" /> */}
       <div className="relative">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-          Pipeline
-        </p>
-        <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+        <p className="mt-1 text-base font-semibold tracking-tight text-slate-950">
           {pendingReviews + pendingSubmissionReviews > 0
             ? `${pendingReviews + pendingSubmissionReviews} items need action`
             : "Operations are in sync"}
         </p>
-        <p className="mt-3 text-sm leading-7 text-slate-600">
+        <p className="mt-2 text-sm leading-2 text-slate-600">
           {revisionRequests > 0
             ? `${revisionRequests} revisions are still open with creators.`
             : "Use the creator roster to source the next wave before demand slows down."}
         </p>
         <Link
           href="/dashboard/creators"
-          className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-slate-950 shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:bg-slate-50"
+          className="mt-2 inline-flex items-start justify-start text-sm font-semibold text-blue-600 transition hover:bg-slate-50"
         >
           Open creator roster
         </Link>
@@ -2160,7 +2309,10 @@ export function BrandWorkspaceChrome({
         sidebarFooter={sidebarFooter}
         brands={brands}
       />
-      <div className="min-w-0">{children}</div>
+      <div className="min-w-0">
+        <Header name={userName} roleLabel="Brand workspace" profile={profile} />
+        {children}
+      </div>
     </WorkspaceViewport>
   );
 }

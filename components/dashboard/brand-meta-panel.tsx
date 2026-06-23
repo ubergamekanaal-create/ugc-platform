@@ -1,334 +1,481 @@
-"use client";
+  "use client";
 
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
-import { MotionScale } from "@/components/shared/motion";
-import {
-  buildTrackedUrl,
-  slugifyTrackingValue,
-} from "@/lib/analytics/tracking";
-import type {
-  BrandMetaAdAccountSummary,
-  BrandMetaAdSetSummary,
-  BrandMetaAdSummary,
-  BrandMetaCampaignSummary,
-  BrandMetaConnectionSummary,
-  BrandStoreAnalyticsSettings,
-  BrandSubmissionSummary,
-} from "@/lib/types";
-import {
-  cn,
-  formatCompactCurrency,
-  formatCompactNumber,
-  formatCurrency,
-  formatDate,
-  formatPercent,
-} from "@/lib/utils";
+  import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+  import { usePathname, useSearchParams, useRouter } from "next/navigation";
+  import { MotionScale } from "@/components/shared/motion";
+  import {
+    buildTrackedUrl,
+    slugifyTrackingValue,
+  } from "@/lib/analytics/tracking";
+  import type {
+    BrandMetaAdAccountSummary,
+    BrandMetaAdSetSummary,
+    BrandMetaAdSummary,
+    BrandMetaCampaignSummary,
+    BrandMetaConnectionSummary,
+    BrandStoreAnalyticsSettings,
+    BrandSubmissionSummary,
+  } from "@/lib/types";
+  import {
+    cn,
+    formatCompactCurrency,
+    formatCompactNumber,
+    formatCurrency,
+    formatDate,
+    formatPercent,
+  } from "@/lib/utils";
 
-type BrandMetaPanelProps = {
-  mode: "integrations" | "ads";
-  approvedSubmissions?: BrandSubmissionSummary[];
-};
+  type BrandMetaPanelProps = {
+    mode: "integrations" | "ads";
+    approvedSubmissions?: BrandSubmissionSummary[];
+    view?: "full" | "reporting" | "composer";
+  };
 
-type MetaIntegrationResponse = {
-  connection: BrandMetaConnectionSummary | null;
-  adAccounts: BrandMetaAdAccountSummary[];
-  campaigns: BrandMetaCampaignSummary[];
-  adSets: BrandMetaAdSetSummary[];
-  ads: BrandMetaAdSummary[];
-  message?: string;
-  error?: string;
-};
+  type MetaIntegrationResponse = {
+    connection: BrandMetaConnectionSummary | null;
+    adAccounts: BrandMetaAdAccountSummary[];
+    campaigns: BrandMetaCampaignSummary[];
+    adSets: BrandMetaAdSetSummary[];
+    ads: BrandMetaAdSummary[];
+    message?: string;
+    error?: string;
+  };
 
-type StoreAnalyticsResponse = {
-  settings: BrandStoreAnalyticsSettings | null;
-};
+  type StoreAnalyticsResponse = {
+    settings: BrandStoreAnalyticsSettings | null;
+  };
 
-const objectiveOptions = [
-  { value: "OUTCOME_AWARENESS", label: "Awareness" },
-  { value: "OUTCOME_TRAFFIC", label: "Traffic" },
-  { value: "OUTCOME_ENGAGEMENT", label: "Engagement" },
-  { value: "OUTCOME_LEADS", label: "Leads" },
-  { value: "OUTCOME_APP_PROMOTION", label: "App Promotion" },
-  { value: "OUTCOME_SALES", label: "Sales" },
-];
+  const objectiveOptions = [
+    { value: "OUTCOME_AWARENESS", label: "Awareness" },
+    { value: "OUTCOME_TRAFFIC", label: "Traffic" },
+    { value: "OUTCOME_ENGAGEMENT", label: "Engagement" },
+    { value: "OUTCOME_LEADS", label: "Leads" },
+    { value: "OUTCOME_APP_PROMOTION", label: "App Promotion" },
+    { value: "OUTCOME_SALES", label: "Sales" },
+  ];
 
-const callToActionOptions = [
-  { value: "LEARN_MORE", label: "Learn More" },
-  { value: "SHOP_NOW", label: "Shop Now" },
-  { value: "SIGN_UP", label: "Sign Up" },
-  { value: "APPLY_NOW", label: "Apply Now" },
-];
+  const callToActionOptions = [
+    { value: "LEARN_MORE", label: "Learn More" },
+    { value: "SHOP_NOW", label: "Shop Now" },
+    { value: "SIGN_UP", label: "Sign Up" },
+    { value: "APPLY_NOW", label: "Apply Now" },
+  ];
 
-const submissionFilterAllValue = "__all__";
-const submissionFilterUnlinkedValue = "__unlinked__";
+  const submissionFilterAllValue = "__all__";
+  const submissionFilterUnlinkedValue = "__unlinked__";
 
-function formatMetaStatus(value: string | null | undefined) {
-  if (!value) {
-    return "Unknown";
+  function formatMetaStatus(value: string | null | undefined) {
+    if (!value) {
+      return "Unknown";
+    }
+
+    return value
+      .toLowerCase()
+      .split("_")
+      .map((part) => part[0]?.toUpperCase() + part.slice(1))
+      .join(" ");
   }
 
-  return value
-    .toLowerCase()
-    .split("_")
-    .map((part) => part[0]?.toUpperCase() + part.slice(1))
-    .join(" ");
-}
+  function getMetaStatusClasses(value: string | null | undefined) {
+    const normalized = value?.toLowerCase();
 
-function getMetaStatusClasses(value: string | null | undefined) {
-  const normalized = value?.toLowerCase();
+    if (normalized === "active" || normalized === "connected") {
+      return "bg-emerald-50 text-emerald-700";
+    }
 
-  if (normalized === "active" || normalized === "connected") {
-    return "bg-emerald-50 text-emerald-700";
+    if (normalized === "paused" || normalized === "pending") {
+      return "bg-amber-50 text-amber-700";
+    }
+
+    if (normalized === "error" || normalized === "archived") {
+      return "bg-rose-50 text-rose-700";
+    }
+
+    return "bg-slate-100 text-slate-600";
   }
 
-  if (normalized === "paused" || normalized === "pending") {
-    return "bg-amber-50 text-amber-700";
+  function getMetaStatusDotClasses(value: string | null | undefined) {
+    const normalized = value?.toLowerCase();
+
+    if (normalized === "active" || normalized === "connected") {
+      return "bg-emerald-500";
+    }
+
+    if (normalized === "paused" || normalized === "pending") {
+      return "bg-amber-500";
+    }
+
+    if (normalized === "error" || normalized === "archived") {
+      return "bg-rose-500";
+    }
+
+    return "bg-slate-400";
   }
 
-  if (normalized === "error" || normalized === "archived") {
-    return "bg-rose-50 text-rose-700";
+  function matchesSubmissionFilter(
+    sourceSubmissionId: string | null | undefined,
+    filterValue: string,
+  ) {
+    if (filterValue === submissionFilterAllValue) {
+      return true;
+    }
+
+    if (filterValue === submissionFilterUnlinkedValue) {
+      return !sourceSubmissionId;
+    }
+
+    return sourceSubmissionId === filterValue;
   }
 
-  return "bg-slate-100 text-slate-600";
-}
-
-function matchesSubmissionFilter(
-  sourceSubmissionId: string | null | undefined,
-  filterValue: string,
-) {
-  if (filterValue === submissionFilterAllValue) {
-    return true;
+  function normalizeSearchValue(value: string | null | undefined) {
+    return value?.trim().toLowerCase() ?? "";
   }
 
-  if (filterValue === submissionFilterUnlinkedValue) {
-    return !sourceSubmissionId;
+  function getSubmissionProductLabel(submission: BrandSubmissionSummary | null | undefined) {
+    return submission?.product_name?.trim() || submission?.campaign_title || "Unassigned";
   }
 
-  return sourceSubmissionId === filterValue;
-}
+  function getNameInitials(value: string | null | undefined) {
+    return (
+      value
+        ?.split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? "")
+        .join("") || "AD"
+    );
+  }
 
-export function BrandMetaPanel({
-  mode,
-  approvedSubmissions = [],
-}: BrandMetaPanelProps) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [connection, setConnection] =
-    useState<BrandMetaConnectionSummary | null>(null);
-  const [adAccounts, setAdAccounts] = useState<BrandMetaAdAccountSummary[]>([]);
-  const [campaigns, setCampaigns] = useState<BrandMetaCampaignSummary[]>([]);
-  const [adSets, setAdSets] = useState<BrandMetaAdSetSummary[]>([]);
-  const [ads, setAds] = useState<BrandMetaAdSummary[]>([]);
-  const [analyticsSettings, setAnalyticsSettings] =
-    useState<BrandStoreAnalyticsSettings | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isSelecting, setIsSelecting] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
-  const [isSubmittingCampaign, setIsSubmittingCampaign] = useState(false);
-  const [pendingResourceKey, setPendingResourceKey] = useState<string | null>(null);
-  const [submissionFilter, setSubmissionFilter] = useState(
-    submissionFilterAllValue,
-  );
-  const hasAutoSyncedRef = useRef(false);
-  const [campaignForm, setCampaignForm] = useState({
-    name: "",
-    objective: objectiveOptions[1]?.value ?? "OUTCOME_TRAFFIC",
-    status: "PAUSED",
-    sourceSubmissionId: "",
-    destinationUrl: "",
-    utmSource: "circl",
-    utmMedium: "paid_social",
-    utmCampaign: "",
-    utmContent: "",
-    utmTerm: "",
-    pageId: "",
-    adSetName: "",
-    adName: "",
-    dailyBudget: "",
-    countries: "US",
-    creativeSourceKey: "",
-    primaryText: "",
-    headline: "",
-    description: "",
-    callToActionType: callToActionOptions[0]?.value ?? "LEARN_MORE",
-  });
+  export function BrandMetaPanel({
+    mode,
+    approvedSubmissions = [],
+    view = "full",
+  }: BrandMetaPanelProps) {
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const [connection, setConnection] =
+      useState<BrandMetaConnectionSummary | null>(null);
+    const [adAccounts, setAdAccounts] = useState<BrandMetaAdAccountSummary[]>([]);
+    const [campaigns, setCampaigns] = useState<BrandMetaCampaignSummary[]>([]);
+    const [adSets, setAdSets] = useState<BrandMetaAdSetSummary[]>([]);
+    const [ads, setAds] = useState<BrandMetaAdSummary[]>([]);
+    const [analyticsSettings, setAnalyticsSettings] =
+      useState<BrandStoreAnalyticsSettings | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isConnecting, setIsConnecting] = useState(false);
+    const [isSelecting, setIsSelecting] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [isDisconnecting, setIsDisconnecting] = useState(false);
+    const [isSubmittingCampaign, setIsSubmittingCampaign] = useState(false);
+    const [pendingResourceKey, setPendingResourceKey] = useState<string | null>(null);
+    const [expandedCampaignIds, setExpandedCampaignIds] = useState<string[]>([]);
+    const [submissionFilter, setSubmissionFilter] = useState(
+      submissionFilterAllValue,
+    );
+    const [campaignSearchQuery, setCampaignSearchQuery] = useState("");
+    const [campaignCreatorFilter, setCampaignCreatorFilter] = useState("all");
+    const [campaignProductFilter, setCampaignProductFilter] = useState("all");
+    const [campaignStatusFilter, setCampaignStatusFilter] = useState("all");
+    const [campaignSort, setCampaignSort] = useState("sync_desc");
+    const hasAutoSyncedRef = useRef(false);
+    const [campaignForm, setCampaignForm] = useState({
+      name: "",
+      objective: objectiveOptions[1]?.value ?? "OUTCOME_TRAFFIC",
+      status: "PAUSED",
+      sourceSubmissionId: "",
+      destinationUrl: "",
+      utmSource: "circl",
+      utmMedium: "paid_social",
+      utmCampaign: "",
+      utmContent: "",
+      utmTerm: "",
+      pageId: "",
+      adSetName: "",
+      adName: "",
+      dailyBudget: "",
+      countries: "US",
+      creativeSourceKey: "",
+      primaryText: "",
+      headline: "",
+      description: "",
+      callToActionType: callToActionOptions[0]?.value ?? "LEARN_MORE",
+    });
 
-  useEffect(() => {
-    void (async () => {
-      setIsLoading(true);
+    const showReporting = view !== "composer";
+    const showComposer = view !== "reporting";
 
-      try {
-        const [metaResponse, analyticsResponse] = await Promise.all([
-          fetch("/api/integrations/meta", {
-            cache: "no-store",
-          }),
-          mode === "ads"
-            ? fetch("/api/integrations/store/analytics", {
+    useEffect(() => {
+      void (async () => {
+        setIsLoading(true);
+
+        try {
+          const [metaResponse, analyticsResponse] = await Promise.all([
+            fetch("/api/integrations/meta", {
+              cache: "no-store",
+            }),
+            mode === "ads"
+              ? fetch("/api/integrations/store/analytics", {
                 cache: "no-store",
               })
-            : Promise.resolve(null),
-        ]);
-        const payload = (await metaResponse.json()) as MetaIntegrationResponse;
+              : Promise.resolve(null),
+          ]);
+          const payload = (await metaResponse.json()) as MetaIntegrationResponse;
 
-        if (!metaResponse.ok) {
-          throw new Error(payload.error ?? "Unable to load Meta integration.");
-        }
-
-        setConnection(payload.connection);
-        setAdAccounts(payload.adAccounts);
-        setCampaigns(payload.campaigns);
-        setAdSets(payload.adSets);
-        setAds(payload.ads);
-
-        if (analyticsResponse) {
-          const analyticsPayload =
-            (await analyticsResponse.json()) as StoreAnalyticsResponse;
-
-          if (analyticsResponse.ok) {
-            setAnalyticsSettings(analyticsPayload.settings);
-            setCampaignForm((current) => ({
-              ...current,
-              utmSource:
-                current.utmSource ||
-                analyticsPayload.settings?.utm_source_default ||
-                "circl",
-              utmMedium:
-                current.utmMedium ||
-                analyticsPayload.settings?.utm_medium_default ||
-                "paid_social",
-              utmTerm:
-                current.utmTerm ||
-                analyticsPayload.settings?.utm_term_default ||
-                "",
-            }));
+          if (!metaResponse.ok) {
+            throw new Error(payload.error ?? "Unable to load Meta integration.");
           }
-        }
 
-        if (mode === "ads" && payload.connection && !hasAutoSyncedRef.current) {
-          hasAutoSyncedRef.current = true;
-          setIsSyncing(true);
+          setConnection(payload.connection);
+          setAdAccounts(payload.adAccounts);
+          setCampaigns(payload.campaigns);
+          setAdSets(payload.adSets);
+          setAds(payload.ads);
 
-          try {
-            const syncResponse = await fetch("/api/integrations/meta/sync", {
-              method: "POST",
-            });
-            const syncPayload = (await syncResponse.json()) as MetaIntegrationResponse;
+          if (analyticsResponse) {
+            const analyticsPayload =
+              (await analyticsResponse.json()) as StoreAnalyticsResponse;
 
-            if (!syncResponse.ok) {
-              throw new Error(syncPayload.error ?? "Unable to sync Meta campaigns.");
+            if (analyticsResponse.ok) {
+              setAnalyticsSettings(analyticsPayload.settings);
+              setCampaignForm((current) => ({
+                ...current,
+                utmSource:
+                  current.utmSource ||
+                  analyticsPayload.settings?.utm_source_default ||
+                  "circl",
+                utmMedium:
+                  current.utmMedium ||
+                  analyticsPayload.settings?.utm_medium_default ||
+                  "paid_social",
+                utmTerm:
+                  current.utmTerm ||
+                  analyticsPayload.settings?.utm_term_default ||
+                  "",
+              }));
             }
-
-            setConnection(syncPayload.connection);
-            setAdAccounts(syncPayload.adAccounts);
-            setCampaigns(syncPayload.campaigns);
-            setAdSets(syncPayload.adSets);
-            setAds(syncPayload.ads);
-            setMessage(syncPayload.message ?? null);
-          } catch (error) {
-            setMessage(
-              error instanceof Error
-                ? error.message
-                : "Unable to sync Meta campaigns.",
-            );
-          } finally {
-            setIsSyncing(false);
           }
+
+          if (mode === "ads" && payload.connection && !hasAutoSyncedRef.current) {
+            hasAutoSyncedRef.current = true;
+            setIsSyncing(true);
+
+            try {
+              const syncResponse = await fetch("/api/integrations/meta/sync", {
+                method: "POST",
+              });
+              const syncPayload = (await syncResponse.json()) as MetaIntegrationResponse;
+
+              if (!syncResponse.ok) {
+                throw new Error(syncPayload.error ?? "Unable to sync Meta campaigns.");
+              }
+
+              setConnection(syncPayload.connection);
+              setAdAccounts(syncPayload.adAccounts);
+              setCampaigns(syncPayload.campaigns);
+              setAdSets(syncPayload.adSets);
+              setAds(syncPayload.ads);
+              setMessage(syncPayload.message ?? null);
+            } catch (error) {
+              setMessage(
+                error instanceof Error
+                  ? error.message
+                  : "Unable to sync Meta campaigns.",
+              );
+            } finally {
+              setIsSyncing(false);
+            }
+          }
+        } catch (error) {
+          setMessage(
+            error instanceof Error
+              ? error.message
+              : "Unable to load Meta integration.",
+          );
+        } finally {
+          setIsLoading(false);
         }
-      } catch (error) {
-        setMessage(
-          error instanceof Error
-            ? error.message
-            : "Unable to load Meta integration.",
-        );
-      } finally {
-        setIsLoading(false);
+      })();
+    }, [mode]);
+
+    useEffect(() => {
+      const metaStatus = searchParams.get("meta");
+      const metaError = searchParams.get("meta_error");
+
+      if (metaError) {
+        setMessage(metaError);
+        return;
       }
-    })();
-  }, [mode]);
 
-  useEffect(() => {
-    const metaStatus = searchParams.get("meta");
-    const metaError = searchParams.get("meta_error");
+      if (metaStatus === "connected") {
+        setMessage("Meta account connected.");
+      } else if (metaStatus === "account_required") {
+        setMessage(
+          "Meta connected, but no ad account was selected automatically. Pick one below.",
+        );
+      }
+    }, [searchParams]);
 
-    if (metaError) {
-      setMessage(metaError);
-      return;
-    }
-
-    if (metaStatus === "connected") {
-      setMessage("Meta account connected.");
-    } else if (metaStatus === "account_required") {
-      setMessage(
-        "Meta connected, but no ad account was selected automatically. Pick one below.",
-      );
-    }
-  }, [searchParams]);
-
-  const selectedAdAccount =
-    adAccounts.find((account) => account.is_selected) ??
-    (connection?.ad_account_id
-      ? adAccounts.find((account) => account.meta_account_id === connection.ad_account_id) ??
+    const selectedAdAccount =
+      adAccounts.find((account) => account.is_selected) ??
+      (connection?.ad_account_id
+        ? adAccounts.find((account) => account.meta_account_id === connection.ad_account_id) ??
         null
-      : null);
+        : null);
 
-  const recentCampaigns = useMemo(() => campaigns.slice(0, 6), [campaigns]);
-  const approvedSubmissionById = useMemo(
-    () =>
-      new Map(
-        approvedSubmissions.map((submission) => [submission.id, submission] as const),
-      ),
-    [approvedSubmissions],
-  );
-  const selectedSubmission =
-    approvedSubmissionById.get(campaignForm.sourceSubmissionId) ?? null;
-  const creativeSourceOptions = useMemo(() => {
-    if (!selectedSubmission) {
-      return [];
-    }
+    const recentCampaigns = useMemo(() => campaigns.slice(0, 6), [campaigns]);
+    const approvedSubmissionById = useMemo(
+      () =>
+        new Map(
+          approvedSubmissions.map((submission) => [submission.id, submission] as const),
+        ),
+      [approvedSubmissions],
+    );
+    const selectedSubmission =
+      approvedSubmissionById.get(campaignForm.sourceSubmissionId) ?? null;
 
-    const assetOptions = selectedSubmission.assets
-      .filter((asset) => asset.kind === "image" || asset.kind === "video")
-      .map((asset) => ({
-        key: `asset:${asset.id}`,
-        label: `${asset.kind === "video" ? "Video" : "Image"} asset • ${asset.file_name}`,
-        hint: `Revision ${asset.revision_number}`,
+    useEffect(() => {
+
+      if (
+
+        approvedSubmissions.length === 1
+
+        &&
+
+        !campaignForm.sourceSubmissionId
+
+      ) {
+
+        const submission =
+
+          approvedSubmissions[0];
+
+        const nextCreative =
+
+          submission.assets.find(
+
+            asset =>
+
+              asset.kind === "image"
+
+              ||
+
+              asset.kind === "video"
+
+          );
+
+        setCampaignForm(current => ({
+
+          ...current,
+
+          sourceSubmissionId:
+            submission.id,
+
+          name:
+
+            `${submission.creator_name}
+  ${submission.campaign_title}`,
+
+          adSetName:
+
+            `${submission.creator_name}
+  ${submission.campaign_title}
+  Ad Set`,
+
+          adName:
+
+            `${submission.creator_name}
+  ${submission.campaign_title}
+  Ad`,
+
+          headline:
+            submission.campaign_title,
+
+          primaryText:
+
+            submission.notes
+
+            ||
+
+            current.primaryText,
+
+          creativeSourceKey:
+
+            nextCreative
+
+              ?
+
+              `asset:${nextCreative.id}`
+
+              :
+
+              "",
+
+
+          utmCampaign:
+
+            slugifyTrackingValue(
+              submission.campaign_title
+            ),
+
+          utmContent:
+
+            slugifyTrackingValue(
+              submission.creator_name
+            )
+
+        }));
+
+      }
+
+    }, [
+      approvedSubmissions
+    ]);
+    const creativeSourceOptions = useMemo(() => {
+      if (!selectedSubmission) {
+        return [];
+      }
+
+      const assetOptions = selectedSubmission.assets
+        .filter((asset) => asset.kind === "image" || asset.kind === "video")
+        .map((asset) => ({
+          key: `asset:${asset.id}`,
+          label: `${asset.kind === "video" ? "Video" : "Image"} asset • ${asset.file_name}`,
+          hint: `Revision ${asset.revision_number}`,
+        }));
+
+      const linkOptions = selectedSubmission.content_links.map((link, index) => ({
+        key: `link:${index}`,
+        label: `Content link ${index + 1}`,
+        hint: link,
       }));
 
-    const linkOptions = selectedSubmission.content_links.map((link, index) => ({
-      key: `link:${index}`,
-      label: `Content link ${index + 1}`,
-      hint: link,
-    }));
-
-    return [...assetOptions, ...linkOptions];
-  }, [selectedSubmission]);
-  const trackingUrlPreview = buildTrackedUrl({
-    destinationUrl: campaignForm.destinationUrl,
-    utmSource: campaignForm.utmSource,
-    utmMedium: campaignForm.utmMedium,
-    utmCampaign: campaignForm.utmCampaign,
-    utmContent: campaignForm.utmContent,
-    utmTerm: campaignForm.utmTerm,
-    campaignId: selectedSubmission?.campaign_id ?? null,
-    submissionId: campaignForm.sourceSubmissionId || null,
-  });
-  const adAccountNameById = useMemo(
-    () =>
-      new Map(
-        adAccounts.map((account) => [account.meta_account_id, account.account_name] as const),
-      ),
-    [adAccounts],
-  );
-  const selectedCreativeSourceOption =
-    creativeSourceOptions.find(
-      (option) => option.key === campaignForm.creativeSourceKey,
-    ) ?? null;
-  const executionIntent = Boolean(
-    campaignForm.pageId ||
+      return [...assetOptions, ...linkOptions];
+    }, [selectedSubmission]);
+    const trackingUrlPreview = buildTrackedUrl({
+      destinationUrl: campaignForm.destinationUrl,
+      utmSource: campaignForm.utmSource,
+      utmMedium: campaignForm.utmMedium,
+      utmCampaign: campaignForm.utmCampaign,
+      utmContent: campaignForm.utmContent,
+      utmTerm: campaignForm.utmTerm,
+      campaignId: selectedSubmission?.campaign_id ?? null,
+      submissionId: campaignForm.sourceSubmissionId || null,
+    });
+    const adAccountNameById = useMemo(
+      () =>
+        new Map(
+          adAccounts.map((account) => [account.meta_account_id, account.account_name] as const),
+        ),
+      [adAccounts],
+    );
+    const selectedCreativeSourceOption =
+      creativeSourceOptions.find(
+        (option) => option.key === campaignForm.creativeSourceKey,
+      ) ?? null;
+    const executionIntent = Boolean(
+      campaignForm.pageId ||
       campaignForm.adSetName ||
       campaignForm.adName ||
       campaignForm.dailyBudget ||
@@ -336,1798 +483,2235 @@ export function BrandMetaPanel({
       campaignForm.primaryText ||
       campaignForm.headline ||
       campaignForm.description,
-  );
-  const adSetsByCampaignId = useMemo(
-    () =>
-      adSets.reduce((map, adSet) => {
-        const existing = map.get(adSet.campaign_id) ?? [];
-        existing.push(adSet);
-        map.set(adSet.campaign_id, existing);
-        return map;
-      }, new Map<string, BrandMetaAdSetSummary[]>()),
-    [adSets],
-  );
-  const adsByCampaignId = useMemo(
-    () =>
-      ads.reduce((map, ad) => {
-        const existing = map.get(ad.campaign_id) ?? [];
-        existing.push(ad);
-        map.set(ad.campaign_id, existing);
-        return map;
-      }, new Map<string, BrandMetaAdSummary[]>()),
-    [ads],
-  );
-  const submissionFilterOptions = useMemo(() => {
-    const optionMap = new Map<
-      string,
-      {
-        id: string;
-        label: string;
-        hint: string;
-      }
-    >();
-
-    approvedSubmissions.forEach((submission) => {
-      optionMap.set(submission.id, {
-        id: submission.id,
-        label: `${submission.creator_name} • ${submission.campaign_title}`,
-        hint: submission.status,
-      });
-    });
-
-    [...campaigns, ...adSets, ...ads].forEach((item) => {
-      const submissionId = item.source_submission_id;
-
-      if (!submissionId || optionMap.has(submissionId)) {
-        return;
-      }
-
-      optionMap.set(submissionId, {
-        id: submissionId,
-        label: `Linked submission ${submissionId.slice(0, 8)}`,
-        hint: "Submission details unavailable",
-      });
-    });
-
-    return [...optionMap.values()].sort((left, right) =>
-      left.label.localeCompare(right.label),
     );
-  }, [approvedSubmissions, campaigns, adSets, ads]);
-  const selectedSubmissionFilterOption =
-    submissionFilterOptions.find((option) => option.id === submissionFilter) ?? null;
-  const reportingSubmission =
-    submissionFilter !== submissionFilterAllValue &&
-    submissionFilter !== submissionFilterUnlinkedValue
-      ? approvedSubmissionById.get(submissionFilter) ?? null
-      : null;
-  const filteredCampaigns = useMemo(
-    () =>
-      campaigns.filter((campaign) => {
-        if (matchesSubmissionFilter(campaign.source_submission_id, submissionFilter)) {
-          return true;
+    const adSetsByCampaignId = useMemo(
+      () =>
+        adSets.reduce((map, adSet) => {
+          const existing = map.get(adSet.campaign_id) ?? [];
+          existing.push(adSet);
+          map.set(adSet.campaign_id, existing);
+          return map;
+        }, new Map<string, BrandMetaAdSetSummary[]>()),
+      [adSets],
+    );
+    const adsByCampaignId = useMemo(
+      () =>
+        ads.reduce((map, ad) => {
+          const existing = map.get(ad.campaign_id) ?? [];
+          existing.push(ad);
+          map.set(ad.campaign_id, existing);
+          return map;
+        }, new Map<string, BrandMetaAdSummary[]>()),
+      [ads],
+    );
+    const adsByAdSetId = useMemo(
+      () =>
+        ads.reduce((map, ad) => {
+          const existing = map.get(ad.ad_set_id) ?? [];
+          existing.push(ad);
+          map.set(ad.ad_set_id, existing);
+          return map;
+        }, new Map<string, BrandMetaAdSummary[]>()),
+      [ads],
+    );
+    const submissionFilterOptions = useMemo(() => {
+      const optionMap = new Map<
+        string,
+        {
+          id: string;
+          label: string;
+          hint: string;
+        }
+      >();
+
+      approvedSubmissions.forEach((submission) => {
+        optionMap.set(submission.id, {
+          id: submission.id,
+          label: `${submission.creator_name} • ${submission.campaign_title}`,
+          hint: submission.status,
+        });
+      });
+
+      [...campaigns, ...adSets, ...ads].forEach((item) => {
+        const submissionId = item.source_submission_id;
+
+        if (!submissionId || optionMap.has(submissionId)) {
+          return;
         }
 
-        if (submissionFilter === submissionFilterAllValue) {
+        optionMap.set(submissionId, {
+          id: submissionId,
+          label: `Linked submission ${submissionId.slice(0, 8)}`,
+          hint: "Submission details unavailable",
+        });
+      });
+
+      return [...optionMap.values()].sort((left, right) =>
+        left.label.localeCompare(right.label),
+      );
+    }, [approvedSubmissions, campaigns, adSets, ads]);
+    const selectedSubmissionFilterOption =
+      submissionFilterOptions.find((option) => option.id === submissionFilter) ?? null;
+    const reportingSubmission =
+      submissionFilter !== submissionFilterAllValue &&
+        submissionFilter !== submissionFilterUnlinkedValue
+        ? approvedSubmissionById.get(submissionFilter) ?? null
+        : null;
+    const filteredCampaigns = useMemo(
+      () =>
+        campaigns.filter((campaign) => {
+          if (matchesSubmissionFilter(campaign.source_submission_id, submissionFilter)) {
+            return true;
+          }
+
+          if (submissionFilter === submissionFilterAllValue) {
+            return true;
+          }
+
+          const linkedAdSets = adSetsByCampaignId.get(campaign.id) ?? [];
+          const linkedAds = adsByCampaignId.get(campaign.id) ?? [];
+
+          return (
+            linkedAdSets.some((adSet) =>
+              matchesSubmissionFilter(adSet.source_submission_id, submissionFilter),
+            ) ||
+            linkedAds.some((ad) =>
+              matchesSubmissionFilter(ad.source_submission_id, submissionFilter),
+            )
+          );
+        }),
+      [campaigns, adSetsByCampaignId, adsByCampaignId, submissionFilter],
+    );
+    const filteredAdSets = useMemo(
+      () =>
+        adSets.filter((adSet) =>
+          matchesSubmissionFilter(adSet.source_submission_id, submissionFilter),
+        ),
+      [adSets, submissionFilter],
+    );
+    const filteredAds = useMemo(
+      () =>
+        ads.filter((ad) => matchesSubmissionFilter(ad.source_submission_id, submissionFilter)),
+      [ads, submissionFilter],
+    );
+    const campaignLinkedSubmissionById = useMemo(() => {
+      return filteredCampaigns.reduce((map, campaign) => {
+        const directSubmission = campaign.source_submission_id
+          ? approvedSubmissionById.get(campaign.source_submission_id) ?? null
+          : null;
+        const fallbackSubmissionId =
+          (adSetsByCampaignId.get(campaign.id) ?? []).find((adSet) => adSet.source_submission_id)
+            ?.source_submission_id ??
+          (adsByCampaignId.get(campaign.id) ?? []).find((ad) => ad.source_submission_id)
+            ?.source_submission_id ??
+          null;
+        const fallbackSubmission = fallbackSubmissionId
+          ? approvedSubmissionById.get(fallbackSubmissionId) ?? null
+          : null;
+
+        map.set(campaign.id, directSubmission ?? fallbackSubmission);
+        return map;
+      }, new Map<string, BrandSubmissionSummary | null>());
+    }, [
+      adSetsByCampaignId,
+      adsByCampaignId,
+      approvedSubmissionById,
+      filteredCampaigns,
+    ]);
+    const campaignCreatorOptions = useMemo(
+      () =>
+        [...new Set(
+          filteredCampaigns
+            .map((campaign) => campaignLinkedSubmissionById.get(campaign.id)?.creator_name ?? null)
+            .filter((value): value is string => Boolean(value)),
+        )].sort((left, right) => left.localeCompare(right)),
+      [campaignLinkedSubmissionById, filteredCampaigns],
+    );
+    const campaignProductOptions = useMemo(
+      () =>
+        [...new Set(
+          filteredCampaigns
+            .map((campaign) =>
+              getSubmissionProductLabel(campaignLinkedSubmissionById.get(campaign.id)),
+            )
+            .filter(Boolean),
+        )].sort((left, right) => left.localeCompare(right)),
+      [campaignLinkedSubmissionById, filteredCampaigns],
+    );
+    const campaignStatusOptions = useMemo(
+      () =>
+        [...new Set(
+          filteredCampaigns
+            .map((campaign) => campaign.effective_status ?? campaign.status)
+            .filter((status): status is string => Boolean(status)),
+        )].sort((left, right) => left.localeCompare(right)),
+      [filteredCampaigns],
+    );
+    const visibleCampaigns = useMemo(() => {
+      const normalizedQuery = normalizeSearchValue(campaignSearchQuery);
+
+      const nextCampaigns = filteredCampaigns.filter((campaign) => {
+        const statusValue = normalizeSearchValue(
+          campaign.effective_status ?? campaign.status,
+        );
+
+        if (
+          campaignStatusFilter !== "all" &&
+          statusValue !== normalizeSearchValue(campaignStatusFilter)
+        ) {
+          return false;
+        }
+
+        const linkedSubmission = campaignLinkedSubmissionById.get(campaign.id) ?? null;
+
+        if (
+          campaignCreatorFilter !== "all" &&
+          linkedSubmission?.creator_name !== campaignCreatorFilter
+        ) {
+          return false;
+        }
+
+        if (
+          campaignProductFilter !== "all" &&
+          getSubmissionProductLabel(linkedSubmission) !== campaignProductFilter
+        ) {
+          return false;
+        }
+
+        if (!normalizedQuery) {
           return true;
         }
 
         const linkedAdSets = adSetsByCampaignId.get(campaign.id) ?? [];
         const linkedAds = adsByCampaignId.get(campaign.id) ?? [];
+        const searchableText = [
+          campaign.name,
+          campaign.meta_campaign_id,
+          campaign.objective,
+          linkedSubmission?.creator_name,
+          linkedSubmission?.campaign_title,
+          linkedSubmission?.product_name,
+          ...linkedAdSets.map((adSet) => adSet.name),
+          ...linkedAds.map((ad) => ad.name),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
 
-        return (
-          linkedAdSets.some((adSet) =>
-            matchesSubmissionFilter(adSet.source_submission_id, submissionFilter),
-          ) ||
-          linkedAds.some((ad) =>
-            matchesSubmissionFilter(ad.source_submission_id, submissionFilter),
-          )
-        );
-      }),
-    [campaigns, adSetsByCampaignId, adsByCampaignId, submissionFilter],
-  );
-  const filteredAdSets = useMemo(
-    () =>
-      adSets.filter((adSet) =>
-        matchesSubmissionFilter(adSet.source_submission_id, submissionFilter),
-      ),
-    [adSets, submissionFilter],
-  );
-  const filteredAds = useMemo(
-    () =>
-      ads.filter((ad) => matchesSubmissionFilter(ad.source_submission_id, submissionFilter)),
-    [ads, submissionFilter],
-  );
-  const campaignSpend = filteredCampaigns.reduce(
-    (sum, campaign) => sum + campaign.spend,
-    0,
-  );
-  const campaignClicks = filteredCampaigns.reduce(
-    (sum, campaign) => sum + campaign.clicks,
-    0,
-  );
-  const campaignImpressions = filteredCampaigns.reduce(
-    (sum, campaign) => sum + campaign.impressions,
-    0,
-  );
-  const totalAdSpend = filteredAds.reduce((sum, ad) => sum + ad.spend, 0);
-  const totalAdClicks = filteredAds.reduce((sum, ad) => sum + ad.clicks, 0);
-  const totalAdImpressions = filteredAds.reduce(
-    (sum, ad) => sum + ad.impressions,
-    0,
-  );
-  const campaignCtr = campaignImpressions
-    ? (campaignClicks / campaignImpressions) * 100
-    : filteredCampaigns.length
-      ? filteredCampaigns.reduce((sum, campaign) => sum + campaign.ctr, 0) /
-        filteredCampaigns.length
-      : 0;
-  const adCtr = totalAdImpressions ? (totalAdClicks / totalAdImpressions) * 100 : 0;
-  const executionSpend = filteredAds.length
-    ? totalAdSpend
-    : filteredAdSets.reduce((sum, adSet) => sum + adSet.spend, 0);
-  const executionClicks = filteredAds.length
-    ? totalAdClicks
-    : filteredAdSets.reduce((sum, adSet) => sum + adSet.clicks, 0);
-  const executionImpressions = filteredAds.length
-    ? totalAdImpressions
-    : filteredAdSets.reduce((sum, adSet) => sum + adSet.impressions, 0);
-  const scopeSpend =
-    submissionFilter === submissionFilterAllValue ? campaignSpend : executionSpend || campaignSpend;
-  const scopeCtr =
-    submissionFilter === submissionFilterAllValue
-      ? campaignCtr
-      : executionImpressions
-        ? (executionClicks / executionImpressions) * 100
-        : campaignCtr;
-  const scopeLabel =
-    submissionFilter === submissionFilterAllValue
-      ? "campaign"
-      : filteredAds.length
-        ? "ad"
-        : filteredAdSets.length
-          ? "ad set"
-          : "campaign";
-  const reportingScopeLabel =
-    submissionFilter === submissionFilterAllValue
-      ? "All creator-linked reporting"
-      : submissionFilter === submissionFilterUnlinkedValue
-        ? "Unlinked campaigns and ads"
-        : selectedSubmissionFilterOption?.label ?? "Selected creator submission";
-  const reportingScopeHint =
-    submissionFilter === submissionFilterAllValue
-      ? "Showing every synced campaign, ad set, and ad pulled from Meta."
-      : submissionFilter === submissionFilterUnlinkedValue
-        ? "Only execution without a linked approved submission is visible."
-        : reportingSubmission
-          ? `${reportingSubmission.creator_name} • ${reportingSubmission.campaign_title}`
-          : selectedSubmissionFilterOption?.hint ?? "Only execution linked to this submission is visible.";
+        return searchableText.includes(normalizedQuery);
+      });
 
-  useEffect(() => {
-    if (
-      submissionFilter === submissionFilterAllValue ||
-      submissionFilter === submissionFilterUnlinkedValue
-    ) {
-      return;
-    }
+      nextCampaigns.sort((left, right) => {
+        if (campaignSort === "spend_desc") {
+          return right.spend - left.spend;
+        }
 
-    if (!submissionFilterOptions.some((option) => option.id === submissionFilter)) {
-      setSubmissionFilter(submissionFilterAllValue);
-    }
-  }, [submissionFilter, submissionFilterOptions]);
+        if (campaignSort === "name_asc") {
+          return left.name.localeCompare(right.name);
+        }
 
-  function applyPayload(payload: MetaIntegrationResponse, fallbackMessage?: string) {
-    setConnection(payload.connection);
-    setAdAccounts(payload.adAccounts);
-    setCampaigns(payload.campaigns);
-    setAdSets(payload.adSets);
-    setAds(payload.ads);
-    setMessage(payload.message ?? fallbackMessage ?? null);
-  }
+        return new Date(right.synced_at).getTime() - new Date(left.synced_at).getTime();
+      });
 
-  function handleConnect() {
-    setIsConnecting(true);
-    const returnTo = mode === "ads" ? "/dashboard/ads" : pathname || "/dashboard/integrations";
-    window.location.assign(
-      `/api/integrations/meta/auth?returnTo=${encodeURIComponent(returnTo)}`,
+      return nextCampaigns;
+    }, [
+      adSetsByCampaignId,
+      adsByCampaignId,
+      campaignCreatorFilter,
+      campaignLinkedSubmissionById,
+      campaignProductFilter,
+      campaignSearchQuery,
+      campaignSort,
+      campaignStatusFilter,
+      filteredCampaigns,
+    ]);
+    const visibleCampaignIdSet = useMemo(
+      () => new Set(visibleCampaigns.map((campaign) => campaign.id)),
+      [visibleCampaigns],
     );
-  }
+    const visibleAdSets = useMemo(
+      () => filteredAdSets.filter((adSet) => visibleCampaignIdSet.has(adSet.campaign_id)),
+      [filteredAdSets, visibleCampaignIdSet],
+    );
+    const visibleAds = useMemo(
+      () => filteredAds.filter((ad) => visibleCampaignIdSet.has(ad.campaign_id)),
+      [filteredAds, visibleCampaignIdSet],
+    );
+    const campaignSpend = filteredCampaigns.reduce(
+      (sum, campaign) => sum + campaign.spend,
+      0,
+    );
+    const campaignClicks = filteredCampaigns.reduce(
+      (sum, campaign) => sum + campaign.clicks,
+      0,
+    );
+    const campaignImpressions = filteredCampaigns.reduce(
+      (sum, campaign) => sum + campaign.impressions,
+      0,
+    );
+    const totalAdSpend = filteredAds.reduce((sum, ad) => sum + ad.spend, 0);
+    const totalAdClicks = filteredAds.reduce((sum, ad) => sum + ad.clicks, 0);
+    const totalAdImpressions = filteredAds.reduce(
+      (sum, ad) => sum + ad.impressions,
+      0,
+    );
+    const campaignCtr = campaignImpressions
+      ? (campaignClicks / campaignImpressions) * 100
+      : filteredCampaigns.length
+        ? filteredCampaigns.reduce((sum, campaign) => sum + campaign.ctr, 0) /
+        filteredCampaigns.length
+        : 0;
+    const adCtr = totalAdImpressions ? (totalAdClicks / totalAdImpressions) * 100 : 0;
+    const executionSpend = filteredAds.length
+      ? totalAdSpend
+      : filteredAdSets.reduce((sum, adSet) => sum + adSet.spend, 0);
+    const executionClicks = filteredAds.length
+      ? totalAdClicks
+      : filteredAdSets.reduce((sum, adSet) => sum + adSet.clicks, 0);
+    const executionImpressions = filteredAds.length
+      ? totalAdImpressions
+      : filteredAdSets.reduce((sum, adSet) => sum + adSet.impressions, 0);
+    const scopeSpend =
+      submissionFilter === submissionFilterAllValue ? campaignSpend : executionSpend || campaignSpend;
+    const scopeCtr =
+      submissionFilter === submissionFilterAllValue
+        ? campaignCtr
+        : executionImpressions
+          ? (executionClicks / executionImpressions) * 100
+          : campaignCtr;
+    const scopeLabel =
+      submissionFilter === submissionFilterAllValue
+        ? "campaign"
+        : filteredAds.length
+          ? "ad"
+          : filteredAdSets.length
+            ? "ad set"
+            : "campaign";
+    const reportingScopeLabel =
+      submissionFilter === submissionFilterAllValue
+        ? "All creator-linked reporting"
+        : submissionFilter === submissionFilterUnlinkedValue
+          ? "Unlinked campaigns and ads"
+          : selectedSubmissionFilterOption?.label ?? "Selected creator submission";
+    const reportingScopeHint =
+      submissionFilter === submissionFilterAllValue
+        ? "Showing every synced campaign, ad set, and ad pulled from Meta."
+        : submissionFilter === submissionFilterUnlinkedValue
+          ? "Only execution without a linked approved submission is visible."
+          : reportingSubmission
+            ? `${reportingSubmission.creator_name} • ${reportingSubmission.campaign_title}`
+            : selectedSubmissionFilterOption?.hint ?? "Only execution linked to this submission is visible.";
 
-  async function handleSelectAccount(adAccountId: string) {
-    setIsSelecting(true);
-    setMessage(null);
+    const visibleCampaignSpend = visibleCampaigns.reduce(
+      (sum, campaign) => sum + campaign.spend,
+      0,
+    );
+    const visibleCampaignClicks = visibleCampaigns.reduce(
+      (sum, campaign) => sum + campaign.clicks,
+      0,
+    );
+    const visibleCampaignImpressions = visibleCampaigns.reduce(
+      (sum, campaign) => sum + campaign.impressions,
+      0,
+    );
+    const visibleCampaignCtr = visibleCampaignImpressions
+      ? (visibleCampaignClicks / visibleCampaignImpressions) * 100
+      : visibleCampaigns.length
+        ? visibleCampaigns.reduce((sum, campaign) => sum + campaign.ctr, 0) /
+        visibleCampaigns.length
+        : 0;
+    const visibleAdSpend = visibleAds.reduce((sum, ad) => sum + ad.spend, 0);
+    const visibleAdClicks = visibleAds.reduce((sum, ad) => sum + ad.clicks, 0);
+    const visibleAdImpressions = visibleAds.reduce(
+      (sum, ad) => sum + ad.impressions,
+      0,
+    );
+    const visibleAdCtr = visibleAdImpressions
+      ? (visibleAdClicks / visibleAdImpressions) * 100
+      : 0;
 
-    try {
-      const response = await fetch("/api/integrations/meta", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          adAccountId,
-        }),
-      });
-      const payload = (await response.json()) as MetaIntegrationResponse;
-
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to update ad account.");
+    useEffect(() => {
+      if (
+        submissionFilter === submissionFilterAllValue ||
+        submissionFilter === submissionFilterUnlinkedValue
+      ) {
+        return;
       }
 
-      applyPayload(payload, "Meta ad account updated.");
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Unable to update ad account.",
+      if (!submissionFilterOptions.some((option) => option.id === submissionFilter)) {
+        setSubmissionFilter(submissionFilterAllValue);
+      }
+    }, [submissionFilter, submissionFilterOptions]);
+
+    useEffect(() => {
+      if (campaignCreatorFilter !== "all" && !campaignCreatorOptions.includes(campaignCreatorFilter)) {
+        setCampaignCreatorFilter("all");
+      }
+    }, [campaignCreatorFilter, campaignCreatorOptions]);
+
+    useEffect(() => {
+      if (campaignProductFilter !== "all" && !campaignProductOptions.includes(campaignProductFilter)) {
+        setCampaignProductFilter("all");
+      }
+    }, [campaignProductFilter, campaignProductOptions]);
+
+    // useEffect(() => {
+    //   const visibleIds = visibleCampaigns.map((campaign) => campaign.id);
+
+    //   setExpandedCampaignIds((current) => {
+    //     return current.filter((id) => visibleIds.includes(id));
+    //   });
+    // }, [visibleCampaigns]);
+
+    const visibleCampaignIds = useMemo(
+      () => visibleCampaigns.map((campaign) => campaign.id),
+      [visibleCampaigns]
+    );
+
+    useEffect(() => {
+      setExpandedCampaignIds((current) => {
+        const next = current.filter((id) =>
+          visibleCampaignIds.includes(id)
+        );
+
+        return JSON.stringify(next) === JSON.stringify(current)
+          ? current
+          : next;
+      });
+    }, [visibleCampaignIds]);
+
+    function applyPayload(payload: MetaIntegrationResponse, fallbackMessage?: string) {
+      setConnection(payload.connection);
+      setAdAccounts(payload.adAccounts);
+      setCampaigns(payload.campaigns);
+      setAdSets(payload.adSets);
+      setAds(payload.ads);
+      setMessage(payload.message ?? fallbackMessage ?? null);
+    }
+
+    function handleConnect() {
+      setIsConnecting(true);
+      const returnTo = mode === "ads" ? "/dashboard/ads" : pathname || "/dashboard/integrations";
+      window.location.assign(
+        `/api/integrations/meta/auth?returnTo=${encodeURIComponent(returnTo)}`,
       );
-    } finally {
-      setIsSelecting(false);
     }
-  }
 
-  async function handleSync() {
-    setIsSyncing(true);
-    setMessage(null);
+    async function handleSelectAccount(adAccountId: string) {
+      setIsSelecting(true);
+      setMessage(null);
 
-    try {
-      const response = await fetch("/api/integrations/meta/sync", {
-        method: "POST",
-      });
-      const payload = (await response.json()) as MetaIntegrationResponse;
+      try {
+        const response = await fetch("/api/integrations/meta", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            adAccountId,
+          }),
+        });
+        const payload = (await response.json()) as MetaIntegrationResponse;
 
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to sync Meta campaigns.");
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Unable to update ad account.");
+        }
+
+        applyPayload(payload, "Meta ad account updated.");
+      } catch (error) {
+        setMessage(
+          error instanceof Error ? error.message : "Unable to update ad account.",
+        );
+      } finally {
+        setIsSelecting(false);
       }
-
-      applyPayload(payload, "Meta campaigns synced.");
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Unable to sync Meta campaigns.",
-      );
-    } finally {
-      setIsSyncing(false);
     }
-  }
 
-  async function handleDisconnect() {
-    setIsDisconnecting(true);
-    setMessage(null);
+    async function handleSync() {
+      setIsSyncing(true);
+      setMessage(null);
 
-    try {
-      const response = await fetch("/api/integrations/meta", {
-        method: "DELETE",
-      });
-      const payload = (await response.json()) as MetaIntegrationResponse;
+      try {
+        const response = await fetch("/api/integrations/meta/sync", {
+          method: "POST",
+        });
+        const payload = (await response.json()) as MetaIntegrationResponse;
 
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to disconnect Meta.");
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Unable to sync Meta campaigns.");
+        }
+
+        applyPayload(payload, "Meta campaigns synced.");
+      } catch (error) {
+        setMessage(
+          error instanceof Error ? error.message : "Unable to sync Meta campaigns.",
+        );
+      } finally {
+        setIsSyncing(false);
       }
-
-      applyPayload(payload, "Meta disconnected.");
-      setCampaignForm((current) => ({
-        ...current,
-        name: "",
-        adSetName: "",
-        adName: "",
-        creativeSourceKey: "",
-      }));
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Unable to disconnect Meta.",
-      );
-    } finally {
-      setIsDisconnecting(false);
-      setIsConnecting(false);
     }
-  }
 
-  async function handleCreateCampaign(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIsSubmittingCampaign(true);
-    setMessage(null);
+    async function handleDisconnect() {
+      setIsDisconnecting(true);
+      setMessage(null);
 
-    try {
-      const response = await fetch("/api/meta/campaigns", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...campaignForm,
-          sourceSubmissionId: campaignForm.sourceSubmissionId || null,
-          destinationUrl: campaignForm.destinationUrl || null,
-          trackingUrl: trackingUrlPreview || null,
-          dailyBudget: campaignForm.dailyBudget || null,
-          countries: campaignForm.countries,
-          pageId: campaignForm.pageId || null,
-          adSetName: campaignForm.adSetName || null,
-          adName: campaignForm.adName || null,
-          creativeSourceKey: campaignForm.creativeSourceKey || null,
-          primaryText: campaignForm.primaryText || null,
-          headline: campaignForm.headline || null,
-          description: campaignForm.description || null,
-          callToActionType: campaignForm.callToActionType || null,
-        }),
-      });
-      const payload = (await response.json()) as MetaIntegrationResponse;
+      try {
+        const response = await fetch("/api/integrations/meta", {
+          method: "DELETE",
+        });
+        const payload = (await response.json()) as MetaIntegrationResponse;
 
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to create Meta campaign.");
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Unable to disconnect Meta.");
+        }
+
+        applyPayload(payload, "Meta disconnected.");
+        setCampaignForm((current) => ({
+          ...current,
+          name: "",
+          adSetName: "",
+          adName: "",
+          creativeSourceKey: "",
+        }));
+      } catch (error) {
+        setMessage(
+          error instanceof Error ? error.message : "Unable to disconnect Meta.",
+        );
+      } finally {
+        setIsDisconnecting(false);
+        setIsConnecting(false);
       }
-
-      applyPayload(payload, "Meta campaign created.");
-      setCampaignForm((current) => ({
-        ...current,
-        name: "",
-        sourceSubmissionId: "",
-        utmCampaign: "",
-        utmContent: "",
-        adSetName: "",
-        adName: "",
-        creativeSourceKey: "",
-        primaryText: "",
-        headline: "",
-        description: "",
-      }));
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Unable to create Meta campaign.",
-      );
-    } finally {
-      setIsSubmittingCampaign(false);
     }
-  }
 
-  async function handleMetaStatusUpdate({
-    endpoint,
-    pendingKey,
-    status,
-    successMessage,
-    errorMessage,
-  }: {
-    endpoint: string;
-    pendingKey: string;
-    status: "ACTIVE" | "PAUSED";
-    successMessage: string;
-    errorMessage: string;
-  }) {
-    setPendingResourceKey(pendingKey);
-    setMessage(null);
+    async function handleCreateCampaign(event: FormEvent<HTMLFormElement>) {
+      event.preventDefault();
+      setIsSubmittingCampaign(true);
+      setMessage(null);
 
-    try {
-      const response = await fetch(endpoint, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status }),
-      });
-      const payload = (await response.json()) as MetaIntegrationResponse;
+      try {
+        const response = await fetch("/api/meta/campaigns", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...campaignForm,
+            sourceSubmissionId: campaignForm.sourceSubmissionId || null,
+            destinationUrl: campaignForm.destinationUrl || null,
+            trackingUrl: trackingUrlPreview || null,
+            dailyBudget: campaignForm.dailyBudget || null,
+            countries: campaignForm.countries,
+            pageId: campaignForm.pageId || null,
+            adSetName: campaignForm.adSetName || null,
+            adName: campaignForm.adName || null,
+            creativeSourceKey: campaignForm.creativeSourceKey || null,
+            primaryText: campaignForm.primaryText || null,
+            headline: campaignForm.headline || null,
+            description: campaignForm.description || null,
+            callToActionType: campaignForm.callToActionType || null,
+          }),
+        });
+        const payload = (await response.json()) as MetaIntegrationResponse;
 
-      if (!response.ok) {
-        throw new Error(payload.error ?? errorMessage);
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Unable to create Meta campaign.");
+        }
+
+        applyPayload(payload, "Meta campaign created.");
+        setCampaignForm((current) => ({
+          ...current,
+          name: "",
+          sourceSubmissionId: "",
+          utmCampaign: "",
+          utmContent: "",
+          adSetName: "",
+          adName: "",
+          creativeSourceKey: "",
+          primaryText: "",
+          headline: "",
+          description: "",
+        }));
+      } catch (error) {
+        setMessage(
+          error instanceof Error ? error.message : "Unable to create Meta campaign.",
+        );
+      } finally {
+        setIsSubmittingCampaign(false);
       }
-
-      applyPayload(payload, successMessage);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : errorMessage);
-    } finally {
-      setPendingResourceKey(null);
     }
-  }
 
-  async function handleCampaignStatus(
-    campaignId: string,
-    status: "ACTIVE" | "PAUSED",
-  ) {
-    await handleMetaStatusUpdate({
-      endpoint: `/api/meta/campaigns/${campaignId}`,
-      pendingKey: `campaign:${campaignId}`,
+    async function handleMetaStatusUpdate({
+      endpoint,
+      pendingKey,
       status,
-      successMessage: `Campaign moved to ${status.toLowerCase()}.`,
-      errorMessage: "Unable to update campaign status.",
-    });
-  }
+      successMessage,
+      errorMessage,
+    }: {
+      endpoint: string;
+      pendingKey: string;
+      status: "ACTIVE" | "PAUSED";
+      successMessage: string;
+      errorMessage: string;
+    }) {
+      setPendingResourceKey(pendingKey);
+      setMessage(null);
 
-  async function handleAdSetStatus(adSetId: string, status: "ACTIVE" | "PAUSED") {
-    await handleMetaStatusUpdate({
-      endpoint: `/api/meta/ad-sets/${adSetId}`,
-      pendingKey: `ad-set:${adSetId}`,
-      status,
-      successMessage: `Ad set moved to ${status.toLowerCase()}.`,
-      errorMessage: "Unable to update ad set status.",
-    });
-  }
+      try {
+        const response = await fetch(endpoint, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status }),
+        });
+        const payload = (await response.json()) as MetaIntegrationResponse;
 
-  async function handleAdStatus(adId: string, status: "ACTIVE" | "PAUSED") {
-    await handleMetaStatusUpdate({
-      endpoint: `/api/meta/ads/${adId}`,
-      pendingKey: `ad:${adId}`,
-      status,
-      successMessage: `Ad moved to ${status.toLowerCase()}.`,
-      errorMessage: "Unable to update ad status.",
-    });
-  }
+        if (!response.ok) {
+          throw new Error(payload.error ?? errorMessage);
+        }
 
-  const connectionSection = (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-            Meta Ads Connection
-          </h2>
-          <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-500">
-            Connect a Meta user with ads permissions, choose a default ad
-            account, sync campaign performance, and manage campaign status from
-            CIRCL.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <MotionScale
-            type="button"
-            onClick={handleConnect}
-            disabled={isConnecting}
-            className="rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.22)] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {connection ? "Reconnect Meta" : "Connect Meta Account"}
-          </MotionScale>
-          {connection ? (
-            <>
-              <MotionScale
-                type="button"
-                onClick={handleSync}
-                disabled={isSyncing}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSyncing ? "Syncing..." : "Sync campaigns"}
-              </MotionScale>
-              <MotionScale
-                type="button"
-                onClick={handleDisconnect}
-                disabled={isDisconnecting}
-                className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isDisconnecting ? "Disconnecting..." : "Disconnect"}
-              </MotionScale>
-            </>
-          ) : null}
-        </div>
-      </div>
+        applyPayload(payload, successMessage);
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : errorMessage);
+      } finally {
+        setPendingResourceKey(null);
+      }
+    }
 
-      <div className="mt-8 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
-          {connection ? (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <span
-                  className={cn(
-                    "rounded-full px-3 py-1 text-xs font-semibold",
-                    getMetaStatusClasses(connection.status),
-                  )}
-                >
-                  {connection.status}
-                </span>
-                {connection.token_expires_at ? (
-                  <span className="text-sm text-slate-500">
-                    Token expires {formatDate(connection.token_expires_at)}
-                  </span>
-                ) : null}
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div>
-                  <p className="text-sm text-slate-500">Meta user</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-950">
-                    {connection.meta_user_name ?? connection.meta_user_id}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Business</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-950">
-                    {connection.business_name ?? "Not linked"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Selected ad account</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-950">
-                    {connection.ad_account_name ?? "Choose an account"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Last synced</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-950">
-                    {connection.last_synced_at
-                      ? formatDate(connection.last_synced_at)
-                      : "Not synced yet"}
-                  </p>
-                </div>
-              </div>
-              {connection.last_error ? (
-                <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                  {connection.last_error}
-                </p>
-              ) : null}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-lg font-semibold text-slate-950">
-                No Meta account connected yet
-              </p>
-              <p className="text-sm leading-7 text-slate-500">
-                Connect Meta to pull campaign metrics, choose an ad account, and
-                create campaigns from the CIRCL brand workspace.
-              </p>
-            </div>
-          )}
-        </div>
+    async function handleCampaignStatus(
+      campaignId: string,
+      status: "ACTIVE" | "PAUSED",
+    ) {
+      await handleMetaStatusUpdate({
+        endpoint: `/api/meta/campaigns/${campaignId}`,
+        pendingKey: `campaign:${campaignId}`,
+        status,
+        successMessage: `Campaign moved to ${status.toLowerCase()}.`,
+        errorMessage: "Unable to update campaign status.",
+      });
+    }
 
-        <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-lg font-semibold text-slate-950">Ad accounts</p>
-              <p className="mt-2 text-sm text-slate-500">
-                Choose which Meta ad account CIRCL should use by default.
-              </p>
-            </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-              {adAccounts.length} accounts
-            </span>
+    async function handleAdSetStatus(adSetId: string, status: "ACTIVE" | "PAUSED") {
+      await handleMetaStatusUpdate({
+        endpoint: `/api/meta/ad-sets/${adSetId}`,
+        pendingKey: `ad-set:${adSetId}`,
+        status,
+        successMessage: `Ad set moved to ${status.toLowerCase()}.`,
+        errorMessage: "Unable to update ad set status.",
+      });
+    }
+
+    async function handleAdStatus(adId: string, status: "ACTIVE" | "PAUSED") {
+      await handleMetaStatusUpdate({
+        endpoint: `/api/meta/ads/${adId}`,
+        pendingKey: `ad:${adId}`,
+        status,
+        successMessage: `Ad moved to ${status.toLowerCase()}.`,
+        errorMessage: "Unable to update ad status.",
+      });
+    }
+
+    const connectionSection = (
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 className="text-[1.2rem] font-semibold tracking-tight text-slate-950">
+              Meta Ads Connection
+            </h2>
+            <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-500">
+              Connect a Meta user with ads permissions, choose a default ad
+              account, sync campaign performance, and manage campaign status from
+              CIRCL.
+            </p>
           </div>
-          <div className="mt-6 space-y-3">
-            {adAccounts.length ? (
-              adAccounts.map((account) => (
-                <button
-                  key={account.id}
+          <div className="flex flex-wrap gap-3">
+            <MotionScale
+              type="button"
+              onClick={handleConnect}
+              disabled={isConnecting}
+              className="rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.22)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {connection ? "Reconnect Meta" : "Connect Meta Account"}
+            </MotionScale>
+            {connection ? (
+              <>
+                <MotionScale
                   type="button"
-                  disabled={isSelecting}
-                  onClick={() => void handleSelectAccount(account.meta_account_id)}
-                  className={cn(
-                    "flex w-full items-center justify-between rounded-[1.35rem] border px-4 py-4 text-left transition",
-                    account.is_selected
-                      ? "border-accent/20 bg-blue-50"
-                      : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50",
-                  )}
+                  onClick={handleSync}
+                  disabled={isSyncing}
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <div>
-                    <p className="font-semibold text-slate-950">
-                      {account.account_name}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {account.meta_account_id} • {account.currency ?? "Currency n/a"}
-                    </p>
-                  </div>
+                  {isSyncing ? "Syncing..." : "Sync campaigns"}
+                </MotionScale>
+                <MotionScale
+                  type="button"
+                  onClick={handleDisconnect}
+                  disabled={isDisconnecting}
+                  className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isDisconnecting ? "Disconnecting..." : "Disconnect"}
+                </MotionScale>
+              </>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="mt-8 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+            {connection ? (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
                   <span
                     className={cn(
                       "rounded-full px-3 py-1 text-xs font-semibold",
-                      account.is_selected
-                        ? "bg-white text-accent"
-                        : "bg-slate-100 text-slate-600",
+                      getMetaStatusClasses(connection.status),
                     )}
                   >
-                    {account.is_selected ? "Selected" : "Use account"}
+                    {connection.status}
                   </span>
-                </button>
-              ))
+                  {connection.token_expires_at ? (
+                    <span className="text-sm text-slate-500">
+                      Token expires {formatDate(connection.token_expires_at)}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <p className="text-sm text-slate-500">Meta user</p>
+                    <p className="mt-2 text-lg font-semibold text-slate-950">
+                      {connection.meta_user_name ?? connection.meta_user_id}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Business</p>
+                    <p className="mt-2 text-lg font-semibold text-slate-950">
+                      {connection.business_name ?? "Not linked"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Selected ad account</p>
+                    <p className="mt-2 text-lg font-semibold text-slate-950">
+                      {connection.ad_account_name ?? "Choose an account"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Last synced</p>
+                    <p className="mt-2 text-lg font-semibold text-slate-950">
+                      {connection.last_synced_at
+                        ? formatDate(connection.last_synced_at)
+                        : "Not synced yet"}
+                    </p>
+                  </div>
+                </div>
+                {connection.last_error ? (
+                  <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    {connection.last_error}
+                  </p>
+                ) : null}
+              </div>
             ) : (
-              <div className="rounded-[1.35rem] border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500">
-                {connection
-                  ? "No ad accounts were returned. Reconnect with a Meta user that has ads access."
-                  : "Connect Meta first to load ad accounts."}
+              <div className="space-y-3">
+                <p className="text-lg font-semibold text-slate-950">
+                  No Meta account connected yet
+                </p>
+                <p className="text-sm leading-7 text-slate-500">
+                  Connect Meta to pull campaign metrics, choose an ad account, and
+                  create campaigns from the CIRCL brand workspace.
+                </p>
               </div>
             )}
           </div>
-        </div>
-      </div>
 
-      {message ? <p className="mt-5 text-sm text-slate-500">{message}</p> : null}
-    </section>
-  );
-
-  if (mode === "integrations") {
-    return (
-      <div className="space-y-6">
-        {connectionSection}
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h3 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-                Recent Meta Campaigns
-              </h3>
-              <p className="mt-2 text-sm text-slate-500">
-                Preview the latest campaigns synced from your connected Meta ad accounts.
-              </p>
+          <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-lg font-semibold text-slate-950">Ad accounts</p>
+                <p className="mt-2 text-sm text-slate-500">
+                  Choose which Meta ad account CIRCL should use by default.
+                </p>
+              </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                {adAccounts.length} accounts
+              </span>
             </div>
-            <a
-              href="/dashboard/ads"
-              className="text-sm font-medium text-accent transition hover:text-blue-500"
-            >
-              Open Ads
-            </a>
-          </div>
-
-          {isLoading ? (
-            <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-40 animate-pulse rounded-[1.5rem] border border-slate-200 bg-slate-50"
-                />
-              ))}
-            </div>
-          ) : recentCampaigns.length ? (
-            <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {recentCampaigns.slice(0, 3).map((campaign) => (
-                <div
-                  key={campaign.id}
-                  className="rounded-[1.5rem] border border-slate-200 bg-white p-5"
-                >
-                  <div className="flex items-start justify-between gap-3">
+            <div className="mt-6 space-y-3">
+              {adAccounts.length ? (
+                adAccounts.map((account) => (
+                  <button
+                    key={account.id}
+                    type="button"
+                    disabled={isSelecting}
+                    onClick={() => void handleSelectAccount(account.meta_account_id)}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-[1.35rem] border px-4 py-4 text-left transition",
+                      account.is_selected
+                        ? "border-accent/20 bg-blue-50"
+                        : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50",
+                    )}
+                  >
                     <div>
-                      <p className="font-semibold text-slate-950">{campaign.name}</p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {formatMetaStatus(campaign.objective)}
+                      <p className="font-semibold text-slate-950">
+                        {account.account_name}
                       </p>
                       <p className="mt-1 text-sm text-slate-500">
-                        {adAccountNameById.get(campaign.ad_account_id) ?? campaign.ad_account_id}
+                        {account.meta_account_id} • {account.currency ?? "Currency n/a"}
                       </p>
                     </div>
                     <span
                       className={cn(
                         "rounded-full px-3 py-1 text-xs font-semibold",
-                        getMetaStatusClasses(
-                          campaign.effective_status ?? campaign.status,
-                        ),
+                        account.is_selected
+                          ? "bg-white text-accent"
+                          : "bg-slate-100 text-slate-600",
                       )}
                     >
-                      {formatMetaStatus(campaign.effective_status ?? campaign.status)}
+                      {account.is_selected ? "Selected" : "Use account"}
                     </span>
-                  </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl bg-slate-50 p-3">
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                        Spend
-                      </p>
-                      <p className="mt-2 font-semibold text-slate-950">
-                        {formatCompactCurrency(campaign.spend)}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl bg-slate-50 p-3">
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                        CTR
-                      </p>
-                      <p className="mt-2 font-semibold text-slate-950">
-                        {formatPercent(campaign.ctr)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-8 rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
-              {connection
-                ? "No Meta campaigns have been synced yet. Sync your selected account or create a campaign from the Ads section."
-                : "Connect Meta first to start pulling campaign performance into CIRCL."}
-            </div>
-          )}
-        </section>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-              Submission Reporting
-            </h2>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-500">
-              Filter synced Meta reporting by approved creator content to see which
-              submissions are driving spend, clicks, and active delivery.
-            </p>
-          </div>
-          <div className="flex w-full flex-col gap-3 lg:max-w-md">
-            <label
-              htmlFor="meta-submission-filter"
-              className="text-sm font-medium text-slate-600"
-            >
-              Reporting scope
-            </label>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <select
-                id="meta-submission-filter"
-                value={submissionFilter}
-                onChange={(event) => setSubmissionFilter(event.target.value)}
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-              >
-                <option value={submissionFilterAllValue}>
-                  All creator-linked reporting
-                </option>
-                <option value={submissionFilterUnlinkedValue}>
-                  Unlinked campaigns and ads
-                </option>
-                {submissionFilterOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              {submissionFilter !== submissionFilterAllValue ? (
-                <MotionScale
-                  type="button"
-                  onClick={() => setSubmissionFilter(submissionFilterAllValue)}
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                >
-                  Clear
-                </MotionScale>
-              ) : null}
-            </div>
-          </div>
-        </div>
-        <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
-            Current scope
-          </p>
-          <p className="mt-2 text-lg font-semibold text-slate-950">
-            {reportingScopeLabel}
-          </p>
-          <p className="mt-2 text-sm text-slate-500">{reportingScopeHint}</p>
-        </div>
-      </section>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          {
-            label: "Connected accounts",
-            value: String(adAccounts.length),
-            hint: selectedAdAccount
-              ? `Default: ${selectedAdAccount.account_name}`
-              : "Select a Meta ad account",
-          },
-          {
-            label: "Synced campaigns",
-            value: formatCompactNumber(filteredCampaigns.length),
-            hint: `${reportingScopeLabel} • ${
-              connection?.last_synced_at
-                ? `last sync ${formatDate(connection.last_synced_at)}`
-                : "no sync completed yet"
-            }`,
-          },
-          {
-            label: "Launched ads",
-            value: formatCompactNumber(filteredAds.length),
-            hint: `${filteredAdSets.length} ad sets • ${formatCompactCurrency(totalAdSpend)} spend`,
-          },
-          {
-            label: "Spend synced",
-            value: formatCompactCurrency(scopeSpend),
-            hint:
-              submissionFilter === submissionFilterAllValue
-                ? `${formatPercent(campaignCtr)} campaign CTR • ${formatPercent(adCtr)} ad CTR`
-                : `${formatPercent(scopeCtr)} ${scopeLabel} CTR • ${formatCompactNumber(executionClicks)} clicks`,
-          },
-        ].map((metric) => (
-          <div
-            key={metric.label}
-            className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.05)]"
-          >
-            <p className="text-sm text-slate-500">{metric.label}</p>
-            <p className="mt-3 text-3xl font-semibold text-slate-950">
-              {metric.value}
-            </p>
-            <p className="mt-2 text-sm text-slate-500">{metric.hint}</p>
-          </div>
-        ))}
-      </div>
-
-      {connectionSection}
-
-      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
-          <div>
-            <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-              Launch Meta Campaign
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-slate-500">
-              Create a Meta campaign directly from CIRCL, link it to approved creator
-              content, and store the tracked landing URL you will use in ads.
-            </p>
-          </div>
-
-          <form className="mt-8 space-y-5" onSubmit={handleCreateCampaign}>
-            <div>
-              <label
-                htmlFor="meta-campaign-name"
-                className="mb-2 block text-sm font-medium text-slate-600"
-              >
-                Campaign name
-              </label>
-              <input
-                id="meta-campaign-name"
-                required
-                value={campaignForm.name}
-                onChange={(event) =>
-                  setCampaignForm((current) => ({
-                    ...current,
-                    name: event.target.value,
-                  }))
-                }
-                placeholder="CIRCL Creator Traffic Test"
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-              />
-            </div>
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="meta-campaign-objective"
-                  className="mb-2 block text-sm font-medium text-slate-600"
-                >
-                  Objective
-                </label>
-                <select
-                  id="meta-campaign-objective"
-                  value={campaignForm.objective}
-                  onChange={(event) =>
-                    setCampaignForm((current) => ({
-                      ...current,
-                      objective: event.target.value,
-                    }))
-                  }
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                >
-                  {objectiveOptions.map((objective) => (
-                    <option key={objective.value} value={objective.value}>
-                      {objective.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label
-                  htmlFor="meta-campaign-status"
-                  className="mb-2 block text-sm font-medium text-slate-600"
-                >
-                  Start status
-                </label>
-                <select
-                  id="meta-campaign-status"
-                  value={campaignForm.status}
-                  onChange={(event) =>
-                    setCampaignForm((current) => ({
-                      ...current,
-                      status: event.target.value,
-                    }))
-                  }
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                >
-                  <option value="PAUSED">Paused</option>
-                  <option value="ACTIVE">Active</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="meta-source-submission"
-                  className="mb-2 block text-sm font-medium text-slate-600"
-                >
-                  Approved creator submission
-                </label>
-                <select
-                  id="meta-source-submission"
-                  value={campaignForm.sourceSubmissionId}
-                  onChange={(event) => {
-                    const nextSubmissionId = event.target.value;
-                    const nextSubmission =
-                      approvedSubmissionById.get(nextSubmissionId) ?? null;
-                    const nextCreativeSource =
-                      nextSubmission?.assets.find(
-                        (asset) => asset.kind === "image" || asset.kind === "video",
-                      )?.id ?? null;
-
-                    setCampaignForm((current) => ({
-                      ...current,
-                      sourceSubmissionId: nextSubmissionId,
-                      creativeSourceKey: nextCreativeSource
-                        ? `asset:${nextCreativeSource}`
-                        : nextSubmission?.content_links[0]
-                          ? "link:0"
-                          : current.creativeSourceKey,
-                      name:
-                        current.name ||
-                        (nextSubmission
-                          ? `${nextSubmission.creator_name} ${nextSubmission.campaign_title}`
-                          : current.name),
-                      adSetName:
-                        current.adSetName ||
-                        (nextSubmission
-                          ? `${nextSubmission.creator_name} ${nextSubmission.campaign_title} Ad Set`
-                          : current.adSetName),
-                      adName:
-                        current.adName ||
-                        (nextSubmission
-                          ? `${nextSubmission.creator_name} ${nextSubmission.campaign_title} Ad`
-                          : current.adName),
-                      utmCampaign:
-                        current.utmCampaign ||
-                        `${analyticsSettings?.utm_campaign_prefix ?? "creator"}-${
-                          slugifyTrackingValue(
-                            nextSubmission?.campaign_title ?? nextSubmission?.creator_name,
-                          ) || "launch"
-                        }`,
-                      utmContent:
-                        current.utmContent ||
-                        slugifyTrackingValue(nextSubmission?.creator_name) ||
-                        "",
-                      headline:
-                        current.headline ||
-                        nextSubmission?.campaign_title ||
-                        current.headline,
-                      primaryText:
-                        current.primaryText ||
-                        nextSubmission?.notes ||
-                        `Creator-led ad for ${nextSubmission?.campaign_title ?? "this campaign"}`,
-                    }));
-                  }}
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                >
-                  <option value="">Select approved content</option>
-                  {approvedSubmissions.map((submission) => (
-                    <option key={submission.id} value={submission.id}>
-                      {submission.creator_name} • {submission.campaign_title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label
-                  htmlFor="meta-destination-url"
-                  className="mb-2 block text-sm font-medium text-slate-600"
-                >
-                  Destination URL
-                </label>
-                <input
-                  id="meta-destination-url"
-                  value={campaignForm.destinationUrl}
-                  onChange={(event) =>
-                    setCampaignForm((current) => ({
-                      ...current,
-                      destinationUrl: event.target.value,
-                    }))
-                  }
-                  placeholder="https://brand-store.com/products/..."
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-600">
-                  UTM source
-                </label>
-                <input
-                  value={campaignForm.utmSource}
-                  onChange={(event) =>
-                    setCampaignForm((current) => ({
-                      ...current,
-                      utmSource: event.target.value,
-                    }))
-                  }
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-600">
-                  UTM medium
-                </label>
-                <input
-                  value={campaignForm.utmMedium}
-                  onChange={(event) =>
-                    setCampaignForm((current) => ({
-                      ...current,
-                      utmMedium: event.target.value,
-                    }))
-                  }
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-600">
-                  UTM campaign
-                </label>
-                <input
-                  value={campaignForm.utmCampaign}
-                  onChange={(event) =>
-                    setCampaignForm((current) => ({
-                      ...current,
-                      utmCampaign: event.target.value,
-                    }))
-                  }
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-600">
-                  UTM content
-                </label>
-                <input
-                  value={campaignForm.utmContent}
-                  onChange={(event) =>
-                    setCampaignForm((current) => ({
-                      ...current,
-                      utmContent: event.target.value,
-                    }))
-                  }
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-600">
-                  UTM term
-                </label>
-                <input
-                  value={campaignForm.utmTerm}
-                  onChange={(event) =>
-                    setCampaignForm((current) => ({
-                      ...current,
-                      utmTerm: event.target.value,
-                    }))
-                  }
-                  placeholder="Optional"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                />
-              </div>
-            </div>
-
-            <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-semibold text-slate-950">
-                  Ad Execution
-                </p>
-                <p className="text-sm text-slate-500">
-                  Add these fields to launch the first Traffic ad set and ad from the selected creator content. Leave them blank if you only want to create the campaign shell.
-                </p>
-              </div>
-
-              <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-600">
-                    Meta Page ID
-                  </label>
-                  <input
-                    value={campaignForm.pageId}
-                    onChange={(event) =>
-                      setCampaignForm((current) => ({
-                        ...current,
-                        pageId: event.target.value,
-                      }))
-                    }
-                    placeholder="123456789012345"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-600">
-                    Daily budget
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={campaignForm.dailyBudget}
-                    onChange={(event) =>
-                      setCampaignForm((current) => ({
-                        ...current,
-                        dailyBudget: event.target.value,
-                      }))
-                    }
-                    placeholder="25"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-600">
-                    Countries
-                  </label>
-                  <input
-                    value={campaignForm.countries}
-                    onChange={(event) =>
-                      setCampaignForm((current) => ({
-                        ...current,
-                        countries: event.target.value,
-                      }))
-                    }
-                    placeholder="US, CA"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-600">
-                    Ad set name
-                  </label>
-                  <input
-                    value={campaignForm.adSetName}
-                    onChange={(event) =>
-                      setCampaignForm((current) => ({
-                        ...current,
-                        adSetName: event.target.value,
-                      }))
-                    }
-                    placeholder="Creator Traffic Ad Set"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-600">
-                    Ad name
-                  </label>
-                  <input
-                    value={campaignForm.adName}
-                    onChange={(event) =>
-                      setCampaignForm((current) => ({
-                        ...current,
-                        adName: event.target.value,
-                      }))
-                    }
-                    placeholder="Creator Traffic Ad"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-600">
-                    Creative source
-                  </label>
-                  <select
-                    value={campaignForm.creativeSourceKey}
-                    onChange={(event) =>
-                      setCampaignForm((current) => ({
-                        ...current,
-                        creativeSourceKey: event.target.value,
-                      }))
-                    }
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                  >
-                    <option value="">Select asset or content link</option>
-                    {creativeSourceOptions.map((option) => (
-                      <option key={option.key} value={option.key}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  {creativeSourceOptions.length ? (
-                    <p className="mt-2 text-xs text-slate-500">
-                      {creativeSourceOptions.find(
-                        (option) => option.key === campaignForm.creativeSourceKey,
-                      )?.hint ?? "Choose an image, video, or direct content link."}
-                    </p>
-                  ) : (
-                    <p className="mt-2 text-xs text-slate-500">
-                      Select an approved submission first to load assets and content links.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-5 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-600">
-                    Primary text
-                  </label>
-                  <textarea
-                    value={campaignForm.primaryText}
-                    onChange={(event) =>
-                      setCampaignForm((current) => ({
-                        ...current,
-                        primaryText: event.target.value,
-                      }))
-                    }
-                    rows={4}
-                    placeholder="Write the main ad copy."
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                  />
-                </div>
-                <div className="grid gap-5">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-600">
-                      Headline
-                    </label>
-                    <input
-                      value={campaignForm.headline}
-                      onChange={(event) =>
-                        setCampaignForm((current) => ({
-                          ...current,
-                          headline: event.target.value,
-                        }))
-                      }
-                      placeholder="Scroll-stopping headline"
-                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-600">
-                      Description
-                    </label>
-                    <input
-                      value={campaignForm.description}
-                      onChange={(event) =>
-                        setCampaignForm((current) => ({
-                          ...current,
-                          description: event.target.value,
-                        }))
-                      }
-                      placeholder="Optional supporting line"
-                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-600">
-                      Call to action
-                    </label>
-                    <select
-                      value={campaignForm.callToActionType}
-                      onChange={(event) =>
-                        setCampaignForm((current) => ({
-                          ...current,
-                          callToActionType: event.target.value,
-                        }))
-                      }
-                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-                    >
-                      {callToActionOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-              {selectedAdAccount ? (
-                <div className="space-y-2">
-                  <p>
-                    New campaigns will be created in{" "}
-                    <span className="font-semibold text-slate-900">
-                      {selectedAdAccount.account_name}
-                    </span>
-                    .
-                  </p>
-                  <p className="break-all text-xs text-slate-600">
-                    Tracking URL:{" "}
-                    <span className="font-medium text-slate-900">
-                      {trackingUrlPreview || "Add a destination URL to generate it."}
-                    </span>
-                  </p>
-                  {selectedSubmission ? (
-                    <p className="text-xs text-slate-600">
-                      Linked submission:{" "}
-                    <span className="font-medium text-slate-900">
-                      {selectedSubmission.creator_name} • {selectedSubmission.campaign_title}
-                    </span>
-                  </p>
-                ) : null}
-                  {executionIntent ? (
-                    <>
-                      <p className="text-xs text-slate-600">
-                        Execution:{" "}
-                        <span className="font-medium text-slate-900">
-                          Campaign + Traffic ad set + first ad
-                        </span>
-                      </p>
-                      <p className="text-xs text-slate-600">
-                        Creative source:{" "}
-                        <span className="font-medium text-slate-900">
-                          {selectedCreativeSourceOption?.label ?? "Not selected"}
-                        </span>
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-xs text-slate-600">
-                      Leave the execution fields blank if you only want to create the campaign shell.
-                    </p>
-                  )}
-                </div>
+                  </button>
+                ))
               ) : (
-                <p>
-                  Select a Meta ad account above before creating a campaign.
-                </p>
+                <div className="rounded-[1.35rem] border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500">
+                  {connection
+                    ? "No ad accounts were returned. Reconnect with a Meta user that has ads access."
+                    : "Connect Meta first to load ad accounts."}
+                </div>
               )}
             </div>
-
-            <MotionScale
-              type="submit"
-              disabled={!selectedAdAccount || isSubmittingCampaign}
-              className="rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.22)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSubmittingCampaign
-                ? "Creating..."
-                : executionIntent
-                  ? "Create Campaign + Ad"
-                  : "Create Meta Campaign"}
-            </MotionScale>
-          </form>
-        </section>
-
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-                Synced Meta Campaigns
-              </h2>
-              <p className="mt-2 text-sm text-slate-500">
-                Monitor campaign delivery, spend, CTR, and update campaign status across your connected Meta ad accounts.
-              </p>
-            </div>
-            <MotionScale
-              type="button"
-              onClick={handleSync}
-              disabled={isSyncing}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSyncing ? "Syncing..." : "Refresh Meta"}
-            </MotionScale>
           </div>
+        </div>
 
-          {isLoading ? (
-            <div className="mt-8 space-y-4">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-36 animate-pulse rounded-[1.5rem] border border-slate-200 bg-slate-50"
-                />
-              ))}
+        {message ? <p className="mt-5 text-sm text-slate-500">{message}</p> : null}
+      </section>
+    );
+
+    if (mode === "integrations") {
+      return (
+        <div className="space-y-6">
+          {connectionSection}
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-[1.2rem] font-semibold tracking-tight text-slate-950">
+                  Recent Meta Campaigns
+                </h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  Preview the latest campaigns synced from your connected Meta ad accounts.
+                </p>
+              </div>
+              <a
+                href="/dashboard/ads"
+                className="text-sm font-medium text-accent transition hover:text-blue-500"
+              >
+                Open Ads
+              </a>
             </div>
-          ) : filteredCampaigns.length ? (
-            <div className="mt-8 space-y-4">
-              {filteredCampaigns.map((campaign) => {
-                const statusValue = campaign.effective_status ?? campaign.status;
-                const nextStatus =
-                  statusValue?.toLowerCase() === "active" ? "PAUSED" : "ACTIVE";
-                const linkedSubmission =
-                  campaign.source_submission_id
-                    ? approvedSubmissionById.get(campaign.source_submission_id) ?? null
-                    : null;
-                const linkedAdSets = (adSetsByCampaignId.get(campaign.id) ?? []).filter(
-                  (adSet) =>
-                    matchesSubmissionFilter(adSet.source_submission_id, submissionFilter),
-                );
-                const linkedAds = (adsByCampaignId.get(campaign.id) ?? []).filter((ad) =>
-                  matchesSubmissionFilter(ad.source_submission_id, submissionFilter),
-                );
-                const latestAd = linkedAds[0] ?? null;
-                const campaignPendingKey = `campaign:${campaign.meta_campaign_id}`;
 
-                return (
+            {isLoading ? (
+              <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-40 animate-pulse rounded-[1.5rem] border border-slate-200 bg-slate-50"
+                  />
+                ))}
+              </div>
+            ) : recentCampaigns.length ? (
+              <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {recentCampaigns.slice(0, 3).map((campaign) => (
                   <div
                     key={campaign.id}
-                    className="rounded-[1.5rem] border border-slate-200 p-5"
+                    className="rounded-[1.5rem] border border-slate-200 bg-white p-5"
                   >
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="flex flex-wrap items-center gap-3">
-                          <h3 className="text-xl font-semibold text-slate-950">
-                            {campaign.name}
-                          </h3>
-                          <span
-                            className={cn(
-                              "rounded-full px-3 py-1 text-xs font-semibold",
-                              getMetaStatusClasses(statusValue),
-                            )}
-                          >
-                            {formatMetaStatus(statusValue)}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-sm text-slate-500">
-                          {formatMetaStatus(campaign.objective)} • Synced{" "}
-                          {formatDate(campaign.synced_at)}
+                        <p className="font-semibold text-slate-950">{campaign.name}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {formatMetaStatus(campaign.objective)}
                         </p>
                         <p className="mt-1 text-sm text-slate-500">
                           {adAccountNameById.get(campaign.ad_account_id) ?? campaign.ad_account_id}
                         </p>
-                        {linkedSubmission ? (
-                          <p className="mt-1 text-sm text-slate-500">
-                            Creator content: {linkedSubmission.creator_name} •{" "}
-                            {linkedSubmission.campaign_title}
-                          </p>
-                        ) : campaign.source_submission_id ? (
-                          <p className="mt-1 text-sm text-slate-500">
-                            Linked to approved creator content
-                          </p>
-                        ) : null}
-                        {linkedAds.length ? (
-                          <p className="mt-1 text-sm text-slate-500">
-                            {linkedAds.length} launched ad{linkedAds.length === 1 ? "" : "s"} across{" "}
-                            {linkedAdSets.length} ad set{linkedAdSets.length === 1 ? "" : "s"}
-                          </p>
-                        ) : null}
                       </div>
-                      <MotionScale
-                        type="button"
-                        onClick={() =>
-                          void handleCampaignStatus(
-                            campaign.meta_campaign_id,
-                            nextStatus,
-                          )
-                        }
-                        disabled={pendingResourceKey === campaignPendingKey}
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      <span
+                        className={cn(
+                          "rounded-full px-3 py-1 text-xs font-semibold",
+                          getMetaStatusClasses(
+                            campaign.effective_status ?? campaign.status,
+                          ),
+                        )}
                       >
-                        {pendingResourceKey === campaignPendingKey
-                          ? "Updating..."
-                          : nextStatus === "ACTIVE"
-                            ? "Activate"
-                            : "Pause"}
-                      </MotionScale>
+                        {formatMetaStatus(campaign.effective_status ?? campaign.status)}
+                      </span>
                     </div>
-
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                      <div className="rounded-2xl bg-slate-50 p-4">
-                        <p className="text-sm text-slate-500">Spend</p>
-                        <p className="mt-2 text-xl font-semibold text-slate-950">
-                          {formatCurrency(campaign.spend)}
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl bg-slate-50 p-3">
+                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                          Spend
+                        </p>
+                        <p className="mt-2 font-semibold text-slate-950">
+                          {formatCompactCurrency(campaign.spend)}
                         </p>
                       </div>
-                      <div className="rounded-2xl bg-slate-50 p-4">
-                        <p className="text-sm text-slate-500">Impressions</p>
-                        <p className="mt-2 text-xl font-semibold text-slate-950">
-                          {formatCompactNumber(campaign.impressions)}
+                      <div className="rounded-2xl bg-slate-50 p-3">
+                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                          CTR
                         </p>
-                      </div>
-                      <div className="rounded-2xl bg-slate-50 p-4">
-                        <p className="text-sm text-slate-500">Clicks</p>
-                        <p className="mt-2 text-xl font-semibold text-slate-950">
-                          {formatCompactNumber(campaign.clicks)}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl bg-slate-50 p-4">
-                        <p className="text-sm text-slate-500">CTR</p>
-                        <p className="mt-2 text-xl font-semibold text-slate-950">
+                        <p className="mt-2 font-semibold text-slate-950">
                           {formatPercent(campaign.ctr)}
                         </p>
                       </div>
                     </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-8 rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
+                {connection
+                  ? "No Meta campaigns have been synced yet. Sync your selected account or create a campaign from the Ads section."
+                  : "Connect Meta first to start pulling campaign performance into CIRCL."}
+              </div>
+            )}
+          </section>
+        </div>
+      );
+    }
 
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                          Daily budget
-                        </p>
-                        <p className="mt-2 text-base font-semibold text-slate-950">
-                          {campaign.daily_budget !== null
-                            ? formatCurrency(campaign.daily_budget / 100)
-                            : "Not set"}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                          Lifetime budget
-                        </p>
-                        <p className="mt-2 text-base font-semibold text-slate-950">
-                          {campaign.lifetime_budget !== null
-                            ? formatCurrency(campaign.lifetime_budget / 100)
-                            : "Not set"}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500 sm:col-span-2">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                          Tracking URL
-                        </p>
-                        <p className="mt-2 break-all text-base font-semibold text-slate-950">
-                          {campaign.tracking_url ?? campaign.destination_url ?? "Not configured"}
-                        </p>
-                      </div>
-                      {latestAd ? (
-                        <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500 sm:col-span-2">
-                          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                            Latest launched ad
-                          </p>
-                          <p className="mt-2 text-base font-semibold text-slate-950">
-                            {latestAd.name}
-                          </p>
-                          <p className="mt-1 text-sm text-slate-500">
-                            {formatMetaStatus(latestAd.status ?? latestAd.effective_status)} •{" "}
-                            {latestAd.source_asset_kind ?? "asset unknown"} • CTA{" "}
-                            {latestAd.call_to_action_type ?? "n/a"}
-                          </p>
-                          {latestAd.primary_text ? (
-                            <p className="mt-2 text-sm leading-6 text-slate-600">
-                              {latestAd.primary_text}
-                            </p>
-                          ) : null}
-                          <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                            <div className="rounded-2xl bg-white p-3">
-                              <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                                Spend
-                              </p>
-                              <p className="mt-2 font-semibold text-slate-950">
-                                {formatCurrency(latestAd.spend)}
-                              </p>
-                            </div>
-                            <div className="rounded-2xl bg-white p-3">
-                              <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                                Clicks
-                              </p>
-                              <p className="mt-2 font-semibold text-slate-950">
-                                {formatCompactNumber(latestAd.clicks)}
-                              </p>
-                            </div>
-                            <div className="rounded-2xl bg-white p-3">
-                              <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                                CTR
-                              </p>
-                              <p className="mt-2 font-semibold text-slate-950">
-                                {formatPercent(latestAd.ctr)}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ) : null}
+    if (mode === "ads" && !isLoading && !connection && view !== "composer") {
+      return (
+        <div className="flex min-h-[70vh] items-center justify-center">
+          <div className="flex flex-col items-center gap-2 w-full max-w-sm rounded-3xl bg-[#fff0dd] p-8 text-center">
+            <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="#eeaf5d"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <title>warning</title> <g id="Layer_2" data-name="Layer 2"> <g id="invisible_box" data-name="invisible box"> <rect width="48" height="48" fill="none"></rect> </g> <g id="icons_Q2" data-name="icons Q2"> <g> <path d="M24,9,40.6,39H7.5L24,9M2.3,40A2,2,0,0,0,4,43H44a2,2,0,0,0,1.7-3L25.7,4a2,2,0,0,0-3.4,0Z"></path> <path d="M22,19v9a2,2,0,0,0,4,0V19a2,2,0,0,0-4,0Z"></path> <circle cx="24" cy="34" r="2"></circle> </g> </g> </g> </g></svg>
+            <div className="mb-2">
+              <h2 className="text-xl font-semibold text-slate-900">
+                Connection Required
+              </h2>
+
+              <p className="mt-3 text-sm text-slate-600">
+                No Meta account connected.
+                Connect your Meta account to access Ads.
+              </p>
+            </div>
+
+            <MotionScale
+              type="button"
+              onClick={() => router.push("/dashboard/integrations")}
+              disabled={isConnecting}
+              className="rounded-full bg-white px-5 py-3 text-sm font-medium"
+            >
+              {isConnecting
+                ? "Redirecting..."
+                : "Go to Integrations"}
+            </MotionScale>
+
+          </div>
+        </div>
+      );
+    }
+
+    if (mode === "ads" && !isLoading && !connection && view === "composer") {
+      return (
+        <div className="flex min-h-[70vh] items-center justify-center">
+          <div className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[rgba(7,107,210,0.08)] text-accent">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-7 w-7"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
+              </svg>
+            </div>
+            <h2 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">
+              Connect Meta before creating an ad set
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-slate-500">
+              Your ad builder needs a connected Meta account and a selected ad account before it can launch campaigns, ad sets, or ads.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <MotionScale
+                type="button"
+                onClick={() => router.push("/dashboard/integrations")}
+                className="rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.22)]"
+              >
+                Go to Integrations
+              </MotionScale>
+              <MotionScale
+                type="button"
+                onClick={() => router.push("/dashboard/ads")}
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+              >
+                Back to Ads
+              </MotionScale>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+
+    return (
+      <div className="space-y-6">
+        {showReporting ? (
+          <>
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto]">
+                <h2 className="text-[1.2rem] font-semibold tracking-tight text-slate-950">
+                  Submission Reporting
+                </h2>
+                {mode === "ads" ? (
+                  <div className="flex justify-start lg:justify-end">
+                    <MotionScale
+                      type="button"
+                      onClick={() => router.push("/dashboard/ads/new")}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.18)] transition hover:opacity-95"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M12 5v14" />
+                        <path d="M5 12h14" />
+                      </svg>
+                      New ad set
+                    </MotionScale>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  {/* <h2 className="text-[1.2rem] font-semibold tracking-tight text-slate-950">
+                    Submission Reporting
+                  </h2> */}
+                  <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-500">
+                    Filter synced Meta reporting by approved creator content to see which
+                    submissions are driving spend, clicks, and active delivery.
+                  </p>
+                </div>
+                <div className="flex w-full flex-col gap-3 lg:max-w-md">
+                  {/* {mode === "ads" ? (
+                    <div className="flex justify-start lg:justify-end">
+                      <MotionScale
+                        type="button"
+                        onClick={() => router.push("/dashboard/ads/new")}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.18)] transition hover:opacity-95"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M12 5v14" />
+                          <path d="M5 12h14" />
+                        </svg>
+                        New ad set
+                      </MotionScale>
                     </div>
+                  ) : null} */}
+                  <label
+                    htmlFor="meta-submission-filter"
+                    className="text-sm font-medium text-slate-600"
+                  >
+                    Reporting scope
+                  </label>
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <select
+                      id="meta-submission-filter"
+                      value={submissionFilter}
+                      onChange={(event) => setSubmissionFilter(event.target.value)}
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                    >
+                      <option value={submissionFilterAllValue}>
+                        All creator-linked reporting
+                      </option>
+                      <option value={submissionFilterUnlinkedValue}>
+                        Unlinked campaigns and ads
+                      </option>
+                      {submissionFilterOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    {submissionFilter !== submissionFilterAllValue ? (
+                      <MotionScale
+                        type="button"
+                        onClick={() => setSubmissionFilter(submissionFilterAllValue)}
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                      >
+                        Clear
+                      </MotionScale>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                  Current scope
+                </p>
+                <p className="mt-2 text-base font-semibold text-slate-950">
+                  {reportingScopeLabel}
+                </p>
+                <p className="mt-2 text-sm text-slate-500">{reportingScopeHint}</p>
+              </div>
+            </section>
 
-                    {linkedAdSets.length || linkedAds.length ? (
-                      <div className="mt-4 grid gap-4 xl:grid-cols-2">
-                        <div className="rounded-[1.35rem] border border-slate-200 bg-slate-50 p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="text-base font-semibold text-slate-950">
-                                Ad Sets
-                              </p>
-                              <p className="mt-1 text-sm text-slate-500">
-                                Activate or pause individual delivery groups.
-                              </p>
-                            </div>
-                            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
-                              {linkedAdSets.length}
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {[
+                {
+                  label: "Connected accounts",
+                  value: String(adAccounts.length),
+                  hint: selectedAdAccount
+                    ? `Default: ${selectedAdAccount.account_name}`
+                    : "Select a Meta ad account",
+                },
+                {
+                  label: "Visible campaigns",
+                  value: formatCompactNumber(visibleCampaigns.length),
+                  hint: `${reportingScopeLabel} | ${connection?.last_synced_at
+                    ? `last sync ${formatDate(connection.last_synced_at)}`
+                    : "no sync completed yet"
+                    }`,
+                },
+                {
+                  label: "Visible ads",
+                  value: formatCompactNumber(visibleAds.length),
+                  hint: `${visibleAdSets.length} ad sets | ${formatCompactCurrency(visibleAdSpend)} spend`,
+                },
+                {
+                  label: "Visible spend",
+                  value: formatCompactCurrency(visibleCampaignSpend || scopeSpend),
+                  hint:
+                    submissionFilter === submissionFilterAllValue
+                      ? `${formatPercent(visibleCampaignCtr || campaignCtr)} campaign CTR | ${formatPercent(visibleAdCtr || adCtr)} ad CTR`
+                      : `${formatPercent(visibleCampaignCtr || scopeCtr)} ${scopeLabel} CTR | ${formatCompactNumber(visibleAdClicks || executionClicks)} clicks`,
+                },
+              ].map((metric) => (
+                <div
+                  key={metric.label}
+                  className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.05)]"
+                >
+                  <p className="text-sm text-slate-500">{metric.label}</p>
+                  <p className="mt-3 text-3xl font-semibold text-slate-950">
+                    {metric.value}
+                  </p>
+                  <p className="mt-2 text-sm text-slate-500">{metric.hint}</p>
+                </div>
+              ))}
+            </div>
+
+            {connectionSection}
+          </>
+        ) : null}
+
+        <div
+          className={cn(
+            "grid gap-6",
+            showReporting && showComposer
+              ? "xl:grid-cols-[0.95fr_1.05fr]"
+              : "grid-cols-1",
+          )}
+        >
+          {showComposer ? (
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+              <div>
+                <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
+                  {view === "composer" ? "Create Meta campaign and ad set" : "Launch Meta Campaign"}
+                </h2>
+                <p className="mt-3 text-sm leading-7 text-slate-500">
+                  {view === "composer"
+                    ? "Use this dedicated builder to configure campaign setup, creator-linked tracking, and your first ad set with a cleaner focused workflow."
+                    : "Create a Meta campaign directly from CIRCL, link it to approved creator content, and store the tracked landing URL you will use in ads."}
+                </p>
+              </div>
+
+              <form className="mt-8 space-y-5" onSubmit={handleCreateCampaign}>
+                <div>
+                  <label
+                    htmlFor="meta-campaign-name"
+                    className="mb-2 block text-sm font-medium text-slate-600"
+                  >
+                    Campaign name
+                  </label>
+                  <input
+                    id="meta-campaign-name"
+                    required
+                    value={campaignForm.name}
+                    onChange={(event) =>
+                      setCampaignForm((current) => ({
+                        ...current,
+                        name: event.target.value,
+                      }))
+                    }
+                    placeholder="CIRCL Creator Traffic Test"
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                  />
+                </div>
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="meta-campaign-objective"
+                      className="mb-2 block text-sm font-medium text-slate-600"
+                    >
+                      Objective
+                    </label>
+                    <select
+                      id="meta-campaign-objective"
+                      value={campaignForm.objective}
+                      onChange={(event) =>
+                        setCampaignForm((current) => ({
+                          ...current,
+                          objective: event.target.value,
+                        }))
+                      }
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                    >
+                      {objectiveOptions.map((objective) => (
+                        <option key={objective.value} value={objective.value}>
+                          {objective.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="meta-campaign-status"
+                      className="mb-2 block text-sm font-medium text-slate-600"
+                    >
+                      Start status
+                    </label>
+                    <select
+                      id="meta-campaign-status"
+                      value={campaignForm.status}
+                      onChange={(event) =>
+                        setCampaignForm((current) => ({
+                          ...current,
+                          status: event.target.value,
+                        }))
+                      }
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                    >
+                      <option value="PAUSED">Paused</option>
+                      <option value="ACTIVE">Active</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="meta-source-submission"
+                      className="mb-2 block text-sm font-medium text-slate-600"
+                    >
+                      Approved creator submission
+                    </label>
+                    <select
+                      id="meta-source-submission"
+                      value={campaignForm.sourceSubmissionId}
+                      onChange={(event) => {
+                        const nextSubmissionId = event.target.value;
+                        const nextSubmission =
+                          approvedSubmissionById.get(nextSubmissionId) ?? null;
+                        const nextCreativeSource =
+                          nextSubmission?.assets.find(
+                            (asset) => asset.kind === "image" || asset.kind === "video",
+                          )?.id ?? null;
+
+                        setCampaignForm((current) => ({
+                          ...current,
+                          sourceSubmissionId: nextSubmissionId,
+                          creativeSourceKey: nextCreativeSource
+                            ? `asset:${nextCreativeSource}`
+                            : nextSubmission?.content_links[0]
+                              ? "link:0"
+                              : current.creativeSourceKey,
+                          name:
+                            current.name ||
+                            (nextSubmission
+                              ? `${nextSubmission.creator_name} ${nextSubmission.campaign_title}`
+                              : current.name),
+                          adSetName:
+                            current.adSetName ||
+                            (nextSubmission
+                              ? `${nextSubmission.creator_name} ${nextSubmission.campaign_title} Ad Set`
+                              : current.adSetName),
+                          adName:
+                            current.adName ||
+                            (nextSubmission
+                              ? `${nextSubmission.creator_name} ${nextSubmission.campaign_title} Ad`
+                              : current.adName),
+                          utmCampaign:
+                            current.utmCampaign ||
+                            `${analyticsSettings?.utm_campaign_prefix ?? "creator"}-${slugifyTrackingValue(
+                              nextSubmission?.campaign_title ?? nextSubmission?.creator_name,
+                            ) || "launch"
+                            }`,
+                          utmContent:
+                            current.utmContent ||
+                            slugifyTrackingValue(nextSubmission?.creator_name) ||
+                            "",
+                          headline:
+                            current.headline ||
+                            nextSubmission?.campaign_title ||
+                            current.headline,
+                          primaryText:
+                            current.primaryText ||
+                            nextSubmission?.notes ||
+                            `Creator-led ad for ${nextSubmission?.campaign_title ?? "this campaign"}`,
+                        }));
+                      }}
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                    >
+                      <option value="">Select approved content</option>
+                      {approvedSubmissions.map((submission) => (
+                        <option key={submission.id} value={submission.id}>
+                          {submission.creator_name} • {submission.campaign_title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="meta-destination-url"
+                      className="mb-2 block text-sm font-medium text-slate-600"
+                    >
+                      Destination URL
+                    </label>
+                    <input
+                      id="meta-destination-url"
+                      value={campaignForm.destinationUrl}
+                      onChange={(event) =>
+                        setCampaignForm((current) => ({
+                          ...current,
+                          destinationUrl: event.target.value,
+                        }))
+                      }
+                      placeholder="https://brand-store.com/products/..."
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-600">
+                      UTM source
+                    </label>
+                    <input
+                      value={campaignForm.utmSource}
+                      onChange={(event) =>
+                        setCampaignForm((current) => ({
+                          ...current,
+                          utmSource: event.target.value,
+                        }))
+                      }
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-600">
+                      UTM medium
+                    </label>
+                    <input
+                      value={campaignForm.utmMedium}
+                      onChange={(event) =>
+                        setCampaignForm((current) => ({
+                          ...current,
+                          utmMedium: event.target.value,
+                        }))
+                      }
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-600">
+                      UTM campaign
+                    </label>
+                    <input
+                      value={campaignForm.utmCampaign}
+                      onChange={(event) =>
+                        setCampaignForm((current) => ({
+                          ...current,
+                          utmCampaign: event.target.value,
+                        }))
+                      }
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-600">
+                      UTM content
+                    </label>
+                    <input
+                      value={campaignForm.utmContent}
+                      onChange={(event) =>
+                        setCampaignForm((current) => ({
+                          ...current,
+                          utmContent: event.target.value,
+                        }))
+                      }
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-600">
+                      UTM term
+                    </label>
+                    <input
+                      value={campaignForm.utmTerm}
+                      onChange={(event) =>
+                        setCampaignForm((current) => ({
+                          ...current,
+                          utmTerm: event.target.value,
+                        }))
+                      }
+                      placeholder="Optional"
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm font-semibold text-slate-950">
+                      Ad Execution
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      Add these fields to launch the first Traffic ad set and ad from the selected creator content. Leave them blank if you only want to create the campaign shell.
+                    </p>
+                  </div>
+
+                  <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-slate-600">
+                        Meta Page ID
+                      </label>
+                      <input
+                        value={campaignForm.pageId}
+                        onChange={(event) =>
+                          setCampaignForm((current) => ({
+                            ...current,
+                            pageId: event.target.value,
+                          }))
+                        }
+                        placeholder="123456789012345"
+                        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-slate-600">
+                        Daily budget
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={campaignForm.dailyBudget}
+                        onChange={(event) =>
+                          setCampaignForm((current) => ({
+                            ...current,
+                            dailyBudget: event.target.value,
+                          }))
+                        }
+                        placeholder="25"
+                        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-slate-600">
+                        Countries
+                      </label>
+                      <input
+                        value={campaignForm.countries}
+                        onChange={(event) =>
+                          setCampaignForm((current) => ({
+                            ...current,
+                            countries: event.target.value,
+                          }))
+                        }
+                        placeholder="US, CA"
+                        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-slate-600">
+                        Ad set name
+                      </label>
+                      <input
+                        value={campaignForm.adSetName}
+                        onChange={(event) =>
+                          setCampaignForm((current) => ({
+                            ...current,
+                            adSetName: event.target.value,
+                          }))
+                        }
+                        placeholder="Creator Traffic Ad Set"
+                        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-slate-600">
+                        Ad name
+                      </label>
+                      <input
+                        value={campaignForm.adName}
+                        onChange={(event) =>
+                          setCampaignForm((current) => ({
+                            ...current,
+                            adName: event.target.value,
+                          }))
+                        }
+                        placeholder="Creator Traffic Ad"
+                        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-slate-600">
+                        Creative source
+                      </label>
+                      <select
+                        value={campaignForm.creativeSourceKey}
+                        onChange={(event) =>
+                          setCampaignForm((current) => ({
+                            ...current,
+                            creativeSourceKey: event.target.value,
+                          }))
+                        }
+                        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                      >
+                        <option value="">Select asset or content link</option>
+                        {creativeSourceOptions.map((option) => (
+                          <option key={option.key} value={option.key}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      {creativeSourceOptions.length ? (
+                        <p className="mt-2 text-xs text-slate-500">
+                          {creativeSourceOptions.find(
+                            (option) => option.key === campaignForm.creativeSourceKey,
+                          )?.hint ?? "Choose an image, video, or direct content link."}
+                        </p>
+                      ) : (
+                        <p className="mt-2 text-xs text-slate-500">
+                          Select an approved submission first to load assets and content links.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-5 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-slate-600">
+                        Primary text
+                      </label>
+                      <textarea
+                        value={campaignForm.primaryText}
+                        onChange={(event) =>
+                          setCampaignForm((current) => ({
+                            ...current,
+                            primaryText: event.target.value,
+                          }))
+                        }
+                        rows={4}
+                        placeholder="Write the main ad copy."
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                      />
+                    </div>
+                    <div className="grid gap-5">
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-600">
+                          Headline
+                        </label>
+                        <input
+                          value={campaignForm.headline}
+                          onChange={(event) =>
+                            setCampaignForm((current) => ({
+                              ...current,
+                              headline: event.target.value,
+                            }))
+                          }
+                          placeholder="Scroll-stopping headline"
+                          className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-600">
+                          Description
+                        </label>
+                        <input
+                          value={campaignForm.description}
+                          onChange={(event) =>
+                            setCampaignForm((current) => ({
+                              ...current,
+                              description: event.target.value,
+                            }))
+                          }
+                          placeholder="Optional supporting line"
+                          className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-600">
+                          Call to action
+                        </label>
+                        <select
+                          value={campaignForm.callToActionType}
+                          onChange={(event) =>
+                            setCampaignForm((current) => ({
+                              ...current,
+                              callToActionType: event.target.value,
+                            }))
+                          }
+                          className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                        >
+                          {callToActionOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                  {selectedAdAccount ? (
+                    <div className="space-y-2">
+                      <p>
+                        New campaigns will be created in{" "}
+                        <span className="font-semibold text-slate-900">
+                          {selectedAdAccount.account_name}
+                        </span>
+                        .
+                      </p>
+                      <p className="break-all text-xs text-slate-600">
+                        Tracking URL:{" "}
+                        <span className="font-medium text-slate-900">
+                          {trackingUrlPreview || "Add a destination URL to generate it."}
+                        </span>
+                      </p>
+                      {selectedSubmission ? (
+                        <p className="text-xs text-slate-600">
+                          Linked submission:{" "}
+                          <span className="font-medium text-slate-900">
+                            {selectedSubmission.creator_name} • {selectedSubmission.campaign_title}
+                          </span>
+                        </p>
+                      ) : null}
+                      {executionIntent ? (
+                        <>
+                          <p className="text-xs text-slate-600">
+                            Execution:{" "}
+                            <span className="font-medium text-slate-900">
+                              Campaign + Traffic ad set + first ad
                             </span>
+                          </p>
+                          <p className="text-xs text-slate-600">
+                            Creative source:{" "}
+                            <span className="font-medium text-slate-900">
+                              {selectedCreativeSourceOption?.label ?? "Not selected"}
+                            </span>
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-xs text-slate-600">
+                          Leave the execution fields blank if you only want to create the campaign shell.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p>
+                      Select a Meta ad account above before creating a campaign.
+                    </p>
+                  )}
+                </div>
+
+                <MotionScale
+                  type="submit"
+                  disabled={!selectedAdAccount || isSubmittingCampaign}
+                  className="rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.22)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSubmittingCampaign
+                    ? "Creating..."
+                    : executionIntent
+                      ? "Create Campaign + Ad"
+                      : "Create Meta Campaign"}
+                </MotionScale>
+              </form>
+            </section>
+          ) : null}
+
+          {showReporting ? (
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+              <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="text-[1.2rem] font-semibold tracking-tight text-slate-950">
+                      Synced Meta Campaigns
+                    </h2>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+                      {selectedAdAccount?.account_name ?? connection?.ad_account_name ?? "No ad account selected"}
+                    </span>
+                  </div>
+                  <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
+                    Manage synced campaign, ad set, and ad delivery from one lighter reporting table with live Meta status controls.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <MotionScale
+                    type="button"
+                    onClick={handleSync}
+                    disabled={isSyncing}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSyncing ? "Syncing..." : "Refresh"}
+                  </MotionScale>
+                  {/* <MotionScale
+                    type="button"
+                    onClick={() => router.push("/dashboard/ads/new")}
+                    className="rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.18)] transition hover:opacity-95"
+                  >
+                    Build ads
+                  </MotionScale> */}
+                </div>
+              </div>
+
+              <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(180deg,_#fbfdff,_#f4f8fc)] p-4 shadow-[0_18px_44px_rgba(15,23,42,0.04)] sm:p-5">
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)] xl:items-start">
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[120px_minmax(0,1fr)]">
+                    <select
+                      value={campaignCreatorFilter}
+                      onChange={(event) => setCampaignCreatorFilter(event.target.value)}
+                      className="h-11 w-full rounded-full border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-[0_6px_18px_rgba(15,23,42,0.04)] outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                    >
+                      <option value="all">All creators</option>
+                      {campaignCreatorOptions.map((creator) => (
+                        <option key={creator} value={creator}>
+                          {creator}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={campaignProductFilter}
+                      onChange={(event) => setCampaignProductFilter(event.target.value)}
+                      className="h-11 w-full rounded-full border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-[0_6px_18px_rgba(15,23,42,0.04)] outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                    >
+                      <option value="all">All products</option>
+                      {campaignProductOptions.map((product) => (
+                        <option key={product} value={product}>
+                          {product}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="grid gap-3 sm:grid-cols-2 sm:col-span-2 xl:col-span-2 xl:grid-cols-[120px_140px]">
+                      <select
+                        value={campaignStatusFilter}
+                        onChange={(event) => setCampaignStatusFilter(event.target.value)}
+                        className="h-11 w-full rounded-full border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-[0_6px_18px_rgba(15,23,42,0.04)] outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                      >
+                        <option value="all">Status</option>
+                        {campaignStatusOptions.map((status) => (
+                          <option key={status} value={status}>
+                            {formatMetaStatus(status)}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={campaignSort}
+                        onChange={(event) => setCampaignSort(event.target.value)}
+                        className="h-11 w-full rounded-full border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-[0_6px_18px_rgba(15,23,42,0.04)] outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                      >
+                        <option value="sync_desc">Latest sync</option>
+                        <option value="spend_desc">Highest spend</option>
+                        <option value="name_asc">Name A-Z</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-4 xl:items-end">
+                    <div className="relative w-full xl:max-w-[390px]">
+                      <svg
+                        viewBox="0 0 20 20"
+                        className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      >
+                        <path d="M14.583 14.583 18 18m-1.75-8.833a7.083 7.083 0 1 1-14.167 0 7.083 7.083 0 0 1 14.167 0Z" />
+                      </svg>
+                      <input
+                        value={campaignSearchQuery}
+                        onChange={(event) => setCampaignSearchQuery(event.target.value)}
+                        placeholder="Search by creator or product..."
+                        className="h-11 w-full rounded-full border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 shadow-[0_6px_18px_rgba(15,23,42,0.04)] outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                      />
+                    </div>
+                    <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-end">
+                      <MotionScale
+                        type="button"
+                        onClick={() => setExpandedCampaignIds(visibleCampaigns.map((campaign) => campaign.id))}
+                        className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-[0_6px_18px_rgba(15,23,42,0.04)] transition hover:border-slate-300 hover:bg-slate-50"
+                      >
+                        Expand all
+                      </MotionScale>
+                      <MotionScale
+                        type="button"
+                        onClick={() => setExpandedCampaignIds([])}
+                        className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-[0_6px_18px_rgba(15,23,42,0.04)] transition hover:border-slate-300 hover:bg-slate-50"
+                      >
+                        Collapse all
+                      </MotionScale>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-1 flex flex-col gap-3 border-t border-slate-200/80 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    Campaign - Ad Set - Ad
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 sm:justify-end">
+                    <span className="rounded-full bg-white px-3 py-1.5 font-medium shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+                      {visibleCampaigns.length} campaigns
+                    </span>
+                    <span className="rounded-full bg-white px-3 py-1.5 font-medium shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+                      {connection?.last_synced_at ? `Last synced ${formatDate(connection.last_synced_at)}` : "Sync pending"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {isLoading ? (
+                <div className="mt-8 space-y-4">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="h-36 animate-pulse rounded-[1.5rem] border border-slate-200 bg-slate-50"
+                    />
+                  ))}
+                </div>
+              ) : visibleCampaigns.length ? (
+                <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-slate-200">
+                  <div className="hidden grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)_110px_90px_130px] gap-4 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 md:grid">
+                    <span>Name</span>
+                    <span>Creator</span>
+                    <span>Product</span>
+                    <span>Spend</span>
+                    <span>CTR</span>
+                    <span>Status</span>
+                  </div>
+
+                  <div className="divide-y divide-slate-200">
+                    {visibleCampaigns.map((campaign) => {
+                      const statusValue = campaign.effective_status ?? campaign.status;
+                      const nextStatus =
+                        statusValue?.toLowerCase() === "active" ? "PAUSED" : "ACTIVE";
+                      const campaignPendingKey = `campaign:${campaign.meta_campaign_id}`;
+                      const linkedAdSets = (adSetsByCampaignId.get(campaign.id) ?? []).filter(
+                        (adSet) =>
+                          matchesSubmissionFilter(adSet.source_submission_id, submissionFilter),
+                      );
+                      const linkedAds = (adsByCampaignId.get(campaign.id) ?? []).filter((ad) =>
+                        matchesSubmissionFilter(ad.source_submission_id, submissionFilter),
+                      );
+                      const campaignSubmission =
+                        campaign.source_submission_id
+                          ? approvedSubmissionById.get(campaign.source_submission_id) ?? null
+                          : null;
+                      const fallbackSubmissionId =
+                        linkedAdSets.find((adSet) => adSet.source_submission_id)?.source_submission_id ??
+                        linkedAds.find((ad) => ad.source_submission_id)?.source_submission_id ??
+                        null;
+                      const fallbackSubmission = fallbackSubmissionId
+                        ? approvedSubmissionById.get(fallbackSubmissionId) ?? null
+                        : null;
+                      const linkedSubmission = campaignSubmission ?? fallbackSubmission;
+                      const creatorLabel = linkedSubmission?.creator_name ?? "Unlinked";
+                      const productLabel =
+                        linkedSubmission?.product_name?.trim() ||
+                        linkedSubmission?.campaign_title ||
+                        "-";
+                      const isExpanded = expandedCampaignIds.includes(campaign.id);
+                      const orphanAds = linkedAds.filter(
+                        (ad) => !linkedAdSets.some((adSet) => adSet.id === ad.ad_set_id),
+                      );
+
+                      return (
+                        <div key={campaign.id} className="bg-white">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedCampaignIds((current) =>
+                                current.includes(campaign.id)
+                                  ? current.filter((id) => id !== campaign.id)
+                                  : [...current, campaign.id],
+                              )
+                            }
+                            className="w-full bg-[linear-gradient(180deg,_rgba(7,107,210,0.12),_rgba(96,165,250,0.1))] px-4 py-4 text-left transition hover:bg-[linear-gradient(180deg,_rgba(7,107,210,0.18),_rgba(96,165,250,0.14))]"
+                          >
+                            <div className="grid gap-3 md:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)_110px_90px_130px] md:items-center">
+                              <div className="flex items-start gap-3">
+                                <span className="mt-1 text-slate-400">
+                                  <svg
+                                    viewBox="0 0 20 20"
+                                    className={cn(
+                                      "h-4 w-4 transition-transform",
+                                      isExpanded ? "rotate-90" : "",
+                                    )}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                  >
+                                    <path d="m7 4 6 6-6 6" />
+                                  </svg>
+                                </span>
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    {/* <span className="h-2.5 w-2.5 rounded-full bg-[#7D56FF]" /> */}
+                                    <p className="font-semibold text-slate-950">{campaign.name}</p>
+                                    <span
+                                      className={cn(
+                                        "h-2.5 w-2.5 rounded-full",
+                                        getMetaStatusDotClasses(statusValue),
+                                      )}
+                                      aria-hidden="true"
+                                    />
+                                    <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+                                      {linkedAdSets.length} ad set{linkedAdSets.length === 1 ? "" : "s"}
+                                    </span>
+                                  </div>
+                                  <p className="mt-1 text-xs text-slate-500">
+                                    Campaign | {linkedAds.length} ads | Synced {formatDate(campaign.synced_at)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-sm text-slate-700">{creatorLabel}</div>
+                              <div className="text-sm text-slate-700">{productLabel}</div>
+                              <div className="text-sm font-semibold text-slate-950">
+                                {formatCurrency(campaign.spend)}
+                              </div>
+                              <div className="text-sm font-semibold text-emerald-700">
+                                {formatPercent(campaign.ctr)}
+                              </div>
+                              <div className="flex items-center gap-2 md:justify-end">
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold",
+                                    getMetaStatusClasses(statusValue),
+                                  )}
+                                >
+                                  <span
+                                    className={cn(
+                                      "h-2 w-2 rounded-full",
+                                      getMetaStatusDotClasses(statusValue),
+                                    )}
+                                    aria-hidden="true"
+                                  />
+                                  {formatMetaStatus(statusValue)}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+
+                          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3">
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                              <span>{adAccountNameById.get(campaign.ad_account_id) ?? campaign.ad_account_id}</span>
+                              <span>{campaign.daily_budget !== null ? `${formatCurrency(campaign.daily_budget / 100)} / day` : "No daily budget"}</span>
+                              {/* <span>{campaign.tracking_url ?? campaign.destination_url ?? "No tracking URL"}</span> */}
+                            </div>
+                            <MotionScale
+                              type="button"
+                              onClick={() =>
+                                void handleCampaignStatus(campaign.meta_campaign_id, nextStatus)
+                              }
+                              disabled={pendingResourceKey === campaignPendingKey}
+                              className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {pendingResourceKey === campaignPendingKey
+                                ? "Updating..."
+                                : nextStatus === "ACTIVE"
+                                  ? "Activate"
+                                  : "Pause"}
+                            </MotionScale>
                           </div>
 
-                          {linkedAdSets.length ? (
-                            <div className="mt-4 max-h-[26rem] space-y-3 overflow-y-auto pr-1">
-                              {linkedAdSets.map((adSet) => {
-                                const adSetStatusValue =
-                                  adSet.effective_status ?? adSet.status;
-                                const nextAdSetStatus =
-                                  adSetStatusValue?.toLowerCase() === "active"
-                                    ? "PAUSED"
-                                    : "ACTIVE";
-                                const adSetPendingKey = `ad-set:${adSet.meta_ad_set_id}`;
+                          {isExpanded ? (
+                            <div className="border-t border-slate-200 bg-slate-50/80 px-4 py-4">
+                              <div className="space-y-3">
+                                {linkedAdSets.map((adSet) => {
+                                  const adSetStatusValue = adSet.effective_status ?? adSet.status;
+                                  const nextAdSetStatus =
+                                    adSetStatusValue?.toLowerCase() === "active"
+                                      ? "PAUSED"
+                                      : "ACTIVE";
+                                  const adSetPendingKey = `ad-set:${adSet.meta_ad_set_id}`;
+                                  const adSetAds = (adsByAdSetId.get(adSet.id) ?? []).filter((ad) =>
+                                    matchesSubmissionFilter(ad.source_submission_id, submissionFilter),
+                                  );
 
-                                return (
-                                  <div
-                                    key={adSet.id}
-                                    className="rounded-2xl border border-slate-200 bg-white p-4"
-                                  >
-                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                      <div>
-                                        <div className="flex flex-wrap items-center gap-2">
-                                          <p className="font-semibold text-slate-950">
-                                            {adSet.name}
-                                          </p>
+                                  return (
+                                    <div
+                                      key={adSet.id}
+                                      className="overflow-hidden rounded-[1.35rem] border border-slate-200 bg-[#f6f8fc]"
+                                    >
+                                      <div className="grid gap-3 px-4 py-4 md:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)_110px_90px_130px] md:items-center">
+                                        <div className="flex items-start gap-3">
+                                          {/* <span className="mt-1 h-2.5 w-2.5 rounded-full bg-[#3B82F6]" /> */}
+                                          <div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                              <p className="font-semibold text-slate-900">{adSet.name}</p>
+                                              <span
+                                                className={cn(
+                                                  "h-2.5 w-2.5 rounded-full",
+                                                  getMetaStatusDotClasses(adSetStatusValue),
+                                                )}
+                                                aria-hidden="true"
+                                              />
+                                              <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+                                                {adSetAds.length} ad{adSetAds.length === 1 ? "" : "s"}
+                                              </span>
+                                            </div>
+                                            <p className="mt-1 text-xs text-slate-500">
+                                              Ad set | {adSet.targeting_countries.length ? adSet.targeting_countries.join(", ") : "No geo targeting"} | {adSet.optimization_goal ?? "Optimization n/a"}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <div className="text-sm text-slate-600">{creatorLabel}</div>
+                                        <div className="text-sm text-slate-600">
+                                          {adSet.daily_budget !== null
+                                            ? `${formatCurrency(adSet.daily_budget / 100)} / day`
+                                            : "Budget not set"}
+                                        </div>
+                                        <div className="text-sm font-semibold text-slate-950">
+                                          {formatCurrency(adSet.spend)}
+                                        </div>
+                                        <div className="text-sm font-semibold text-emerald-700">
+                                          {formatPercent(adSet.ctr)}
+                                        </div>
+                                        <div className="flex items-center gap-2 md:justify-end">
                                           <span
                                             className={cn(
-                                              "rounded-full px-3 py-1 text-[11px] font-semibold",
+                                              "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold",
                                               getMetaStatusClasses(adSetStatusValue),
                                             )}
                                           >
+                                            <span
+                                              className={cn(
+                                                "h-2 w-2 rounded-full",
+                                                getMetaStatusDotClasses(adSetStatusValue),
+                                              )}
+                                              aria-hidden="true"
+                                            />
                                             {formatMetaStatus(adSetStatusValue)}
                                           </span>
-                                        </div>
-                                        <p className="mt-1 text-sm text-slate-500">
-                                          {adSet.targeting_countries.length
-                                            ? adSet.targeting_countries.join(", ")
-                                            : "No geo targeting"}{" "}
-                                          • {adSet.optimization_goal ?? "Optimization n/a"}
-                                        </p>
-                                        <p className="mt-1 text-sm text-slate-500">
-                                          Daily budget{" "}
-                                          <span className="font-medium text-slate-700">
-                                            {adSet.daily_budget !== null
-                                              ? formatCurrency(adSet.daily_budget / 100)
-                                              : "Not set"}
-                                          </span>
-                                        </p>
-                                      </div>
-                                      <MotionScale
-                                        type="button"
-                                        onClick={() =>
-                                          void handleAdSetStatus(
-                                            adSet.meta_ad_set_id,
-                                            nextAdSetStatus,
-                                          )
-                                        }
-                                        disabled={pendingResourceKey === adSetPendingKey}
-                                        className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                                      >
-                                        {pendingResourceKey === adSetPendingKey
-                                          ? "Updating..."
-                                          : nextAdSetStatus === "ACTIVE"
-                                            ? "Activate"
-                                            : "Pause"}
-                                      </MotionScale>
-                                    </div>
-
-                                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                                      <div className="rounded-2xl bg-slate-50 p-3">
-                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                                          Spend
-                                        </p>
-                                        <p className="mt-2 font-semibold text-slate-950">
-                                          {formatCurrency(adSet.spend)}
-                                        </p>
-                                      </div>
-                                      <div className="rounded-2xl bg-slate-50 p-3">
-                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                                          Clicks
-                                        </p>
-                                        <p className="mt-2 font-semibold text-slate-950">
-                                          {formatCompactNumber(adSet.clicks)}
-                                        </p>
-                                      </div>
-                                      <div className="rounded-2xl bg-slate-50 p-3">
-                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                                          CTR
-                                        </p>
-                                        <p className="mt-2 font-semibold text-slate-950">
-                                          {formatPercent(adSet.ctr)}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <div className="mt-4 rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500">
-                              No ad sets match the current reporting filter.
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="rounded-[1.35rem] border border-slate-200 bg-slate-50 p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="text-base font-semibold text-slate-950">
-                                Ads
-                              </p>
-                              <p className="mt-1 text-sm text-slate-500">
-                                Control live ads and inspect creator-level performance.
-                              </p>
-                            </div>
-                            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
-                              {linkedAds.length}
-                            </span>
-                          </div>
-
-                          {linkedAds.length ? (
-                            <div className="mt-4 max-h-[26rem] space-y-3 overflow-y-auto pr-1">
-                              {linkedAds.map((ad) => {
-                                const adStatusValue = ad.effective_status ?? ad.status;
-                                const nextAdStatus =
-                                  adStatusValue?.toLowerCase() === "active"
-                                    ? "PAUSED"
-                                    : "ACTIVE";
-                                const adPendingKey = `ad:${ad.meta_ad_id}`;
-                                const adSubmission =
-                                  ad.source_submission_id
-                                    ? approvedSubmissionById.get(ad.source_submission_id) ?? null
-                                    : null;
-
-                                return (
-                                  <div
-                                    key={ad.id}
-                                    className="rounded-2xl border border-slate-200 bg-white p-4"
-                                  >
-                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                      <div>
-                                        <div className="flex flex-wrap items-center gap-2">
-                                          <p className="font-semibold text-slate-950">
-                                            {ad.name}
-                                          </p>
-                                          <span
-                                            className={cn(
-                                              "rounded-full px-3 py-1 text-[11px] font-semibold",
-                                              getMetaStatusClasses(adStatusValue),
-                                            )}
+                                          <MotionScale
+                                            type="button"
+                                            onClick={() =>
+                                              void handleAdSetStatus(
+                                                adSet.meta_ad_set_id,
+                                                nextAdSetStatus,
+                                              )
+                                            }
+                                            disabled={pendingResourceKey === adSetPendingKey}
+                                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                                           >
-                                            {formatMetaStatus(adStatusValue)}
-                                          </span>
+                                            {pendingResourceKey === adSetPendingKey
+                                              ? "Updating..."
+                                              : nextAdSetStatus === "ACTIVE"
+                                                ? "Activate"
+                                                : "Pause"}
+                                          </MotionScale>
                                         </div>
-                                        <p className="mt-1 text-sm text-slate-500">
-                                          {ad.source_asset_kind ?? "asset unknown"} • CTA{" "}
-                                          {ad.call_to_action_type ?? "n/a"}
-                                        </p>
-                                        <p className="mt-1 text-sm text-slate-500">
-                                          {adSubmission
-                                            ? `${adSubmission.creator_name} • ${adSubmission.campaign_title}`
-                                            : "No linked approved submission"}
-                                        </p>
                                       </div>
-                                      <MotionScale
-                                        type="button"
-                                        onClick={() =>
-                                          void handleAdStatus(ad.meta_ad_id, nextAdStatus)
-                                        }
-                                        disabled={pendingResourceKey === adPendingKey}
-                                        className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                                      >
-                                        {pendingResourceKey === adPendingKey
-                                          ? "Updating..."
-                                          : nextAdStatus === "ACTIVE"
-                                            ? "Activate"
-                                            : "Pause"}
-                                      </MotionScale>
+
+                                      {adSetAds.length ? (
+                                        <div className="border-t border-slate-200 bg-slate-50/60 px-3 py-3">
+                                          <div className="space-y-2">
+                                            {adSetAds.map((ad) => {
+                                              const adStatusValue = ad.effective_status ?? ad.status;
+                                              const nextAdStatus =
+                                                adStatusValue?.toLowerCase() === "active"
+                                                  ? "PAUSED"
+                                                  : "ACTIVE";
+                                              const adPendingKey = `ad:${ad.meta_ad_id}`;
+                                              const adSubmission =
+                                                ad.source_submission_id
+                                                  ? approvedSubmissionById.get(ad.source_submission_id) ?? null
+                                                  : linkedSubmission;
+
+                                              return (
+                                                <div
+                                                  key={ad.id}
+                                                  className="grid gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 md:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)_110px_90px_130px] md:items-center"
+                                                >
+                                                  <div className="flex items-start gap-3">
+                                                    <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-slate-200 text-xs font-semibold text-slate-600">
+                                                      {getNameInitials(adSubmission?.creator_name ?? creatorLabel)}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                      <div className="flex flex-wrap items-center gap-2">
+                                                        <p className="truncate font-medium text-slate-900">{ad.name}</p>
+                                                        <span
+                                                          className={cn(
+                                                            "h-2.5 w-2.5 rounded-full",
+                                                            getMetaStatusDotClasses(adStatusValue),
+                                                          )}
+                                                          aria-hidden="true"
+                                                        />
+                                                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                                                          {ad.synced_at ? "Synced" : "Pending"}
+                                                        </span>
+                                                      </div>
+                                                      <p className="mt-1 text-xs text-slate-500">
+                                                        Ad | {ad.source_asset_kind ?? "asset unknown"} | CTA {ad.call_to_action_type ?? "n/a"}
+                                                      </p>
+                                                      <p className="mt-1 text-xs text-slate-500">
+                                                        {ad.created_at ? formatDate(ad.created_at) : "Just created"}
+                                                      </p>
+                                                    </div>
+                                                  </div>
+                                                  <div className="text-sm text-slate-600">
+                                                    {adSubmission?.creator_name ?? creatorLabel}
+                                                  </div>
+                                                  <div className="text-sm text-slate-600">
+                                                    {adSubmission?.product_name?.trim() || adSubmission?.campaign_title || productLabel}
+                                                  </div>
+                                                  <div className="text-sm font-semibold text-slate-950">
+                                                    {formatCurrency(ad.spend)}
+                                                  </div>
+                                                  <div className="text-sm font-semibold text-emerald-700">
+                                                    {formatPercent(ad.ctr)}
+                                                  </div>
+                                                  <div className="flex items-center gap-2 md:justify-end">
+                                                    <span
+                                                      className={cn(
+                                                        "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold",
+                                                        getMetaStatusClasses(adStatusValue),
+                                                      )}
+                                                    >
+                                                      <span
+                                                        className={cn(
+                                                          "h-2 w-2 rounded-full",
+                                                          getMetaStatusDotClasses(adStatusValue),
+                                                        )}
+                                                        aria-hidden="true"
+                                                      />
+                                                      {formatMetaStatus(adStatusValue)}
+                                                    </span>
+                                                    <MotionScale
+                                                      type="button"
+                                                      onClick={() =>
+                                                        void handleAdStatus(ad.meta_ad_id, nextAdStatus)
+                                                      }
+                                                      disabled={pendingResourceKey === adPendingKey}
+                                                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                                    >
+                                                      {pendingResourceKey === adPendingKey
+                                                        ? "Updating..."
+                                                        : nextAdStatus === "ACTIVE"
+                                                          ? "Activate"
+                                                          : "Pause"}
+                                                    </MotionScale>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      ) : null}
                                     </div>
+                                  );
+                                })}
 
-                                    {ad.primary_text ? (
-                                      <p className="mt-3 text-sm leading-6 text-slate-600">
-                                        {ad.primary_text}
-                                      </p>
-                                    ) : null}
+                                {orphanAds.length ? (
+                                  <div className="rounded-[1.35rem] border border-dashed border-slate-300 bg-white px-4 py-4">
+                                    <p className="text-sm font-semibold text-slate-900">Ads without matched ad set rows</p>
+                                    <div className="mt-3 space-y-2">
+                                      {orphanAds.map((ad) => {
+                                        const adStatusValue = ad.effective_status ?? ad.status;
+                                        const nextAdStatus =
+                                          adStatusValue?.toLowerCase() === "active"
+                                            ? "PAUSED"
+                                            : "ACTIVE";
+                                        const adPendingKey = `ad:${ad.meta_ad_id}`;
 
-                                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                                      <div className="rounded-2xl bg-slate-50 p-3">
-                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                                          Spend
-                                        </p>
-                                        <p className="mt-2 font-semibold text-slate-950">
-                                          {formatCurrency(ad.spend)}
-                                        </p>
-                                      </div>
-                                      <div className="rounded-2xl bg-slate-50 p-3">
-                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                                          Clicks
-                                        </p>
-                                        <p className="mt-2 font-semibold text-slate-950">
-                                          {formatCompactNumber(ad.clicks)}
-                                        </p>
-                                      </div>
-                                      <div className="rounded-2xl bg-slate-50 p-3">
-                                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                                          CTR
-                                        </p>
-                                        <p className="mt-2 font-semibold text-slate-950">
-                                          {formatPercent(ad.ctr)}
-                                        </p>
-                                      </div>
-                                    </div>
-
-                                    <div className="mt-3 rounded-2xl bg-slate-50 p-3 text-sm text-slate-500">
-                                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                                        Tracking URL
-                                      </p>
-                                      <p className="mt-2 break-all font-medium text-slate-900">
-                                        {ad.tracking_url ?? ad.destination_url ?? "Not configured"}
-                                      </p>
+                                        return (
+                                          <div
+                                            key={ad.id}
+                                            className="flex flex-col gap-3 rounded-2xl border border-slate-200 px-4 py-3 md:flex-row md:items-center md:justify-between"
+                                          >
+                                            <div>
+                                              <p className="font-medium text-slate-900">{ad.name}</p>
+                                              <p className="mt-1 text-xs text-slate-500">
+                                                {formatCurrency(ad.spend)} spend | {formatPercent(ad.ctr)} CTR
+                                              </p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                              <span
+                                                className={cn(
+                                                  "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold",
+                                                  getMetaStatusClasses(adStatusValue),
+                                                )}
+                                              >
+                                                <span
+                                                  className={cn(
+                                                    "h-2 w-2 rounded-full",
+                                                    getMetaStatusDotClasses(adStatusValue),
+                                                  )}
+                                                  aria-hidden="true"
+                                                />
+                                                {formatMetaStatus(adStatusValue)}
+                                              </span>
+                                              <MotionScale
+                                                type="button"
+                                                onClick={() =>
+                                                  void handleAdStatus(ad.meta_ad_id, nextAdStatus)
+                                                }
+                                                disabled={pendingResourceKey === adPendingKey}
+                                                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                              >
+                                                {pendingResourceKey === adPendingKey
+                                                  ? "Updating..."
+                                                  : nextAdStatus === "ACTIVE"
+                                                    ? "Activate"
+                                                    : "Pause"}
+                                              </MotionScale>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                   </div>
-                                );
-                              })}
+                                ) : null}
+                              </div>
                             </div>
-                          ) : (
-                            <div className="mt-4 rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500">
-                              No ads match the current reporting filter.
-                            </div>
-                          )}
+                          ) : null}
                         </div>
-                      </div>
-                    ) : null}
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="mt-8 rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
-              {connection
-                ? submissionFilter === submissionFilterAllValue
-                  ? "No Meta campaigns have been synced yet. Create one above or sync your selected account."
-                  : `No Meta campaigns match ${reportingScopeLabel.toLowerCase()}.`
-                : "Connect Meta first to start running and tracking campaigns from CIRCL."}
-            </div>
-          )}
-        </section>
+                </div>
+              ) : (
+                <div className="mt-8 rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
+                  {connection
+                    ? filteredCampaigns.length
+                      ? "No synced campaigns match your current search or status filter."
+                      : submissionFilter === submissionFilterAllValue
+                        ? "No Meta campaigns have been synced yet. Create one above or sync your selected account."
+                        : `No Meta campaigns match ${reportingScopeLabel.toLowerCase()}.`
+                    : "Connect Meta first to start running and tracking campaigns from CIRCL."}
+                </div>
+              )}
+            </section>
+          ) : null}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }

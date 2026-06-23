@@ -19,10 +19,11 @@ export async function GET(req: Request) {
         }
 
         let brandId: string;
-
+        let connectionType: string;
         try {
             const state = JSON.parse(decodeURIComponent(stateParam));
             brandId = state.brandId;
+            connectionType = state.connectionType || "shopify";
         } catch {
             const baseUrl = getBaseUrl(req);
             return NextResponse.redirect(
@@ -61,7 +62,7 @@ export async function GET(req: Request) {
             .upsert(
                 {
                     brand_id: brandId,
-                    provider: "shopify",
+                    provider: connectionType,
                     store_url: shop,
                     store_domain: shop,
                     access_token: accessToken,
@@ -85,7 +86,7 @@ export async function GET(req: Request) {
         // }
         const { data: analytics, error: analyticsError } = await admin
             .from("brand_store_analytics_settings")
-            .select("public_tracking_token")
+            .select("public_tracking_token,web_pixel_id")
             .eq("brand_id", brandId)
             .single();
 
@@ -94,7 +95,7 @@ export async function GET(req: Request) {
         }
 
         const trackingToken = analytics?.public_tracking_token;
-        if (trackingToken) {
+        if (connectionType === "shopify" && trackingToken) {
             if (trackingToken) {
                 try {
                     const query = `
@@ -116,6 +117,7 @@ export async function GET(req: Request) {
                             settings: JSON.stringify({
                                 trackingToken: trackingToken,
                                 accountID: trackingToken,
+                                customDomain: "ugc-platform-jet.vercel.app",
                             }),
                         },
                     };
@@ -136,7 +138,26 @@ export async function GET(req: Request) {
                     );
 
                     const data = await res.json();
+                    const webPixel =
+                        data?.data?.webPixelCreate?.webPixel;
 
+                    const webPixelId = webPixel?.id;
+                    if (webPixelId) {
+                        const { error: pixelUpdateError } =
+                            await admin
+                                .from("brand_store_analytics_settings")
+                                .update({
+                                    web_pixel_id: webPixelId,
+                                })
+                                .eq("brand_id", brandId);
+
+                        if (pixelUpdateError) {
+                            console.error(
+                                "WEB PIXEL SAVE ERROR:",
+                                pixelUpdateError
+                            );
+                        }
+                    }
                     if (data?.data?.webPixelCreate?.userErrors?.length) {
                         console.error("PIXEL USER ERRORS:", data.data.webPixelCreate.userErrors);
                     } else {
@@ -150,8 +171,12 @@ export async function GET(req: Request) {
         }
 
         const baseUrl = getBaseUrl(req);
+        const autoSync =
+            connectionType === "shopify"
+                ? "&autoSync=true"
+                : "";
         return NextResponse.redirect(
-            `${baseUrl}/dashboard/integrations?connected=true&autoSync=true`
+            `${baseUrl}/dashboard/integrations?connected=true${autoSync}`
         );
 
     } catch (error) {

@@ -9,14 +9,13 @@ type Props = {
   tone?: String;
   name?: string | null;
   roleLabel?: string;
-  profile?: UserProfile & { role: "brand" };
+profile?: UserProfile & { role: "brand" | "creator" };
 };
 
 export default function Header({ tone, name, roleLabel, profile }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -47,18 +46,8 @@ export default function Header({ tone, name, roleLabel, profile }: Props) {
     }
   }
   return (
-    <header className="mx-auto fixed top-0 z-50 w-full bg-[#f1f2f4] backdrop-blur-3xl">
-      <div className="flex items-center justify-between px-3 sm:px-6 py-3 border-b border-b-slate-300 bg-[#f1f2f4] p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] ">
-
-        {/* LEFT */}
-        <div className="flex items-start gap-3">
-          <BrandMark tone="light" />
-          <span className="hidden sm:block text-[11px] font-semibold text-slate-600 flex items-center justify-center  rounded-full border px-2 py-1 font-semibold capitalize border-[rgba(7,107,210,0.14)] bg-[rgba(7,107,210,0.08)] text-accent !text-[#076bd2]">
-            {roleLabel}
-          </span>
-        </div>
-
-        {/* RIGHT */}
+    <header className="sticky top-0 z-50 w-full bg-white backdrop-blur-3xl">
+      <div className="flex items-center justify-end px-3 sm:px-6 py-1 border-b border-b-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] ">
         <div className="flex sm:gap-2 items-center">
           {profile && <NotificationsCenter profile={profile} />}
           <div className="relative" ref={dropdownRef}>
@@ -66,8 +55,6 @@ export default function Header({ tone, name, roleLabel, profile }: Props) {
               onClick={() => setOpen(!open)}
               className="flex items-center gap-3 rounded-full px-3 py-2 hover:bg-slate-100 transition"
             >
-              {/* Avatar */}
-
               <div className="h-9 w-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-semibold overflow-hidden">
                 {profile?.avatar_url ? (
                   <img

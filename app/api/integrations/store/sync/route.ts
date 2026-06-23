@@ -81,7 +81,7 @@ export async function POST() {
       .delete()
       .eq("brand_id", user.id);
 
-    
+
     if (catalog.products.length) {
       const BATCH_SIZE = 500;
 

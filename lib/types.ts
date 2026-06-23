@@ -70,6 +70,7 @@ export type PublicProfile = {
   company_name: string | null;
   headline: string | null;
   avatar_url: string | null;
+  active?: boolean | undefined;
 };
 
 export type Campaign = {
@@ -304,9 +305,14 @@ export type BrandCreatorDirectoryEntry = {
 };
 
 export type BrandSubmissionSummary = CampaignSubmission & {
+  brand_name: string;
   campaign_title: string;
+  product_name: string | null;
   creator_name: string;
   creator_headline: string | null;
+  instagram_handle: string | null;
+  tiktok_handle: string | null;
+  uploaded_to_meta: boolean;
   rate: number;
 };
 
@@ -396,6 +402,7 @@ export type BrandDashboardData = {
   invitations: CampaignInvitation[];
   fundings: BrandFundingSummary[];
   payouts: BrandPayoutSummary[];
+  attributed_orders?: BrandStoreAttributedOrder[];
   storeConnected?: boolean;
   metaConnected?: boolean;
 };
@@ -432,6 +439,7 @@ export type BrandStoreConnectionSummary = {
   connected_at: string;
   last_synced_at: string | null;
   has_storefront_access_token: boolean;
+  storefront_domain: string | null;
 };
 
 export type BrandStoreProduct = {
@@ -667,6 +675,19 @@ export type ChatCandidate = {
   context_label: string | null;
 };
 
+export type ChatCounterpartBrief = {
+  title: string;
+  subtitle: string | null;
+};
+
+export type ChatCounterpartProfileSummary = {
+  posts: number | null;
+  roas: number | null;
+  gmv: number | null;
+  rating: number | null;
+  active_briefs: ChatCounterpartBrief[];
+};
+
 export type ChatConversationSummary = {
   id: string;
   brand_id: string;
@@ -679,6 +700,8 @@ export type ChatConversationSummary = {
   latest_message_preview: string | null;
   latest_message_at: string | null;
   created_at: string;
+  counterpart_profile: ChatCounterpartProfileSummary | null;
+  active?: boolean;
 };
 
 export type ChatMessage = {

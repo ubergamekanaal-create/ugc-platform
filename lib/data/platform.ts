@@ -13,6 +13,7 @@ import type {
   BrandFundingSummary,
   BrandPayoutSummary,
   BrandSubmissionSummary,
+  BrandStoreAttributedOrder,
   Campaign,
   CampaignApplication,
   CampaignFunding,
@@ -392,6 +393,53 @@ function normalizePayout(row: Record<string, unknown>): CampaignPayout {
   };
 }
 
+function normalizeAttributedOrder(
+  row: Record<string, unknown>,
+): BrandStoreAttributedOrder {
+  return {
+    id: readString(row.id),
+    brand_id: readString(row.brand_id),
+    connection_id: readNullableString(row.connection_id),
+    shop_domain: readString(row.shop_domain),
+    shop_order_id: readString(row.shop_order_id),
+    shopify_order_gid: readNullableString(row.shopify_order_gid),
+    order_name: readNullableString(row.order_name),
+    customer_email: readNullableString(row.customer_email),
+    financial_status: readNullableString(row.financial_status),
+    fulfillment_status: readNullableString(row.fulfillment_status),
+    source_name: readNullableString(row.source_name),
+    currency: readNullableString(row.currency),
+    subtotal: row.subtotal === null || row.subtotal === undefined ? null : readNumber(row.subtotal),
+    discount_total:
+      row.discount_total === null || row.discount_total === undefined
+        ? null
+        : readNumber(row.discount_total),
+    shipping_total:
+      row.shipping_total === null || row.shipping_total === undefined
+        ? null
+        : readNumber(row.shipping_total),
+    tax_total: row.tax_total === null || row.tax_total === undefined ? null : readNumber(row.tax_total),
+    total: row.total === null || row.total === undefined ? null : readNumber(row.total),
+    landing_url: readNullableString(row.landing_url),
+    referrer_url: readNullableString(row.referrer_url),
+    referral_code: readNullableString(row.referral_code),
+    utm_source: readNullableString(row.utm_source),
+    utm_medium: readNullableString(row.utm_medium),
+    utm_campaign: readNullableString(row.utm_campaign),
+    utm_content: readNullableString(row.utm_content),
+    utm_term: readNullableString(row.utm_term),
+    fbclid: readNullableString(row.fbclid),
+    fbc: readNullableString(row.fbc),
+    fbp: readNullableString(row.fbp),
+    campaign_id: readNullableString(row.campaign_id),
+    submission_id: readNullableString(row.submission_id),
+    meta_campaign_id: readNullableString(row.meta_campaign_id),
+    ordered_at: readNullableString(row.ordered_at),
+    created_at: readString(row.created_at, new Date().toISOString()),
+    updated_at: readString(row.updated_at, new Date().toISOString()),
+  };
+}
+
 function normalizeCreatorProfile(
   row: Record<string, unknown>,
 ): CreatorProfileDetails {
@@ -523,7 +571,9 @@ async function getBrandData(
     { data: rawSubmissions, error: submissionError },
     { data: rawFundings, error: fundingError },
     { data: rawPayouts, error: payoutError },
+    { data: rawAttributedOrders, error: attributedOrdersError },
     { data: rawCreatorDirectory, error: creatorDirectoryError },
+    { data: rawMetaCampaigns, error: metaCampaignsError },
   ] = await Promise.all([
     campaignIds.length
       ? supabase
@@ -562,6 +612,14 @@ async function getBrandData(
       )
       .eq("brand_id", userId)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("brand_store_attributed_orders")
+      .select(
+        "id, brand_id, connection_id, shop_domain, shop_order_id, shopify_order_gid, order_name, customer_email, financial_status, fulfillment_status, source_name, currency, subtotal, discount_total, shipping_total, tax_total, total, landing_url, referrer_url, referral_code, utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, fbc, fbp, campaign_id, submission_id, meta_campaign_id, ordered_at, created_at, updated_at",
+      )
+      .eq("brand_id", userId)
+      .order("ordered_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false }),
     creatorDirectoryMode === "full"
       ? supabase
         .from("public_profiles")
@@ -570,6 +628,11 @@ async function getBrandData(
         )
         .eq("role", "creator")
       : Promise.resolve({ data: [], error: null }),
+    supabase
+      .from("brand_meta_campaigns")
+      .select("source_submission_id")
+      .eq("brand_id", userId)
+      .not("source_submission_id", "is", null),
   ]);
 
   if (applicationError) {
@@ -620,6 +683,17 @@ async function getBrandData(
     ...submission,
     assets: submissionAssetsById.get(submission.id) ?? [],
   }));
+  if (metaCampaignsError) {
+    console.error("getBrandData: meta campaigns lookup failed", {
+      userId,
+      error: metaCampaignsError,
+    });
+  }
+  const metaSubmissionIds = new Set(
+    ((rawMetaCampaigns ?? []) as Array<Record<string, unknown>>)
+      .map((campaign) => readNullableString(campaign.source_submission_id))
+      .filter((submissionId): submissionId is string => !!submissionId),
+  );
 
   if (fundingError) {
     console.error("getBrandData: fundings lookup failed", {
@@ -642,6 +716,16 @@ async function getBrandData(
   const payouts = ((rawPayouts ?? []) as Array<Record<string, unknown>>).map(
     normalizePayout,
   );
+  if (attributedOrdersError) {
+    console.error("getBrandData: attributed orders lookup failed", {
+      userId,
+      error: attributedOrdersError,
+    });
+  }
+
+  const attributedOrders = ((rawAttributedOrders ?? []) as Array<Record<string, unknown>>).map(
+    normalizeAttributedOrder,
+  );
 
   const profiles = await getPublicProfiles(
     supabase,
@@ -650,6 +734,7 @@ async function getBrandData(
       ...invitations.map((invitation) => invitation.creator_id),
       ...submissions.map((submission) => submission.creator_id),
       ...payouts.map((payout) => payout.creator_id),
+      userId,
     ],
   );
 
@@ -745,19 +830,27 @@ async function getBrandData(
   const enrichedSubmissions: BrandSubmissionSummary[] = submissionsWithAssets.map(
     (submission) => {
       const creator = profiles.get(submission.creator_id) ?? null;
+      const creatorProfile = creatorProfileMap.get(submission.creator_id) ?? null;
+      const brand = profiles.get(userId) ?? null;
       const campaign =
         campaigns.find((campaignItem) => campaignItem.id === submission.campaign_id) ??
         null;
 
       return {
         ...submission,
+        brand_name:
+          brand?.display_name ?? brand?.company_name ?? brand?.full_name ?? "Brand",
         campaign_title: campaign?.title ?? "Campaign",
+        product_name: campaign?.product_name?.trim() || null,
         creator_name:
           creator?.display_name ??
           creator?.full_name ??
           creator?.company_name ??
           "Creator",
         creator_headline: creator?.headline ?? null,
+        instagram_handle: creatorProfile?.instagram_handle ?? null,
+        tiktok_handle: creatorProfile?.tiktok_handle ?? null,
+        uploaded_to_meta: metaSubmissionIds.has(submission.id),
         rate:
           applicationKeyToRate.get(
             `${submission.campaign_id}:${submission.creator_id}`,
@@ -903,6 +996,7 @@ async function getBrandData(
     invitations,
     fundings: enrichedFundings,
     payouts: enrichedPayouts,
+    attributed_orders: attributedOrders,
     storeConnected: storeConnected,
     metaConnected: metaConnected,
   };
@@ -1242,7 +1336,7 @@ async function getCreatorData(
 function getBrandCreatorDirectoryMode(
   section: string | null | undefined,
 ): BrandCreatorDirectoryMode {
-  if (section === "creators") {
+  if (section === "creators" || section === "discovery") {
     return "full";
   }
 

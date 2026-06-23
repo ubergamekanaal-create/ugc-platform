@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     Number(payout.creator_amount ?? 0) > 0
       ? Number(payout.creator_amount)
       : Number(payout.amount);
-
+  const requiredCampaignBalance = Number(payout.amount);
   if (creatorTransferAmount <= 0) {
     return NextResponse.json(
       { error: "This payout amount must be greater than zero before release." },
@@ -126,7 +126,6 @@ export async function POST(request: Request) {
         .eq("campaign_id", payout.campaign_id)
         .in("status", ["paid", "reversed"]),
     ]);
-
   if (fundingsError || paidPayoutsError) {
     return NextResponse.json(
       {
@@ -157,8 +156,8 @@ export async function POST(request: Request) {
     0,
   );
   const availableBalance = fundedAmount - releasedAmount;
-
-  if (availableBalance < creatorTransferAmount) {
+  // if (availableBalance < creatorTransferAmount) {
+  if (availableBalance < requiredCampaignBalance) {
     return NextResponse.json(
       { error: "Insufficient funded balance for this campaign." },
       { status: 400 },
@@ -188,7 +187,6 @@ export async function POST(request: Request) {
     );
     fundingUsage.set(settledPayout.source_funding_id, currentUsage + consumedAmount);
   }
-
   const selectedFunding = refreshedFundings
     .filter(
       (funding) =>
@@ -205,7 +203,6 @@ export async function POST(request: Request) {
       const remainingAmount = Number(funding.amount ?? 0) - consumedAmount;
       return remainingAmount >= creatorTransferAmount;
     });
-
   if (!selectedFunding) {
     return NextResponse.json(
       {

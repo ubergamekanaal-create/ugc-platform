@@ -117,12 +117,27 @@ export default async function QueueSubmissionDetailPage({
         ),
         content: (
           <div className="space-y-6">
+            <Link
+              href="/dashboard/submissions"
+              className="
+                mb-4 inline-flex
+                items-center gap-2
+                text-xl font-medium
+                text-slate-600
+                transition
+                hover:text-slate-950
+              "
+            >
+
+              <svg viewBox="0 0 1024 1024" width="24" height="24" xmlns="http://www.w3.org/2000/svg" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path fill="#000000" d="M224 480h640a32 32 0 1 1 0 64H224a32 32 0 0 1 0-64z"></path><path fill="#000000" d="m237.248 512 265.408 265.344a32 32 0 0 1-45.312 45.312l-288-288a32 32 0 0 1 0-45.312l288-288a32 32 0 1 1 45.312 45.312L237.248 512z"></path></g></svg>
+
+            </Link>
             <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
               <WorkspacePanel>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                <p className="text-[1.2rem] font-semibold uppercase  text-slate-400">
                   Application pitch
                 </p>
-                <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                <h2 className="mt-3 text-[1.2rem] font-semibold tracking-tight text-slate-950">
                   {application.creator_name}
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
@@ -134,10 +149,10 @@ export default async function QueueSubmissionDetailPage({
               </WorkspacePanel>
 
               <WorkspacePanel>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                <p className="text-[1.2rem] font-semibold uppercase text-slate-400">
                   Application actions
                 </p>
-                <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                <h2 className="mt-3 text-[1.2rem] font-semibold tracking-tight text-slate-950">
                   Move the creator forward
                 </h2>
                 <p className="mt-2 text-sm leading-7 text-slate-500">
@@ -158,10 +173,10 @@ export default async function QueueSubmissionDetailPage({
               <WorkspacePanel>
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                    <p className="text-[1.2rem] font-semibold uppercase text-slate-400">
                       Creator snapshot
                     </p>
-                    <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                    <h2 className="mt-3 text-[1.2rem] font-semibold tracking-tight text-slate-950">
                       Brand-side fit summary
                     </h2>
                   </div>
@@ -243,10 +258,10 @@ export default async function QueueSubmissionDetailPage({
               </WorkspacePanel>
 
               <WorkspacePanel>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                <p className="text-[1.2rem] font-semibold uppercase text-slate-400">
                   Campaign context
                 </p>
-                <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                <h2 className="mt-3 text-[1.2rem] font-semibold tracking-tight text-slate-950">
                   {application.campaign_title}
                 </h2>
                 <div className="mt-6 space-y-4 text-sm text-slate-600">
@@ -294,10 +309,10 @@ export default async function QueueSubmissionDetailPage({
               <WorkspacePanel>
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                    <p className="text-[1.2rem] font-semibold uppercase text-slate-400">
                       Linked delivery
                     </p>
-                    <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                    <h2 className="mt-3 text-[1.2rem] font-semibold tracking-tight text-slate-950">
                       Submission details available
                     </h2>
                     <p className="mt-2 text-sm leading-7 text-slate-500">

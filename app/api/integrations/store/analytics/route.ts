@@ -61,20 +61,40 @@ async function readAnalyticsPayload(
   brandId: string,
   request: Request,
 ) {
+  const { data: brand, error: brandError } = await admin
+    .from("brands")
+    .select("custom_domain, domain_verified")
+    .eq("user_id", brandId)
+    .single();
+  if (brandError) return { error: brandError };
+
+  const { data: rawConnection, error: connectionError } = await admin
+    .from("brand_store_connections")
+    .select(
+      "id, brand_id, provider, store_name, store_url, store_domain, access_token, storefront_access_token, api_version, status, analytics_webhook_status, analytics_webhooks_registered_at, last_webhook_at, last_webhook_error, product_count, connected_at, last_synced_at",
+    )
+    .eq("brand_id", brandId)
+    .maybeSingle();
+
   const [
-    { data: rawConnection },
+    // { data: rawConnection },
     { data: rawSettings },
     { data: rawEvents },
     { data: rawOrders },
   ] =
     await Promise.all([
-      admin
-        .from("brand_store_connections")
-        .select(
-          "id, brand_id, provider, store_name, store_url, store_domain, access_token, storefront_access_token, api_version, status, analytics_webhook_status, analytics_webhooks_registered_at, last_webhook_at, last_webhook_error, product_count, connected_at, last_synced_at",
-        )
-        .eq("brand_id", brandId)
-        .maybeSingle(),
+      // admin
+      //   .from("brands")
+      //   .select("custom_domain, domain_verified")
+      //   .eq("user_id", brandId)
+      //   .single(),
+      // admin
+      //   .from("brand_store_connections")
+      //   .select(
+      //     "id, brand_id, provider, store_name, store_url, store_domain, access_token, storefront_access_token, api_version, status, analytics_webhook_status, analytics_webhooks_registered_at, last_webhook_at, last_webhook_error, product_count, connected_at, last_synced_at",
+      //   )
+      //   .eq("brand_id", brandId)
+      //   .maybeSingle(),
       admin
         .from("brand_store_analytics_settings")
         .select(
@@ -88,6 +108,7 @@ async function readAnalyticsPayload(
           "id, brand_id, connection_id, event_name, event_id, client_id, session_id, shop_domain, shop_order_id, campaign_id, submission_id, meta_campaign_id, page_url, landing_url, referrer_url, referral_code, currency, value, utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, fbc, fbp, created_at",
         )
         .eq("brand_id", brandId)
+        .eq("connection_id", rawConnection?.id)
         .order("created_at", { ascending: false }),
       // .limit(20),
       admin
@@ -96,19 +117,21 @@ async function readAnalyticsPayload(
           "id, brand_id, connection_id, shop_domain, shop_order_id, shopify_order_gid, order_name, customer_email, financial_status, fulfillment_status, source_name, currency, subtotal, discount_total, shipping_total, tax_total, total, landing_url, referrer_url, referral_code, utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, fbc, fbp, campaign_id, submission_id, meta_campaign_id, ordered_at, created_at, updated_at",
         )
         .eq("brand_id", brandId)
+        .eq("connection_id", rawConnection?.id)
         .order("ordered_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false }),
       // .limit(12),
     ]);
-
   const connection = rawConnection
     ? sanitizeStoreConnection(rawConnection as Record<string, unknown>)
     : null;
   const settings = rawSettings
     ? sanitizeStoreAnalyticsSettings(rawSettings as Record<string, unknown>)
     : null;
+
   // 🚨 ADD THIS BLOCK (important fix)
   if (!connection || connection.status !== "connected") {
+
     return {
       connection,
       settings,
@@ -131,7 +154,6 @@ async function readAnalyticsPayload(
   );
   const eventSummary = summarizeStoreAnalyticsEvents(recentEvents);
   const orderSummary = summarizeAttributedOrders(recentOrders);
-
   return {
     connection,
     settings,
@@ -145,10 +167,20 @@ async function readAnalyticsPayload(
     recentOrders,
     install:
       settings !== null
-        ? buildStoreAnalyticsInstallBundle({
+        ?
+        // buildStoreAnalyticsInstallBundle({
+        //   origin: getRequestOrigin(request),
+        //   settings,
+        //   previewDestinationUrl: connection?.store_url ?? null,
+        // })
+        buildStoreAnalyticsInstallBundle({
           origin: getRequestOrigin(request),
           settings,
           previewDestinationUrl: connection?.store_url ?? null,
+          provider: connection.provider,
+          customDomain: brand?.custom_domain,
+          domainVerified: brand?.domain_verified,
+          connectionId: connection.id,
         })
         : null,
   };

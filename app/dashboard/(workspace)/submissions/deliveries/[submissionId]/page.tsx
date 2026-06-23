@@ -113,12 +113,29 @@ export default async function DeliverySubmissionDetailPage({
         ),
         content: (
           <div className="space-y-6">
+            <Link
+              href="/dashboard/submissions"
+              className="
+                mb-4 inline-flex
+                items-center gap-2
+                text-xl font-medium
+                text-slate-600
+                transition
+                hover:text-slate-950
+              "
+            >
+
+              <svg viewBox="0 0 1024 1024" width="24" height="24" xmlns="http://www.w3.org/2000/svg" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path fill="#000000" d="M224 480h640a32 32 0 1 1 0 64H224a32 32 0 0 1 0-64z"></path><path fill="#000000" d="m237.248 512 265.408 265.344a32 32 0 0 1-45.312 45.312l-288-288a32 32 0 0 1 0-45.312l288-288a32 32 0 1 1 45.312 45.312L237.248 512z"></path></g></svg>
+
+              {/* <span>Back to submissions</span> */}
+
+            </Link>
             <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
               <WorkspacePanel>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                <p className="text-[1.2rem] font-semibold uppercase text-slate-400">
                   Delivery contents
                 </p>
-                <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                <h2 className="mt-3 text-[1.2rem] font-semibold tracking-tight text-slate-950">
                   Submitted assets and links
                 </h2>
 
@@ -164,10 +181,10 @@ export default async function DeliverySubmissionDetailPage({
               </WorkspacePanel>
 
               <WorkspacePanel>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                <p className="text-[1.2rem] font-semibold uppercase text-slate-400">
                   Delivery actions
                 </p>
-                <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                <h2 className="mt-3 text-[1.2rem] font-semibold tracking-tight text-slate-950">
                   Finalize review
                 </h2>
                 <p className="mt-2 text-sm leading-7 text-slate-500">
@@ -224,10 +241,10 @@ export default async function DeliverySubmissionDetailPage({
 
             <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
               <WorkspacePanel>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                <p className="text-[1.2rem] font-semibold uppercase text-slate-400">
                   Campaign context
                 </p>
-                <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                <h2 className="mt-3 text-[1.2rem] font-semibold tracking-tight text-slate-950">
                   {submission.campaign_title}
                 </h2>
                 <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -235,7 +252,7 @@ export default async function DeliverySubmissionDetailPage({
                     <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
                       Budget
                     </p>
-                    <p className="mt-3 text-xl font-semibold text-slate-950">
+                    <p className="mt-3 text-base font-semibold text-slate-950">
                       {campaign ? formatCompactCurrency(campaign.budget) : "Unknown"}
                     </p>
                   </div>
@@ -243,7 +260,7 @@ export default async function DeliverySubmissionDetailPage({
                     <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
                       Campaign status
                     </p>
-                    <p className="mt-3 text-xl font-semibold text-slate-950">
+                    <p className="mt-3 text-base font-semibold text-slate-950">
                       {campaign?.status.replaceAll("_", " ") ?? "Unknown"}
                     </p>
                   </div>
@@ -251,7 +268,7 @@ export default async function DeliverySubmissionDetailPage({
                     <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
                       Deliverables
                     </p>
-                    <p className="mt-3 text-xl font-semibold text-slate-950">
+                    <p className="mt-3 text-base font-semibold text-slate-950">
                       {campaign?.deliverables || "Not specified"}
                     </p>
                   </div>
@@ -259,7 +276,7 @@ export default async function DeliverySubmissionDetailPage({
                     <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
                       Deadline
                     </p>
-                    <p className="mt-3 text-xl font-semibold text-slate-950">
+                    <p className="mt-3 text-base font-semibold text-slate-950">
                       {campaign?.deadline ? formatDate(campaign.deadline) : "Flexible"}
                     </p>
                   </div>
@@ -267,10 +284,10 @@ export default async function DeliverySubmissionDetailPage({
               </WorkspacePanel>
 
               <WorkspacePanel>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                <p className="text-[1.2rem] font-semibold uppercase text-slate-400">
                   Creator context
                 </p>
-                <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                <h2 className="mt-3 text-[1.2rem] font-semibold tracking-tight text-slate-950">
                   {submission.creator_name}
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
@@ -281,7 +298,7 @@ export default async function DeliverySubmissionDetailPage({
                     <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
                       Base rate
                     </p>
-                    <p className="mt-3 text-xl font-semibold text-slate-950">
+                    <p className="mt-3 text-base font-semibold text-slate-950">
                       {creator?.base_rate ? formatCurrency(creator.base_rate) : formatCurrency(submission.rate)}
                     </p>
                   </div>
@@ -289,7 +306,7 @@ export default async function DeliverySubmissionDetailPage({
                     <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
                       Engagement
                     </p>
-                    <p className="mt-3 text-xl font-semibold text-slate-950">
+                    <p className="mt-3 text-base font-semibold text-slate-950">
                       {creator?.engagement_rate ? `${creator.engagement_rate}%` : "Not set"}
                     </p>
                   </div>

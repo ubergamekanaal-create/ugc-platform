@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BrandMark } from "@/components/shared/brand-mark";
 import { PageTransition } from "@/components/shared/motion";
@@ -19,6 +20,12 @@ export type WorkspaceNavItem = {
   icon: ReactNode;
   active?: boolean;
   badge?: string | null;
+
+  children?: {
+    href: string;
+    label: string;
+    active?: boolean;
+  }[];
 };
 
 export type WorkspaceNavGroup = {
@@ -39,6 +46,8 @@ type WorkspaceSidebarProps = {
   navGroups: WorkspaceNavGroup[];
   sidebarFooter?: ReactNode;
   brands?: any[];
+  name?: string | null;
+  profile?: UserProfile & { role: "brand" };
 };
 
 type WorkspaceMainContentProps = {
@@ -128,8 +137,10 @@ export default function BottomNav({
   navGroups: WorkspaceNavGroup[],
   tone: "brand" | "creator"
 }) {
+  const pathname = usePathname();
   const [active, setActive] = useState("home");
   const [isOpen, setIsOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const brandRoutes = [
     "/dashboard",
     "/dashboard/submissions",
@@ -145,6 +156,17 @@ export default function BottomNav({
   ];
 
   const routes = (tone === "brand") ? brandRoutes : creatorRoutes;
+  useEffect(() => {
+    const activeNestedItem = navGroups
+      .flatMap((group) => group.items)
+      .find((item) =>
+        item.children?.some((child) =>
+          pathname === child.href || pathname.startsWith(`${child.href}/`),
+        ),
+      );
+
+    setOpenMenu(activeNestedItem?.href ?? null);
+  }, [navGroups, pathname]);
 
   const navItems = [
     {
@@ -234,22 +256,96 @@ export default function BottomNav({
                   )}
 
                   <div className="mt-2 space-y-1">
-                    {group.items.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setIsOpen(false)}
-                        className={`flex items-center gap-3 px-3 py-3 rounded-xl transition
-                  ${item.active
-                            ? "bg-blue-100 text-blue-600"
-                            : "text-slate-700 hover:bg-gray-100"
-                          }
-                `}
-                      >
-                        <span className="h-5 w-5">{item.icon}</span>
-                        <span className="text-sm font-medium">{item.label}</span>
-                      </Link>
-                    ))}
+                    {group.items.map((item) => {
+                      const hasChildren = Boolean(item.children?.length);
+                      const isExpanded = openMenu === item.href;
+
+                      return (
+                        <div key={item.href}>
+                          {hasChildren ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setOpenMenu((current) =>
+                                  current === item.href ? null : item.href,
+                                )
+                              }
+                              aria-expanded={isExpanded}
+                              className={`flex w-full items-center justify-between gap-3 px-3 py-3 rounded-xl transition
+                                ${item.active
+                                  ? "bg-blue-100 text-blue-600"
+                                  : "text-slate-700 hover:bg-gray-100"
+                                }
+                              `}
+                            >
+                              <span className="flex items-center gap-3">
+                                <span className="h-5 w-5">{item.icon}</span>
+                                <span className="text-sm font-medium">{item.label}</span>
+                              </span>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className={cn(
+                                  "transition-transform duration-200",
+                                  isExpanded && "rotate-180",
+                                )}
+                              >
+                                <path d="m6 9 6 6 6-6" />
+                              </svg>
+                            </button>
+                          ) : (
+                            <Link
+                              href={item.href}
+                              onClick={() => setIsOpen(false)}
+                              className={`flex items-center gap-3 px-3 py-3 rounded-xl transition
+                                ${item.active
+                                  ? "bg-blue-100 text-blue-600"
+                                  : "text-slate-700 hover:bg-gray-100"
+                                }
+                              `}
+                            >
+                              <span className="h-5 w-5">{item.icon}</span>
+                              <span className="text-sm font-medium">{item.label}</span>
+                            </Link>
+                          )}
+
+                          {hasChildren && isExpanded ? (
+                            <div className="mt-1 space-y-1 pl-8">
+                              {item.children!.map((child) => {
+                                const childActive =
+                                  child.active ||
+                                  pathname === child.href ||
+                                  pathname.startsWith(`${child.href}/`);
+
+                                return (
+                                  <Link
+                                    key={child.href}
+                                    href={child.href}
+                                    aria-current={childActive ? "page" : undefined}
+                                    onClick={() => setIsOpen(false)}
+                                    className={cn(
+                                      "block rounded-xl px-3 py-2 text-sm font-medium transition",
+                                      childActive
+                                        ? "bg-blue-100 text-blue-600"
+                                        : "text-slate-600 hover:bg-gray-100 hover:text-slate-950",
+                                    )}
+                                  >
+                                    {child.label}
+                                  </Link>
+                                );
+                              })}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -272,9 +368,9 @@ export function WorkspaceViewport({
   return (
     <div className={cn("relative text-slate-950 bg-[#f1f2f4]", theme.shell)}>
       <div className="absolute inset-0 opacity-50 [background-image:radial-gradient(rgba(148,163,184,0.14)_1px,transparent_1px)] [background-size:22px_22px]" />
-      <Header tone={tone} name={name} roleLabel={roleLabel} profile={profile} />
+      {/* <Header tone={tone} name={name} roleLabel={roleLabel} profile={profile} /> */}
 
-      <div className="relative h-full grid  gap-4 p-4 md:grid-cols-[300px_minmax(0,1fr)] md:p-0">
+      <div className="relative h-full grid md:grid-cols-[250px_minmax(0,1fr)] md:p-0">
         {children}
       </div>
       <BottomNav navGroups={navGroups} tone={tone} />
@@ -295,7 +391,7 @@ export function WorkspaceSidebar({
   sidebarFooter,
   brands = [],
 }: WorkspaceSidebarProps) {
-  const theme = toneClasses[tone];
+  const pathname = usePathname();
   const [selectedWorkspaceId,
     setSelectedWorkspaceId] =
     useState<string | null>(null);
@@ -303,6 +399,8 @@ export function WorkspaceSidebar({
   const [isWorkspaceOpen,
     setIsWorkspaceOpen] =
     useState(false);
+  const [openMenu, setOpenMenu] =
+    useState<string | null>(null);
   const workspaceDropdownRef =
     useRef<HTMLDivElement | null>(null);
 
@@ -341,6 +439,22 @@ export function WorkspaceSidebar({
     }
 
   }, [brands]);
+  useEffect(() => {
+    const activeNestedItem = navGroups
+      .flatMap((group) => group.items)
+      .find((item) =>
+        item.children?.some((child) =>
+          pathname === child.href || pathname.startsWith(`${child.href}/`),
+        ),
+      );
+
+    if (activeNestedItem) {
+      setOpenMenu(activeNestedItem.href);
+      return;
+    }
+
+    setOpenMenu(null);
+  }, [navGroups, pathname]);
   const currentBrand =
     brands.find(
       (b) =>
@@ -367,41 +481,33 @@ export function WorkspaceSidebar({
   const isBrandsLoading =
     brands.length === 0;
   return (
-    <aside className="hidden md:block flex-1 z-200 md:sticky md:top-[75px] h-fit md:h-auto md:max-h-[calc(100vh-76px)] md:overflow-y-auto overflow-x-hidden border-r border-r-slate-300 bg-[#f1f2f4] py-5">
-      {/* <div className="flex items-start justify-between pb-6 border-b border-b-white/80">
+    <aside className="hidden md:sticky md:top-0 md:flex md:h-screen md:max-h-screen md:flex-col overflow-x-hidden border-r border-r-slate-300 bg-white pt-3 pb-5">
+      <div className="flex items-start justify-start px-4 pb-2">
         <BrandMark tone="light" />
-        <span
-          className={cn(
-            "flex items-center justify-center rounded-full border px-2 py-1 text-[11px] font-semibold capitalize",
-            theme.pill,
-          )}
-        >
-          {roleLabel}
-        </span>
-      </div> */}
-      <div className="px-4 mb-4">
-        {tone === "creator" && <div className="border-b border-b-slate-200">
+      </div>
+      <div className="mb-4 flex-1 overflow-y-auto px-4 pt-4">
+        {tone === "creator" && <div>
           <div
             className={cn(
-              "relative overflow-hidden rounded-3xl px-3 py-3 mb-6 text-black bg-white", // Slightly smaller radius
-              "border border-slate-200 bg-slate-950",
+              "relative overflow-hidden rounded-3xl px-2 py-2 mb-6 text-black bg-white", // Slightly smaller radius
+              "border border-slate-200",
               // theme.avatar,
             )}
 
           >
-            <div className="absolute -right-10 -top-10 h-32 w-32 bg-blue-500/10 blur-3xl" />
+            {/* <div className="absolute -right-10 -top-10 h-32 w-32 bg-blue-500/10 blur-3xl" /> */}
             <div className="flex justify-between items-center justify-center">
               <div className="relative flex items-center gap-2">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black text-white text-sm font-semibold backdrop-blur-md">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black text-white text-sm font-semibold backdrop-blur-md">
                   {initials}
                 </span>
 
                 <div className="min-w-0">
-                  <p className="text-[16px] font-semibold tracking-tight leading-tight">
+                  <p className="text-sm font-semibold tracking-tight leading-tight">
                     {displayName}
                   </p>
                   <p className="mt-1 text-[13px] text-slate-600 font-medium leading-snug">
-                    Everything operational <br /> lives here.
+                    Creator
                   </p>
                 </div>
               </div>
@@ -422,7 +528,7 @@ export function WorkspaceSidebar({
                 );
               }}
               className={cn(
-                "w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-slate-300",
+                "w-full rounded-3xl border border-slate-200 bg-white px-2 py-2 shadow-sm transition hover:border-slate-300",
                 isBrandsLoading &&
                 "cursor-default"
               )}
@@ -567,173 +673,139 @@ export function WorkspaceSidebar({
             )}
           </div>
         )}
-        {/* {tone === "brand" && (
-          <div className="mb-6 relative">
+        <nav className="mt-6 space-y-3">
 
-            <button
-              onClick={() =>
-                setIsWorkspaceOpen(
-                  !isWorkspaceOpen
-                )
-              }
-              className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-slate-300"
-            >
-              <div className="flex items-center justify-between">
-
-                <div className="flex items-center gap-3">
-
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-violet-600 text-sm font-semibold text-white">
-                    {currentBrand?.brand?.full_name
-                      ?.charAt(0)
-                      ?.toUpperCase() || "B"}
-                  </div>
-
-                  <div className="text-left">
-                    <p className="text-sm font-semibold text-slate-900">
-                      {currentBrand?.brand
-                        ?.full_name || "Select Brand"}
-                    </p>
-
-                    <p className="text-xs text-slate-500 capitalize">
-                      {currentBrand?.role}
-                    </p>
-                  </div>
-                </div>
-
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={cn(
-                    "transition-transform duration-200",
-                    isWorkspaceOpen &&
-                    "rotate-180"
-                  )}
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </div>
-            </button>
-
-            {isWorkspaceOpen && (
-              <div className="absolute left-0 right-0 z-50 mt-2 rounded-3xl border border-slate-200 bg-white p-2 shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
-
-                <div className="space-y-1">
-
-                  {brands.map((item) => {
-
-                    const isSelected =
-                      item.workspace_id ===
-                      selectedWorkspaceId;
-
-                    return (
+          {navGroups.map((group) => (
+            <div key={group.label ?? "primary"}>
+              {group.label ? (
+                <p className="px-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  {group.label}
+                </p>
+              ) : null}
+              <div className={cn("space-y-1", group.label ? "mt-3" : "")}>
+                {group.items.map((item) => (
+                  <div key={item.href}>
+                    {item.children?.length ? (
                       <button
-                        key={
-                          item.workspace_id
-                        }
+                        type="button"
                         onClick={() =>
-                          handleWorkspaceSwitch(
-                            item.workspace_id
+                          setOpenMenu((current) =>
+                            current === item.href ? null : item.href,
                           )
                         }
+                        aria-expanded={openMenu === item.href}
                         className={cn(
-                          "flex w-full items-center justify-between rounded-2xl px-3 py-3 transition",
-                          isSelected
-                            ? "bg-slate-100"
-                            : "hover:bg-slate-50"
+                          "group flex w-full items-center justify-between rounded-[1.35rem] border px-1 py-1 transition",
+                          item.active
+                            ? "border-[rgba(7,107,210,0.16)] bg-[rgba(7,107,210,0.08)] text-accent"
+                            : "border-transparent text-slate-600 hover:border-slate-200 hover:bg-white/58 hover:text-slate-950",
                         )}
                       >
-                        <div className="flex items-center gap-3">
-
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-600 text-sm font-semibold text-white">
-                            {item.brand?.full_name
-                              ?.charAt(0)
-                              ?.toUpperCase()}
-                          </div>
-
-                          <div className="text-left">
-                            <p className="text-sm font-semibold text-slate-900">
-                              {item.brand
-                                ?.full_name}
-                            </p>
-
-                            <p className="text-xs text-slate-500 capitalize">
-                              Team • {item.role}
-                            </p>
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "flex h-5 w-5 items-center justify-center transition",
+                              item.active
+                                ? ""
+                                : "text-slate-700 group-hover:text-[color:#076BD2]",
+                            )}
+                          >
+                            {item.icon}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[14px] font-medium group-hover:text-[color:#076BD2]",
+                              item.active && "text-[#076BD2]",
+                            )}
+                          >
+                            {item.label}
+                          </span>
                         </div>
-
-                        {isSelected && (
+                        <div className="flex items-center gap-2">
+                          {item.badge ? (
+                            <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-semibold text-slate-500">
+                              {item.badge}
+                            </span>
+                          ) : null}
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            width="18"
-                            height="18"
+                            width="16"
+                            height="16"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="text-slate-700"
+                            className={cn(
+                              "transition-transform duration-200",
+                              openMenu === item.href && "rotate-180",
+                            )}
                           >
-                            <path d="M20 6 9 17l-5-5" />
+                            <path d="m6 9 6 6 6-6" />
                           </svg>
-                        )}
+                        </div>
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        )} */}
-        <nav className="mt-6 space-y-3">
-
-          {navGroups.map((group) => (
-            <div key={group.label ?? "primary"}>
-              {group.label ? (
-                <p className="px-2 text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  {group.label}
-                </p>
-              ) : null}
-              <div className={cn("space-y-1", group.label ? "mt-3" : "")}>
-                {group.items.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={item.active ? "page" : undefined}
-                    className={cn(
-                      "group flex items-center justify-between rounded-[1.35rem] border px-1 py-1 transition",
-                      item.active
-                        ? "border-[rgba(7,107,210,0.16)] bg-[rgba(7,107,210,0.08)] text-accent shadow-[0_14px_30px_rgba(7,107,210,0.12)]"
-                        : "border-transparent text-slate-600 hover:border-slate-200 hover:bg-white/58 hover:text-slate-950",
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
+                    ) : (
+                      <Link
+                        href={item.href}
+                        aria-current={item.active ? "page" : undefined}
                         className={cn(
-                          "flex h-8 w-8 items-center justify-center rounded-[1rem] transition",
+                          "group flex items-center justify-between rounded-[1.35rem] border px-1 py-1 transition",
                           item.active
-                            ? "bg-[color:#076BD2] text-white shadow-[0_12px_24px_rgba(7,107,210,0.24)]"
-                            : "bg-white/88 text-slate-500 group-hover:bg-[color:#076BD2] group-hover:text-white",
+                            // ? "border-[rgba(7,107,210,0.16)] bg-[rgba(7,107,210,0.08)] text-accent"
+                            ? "border-slate-100 bg-[rgba(7,107,210,0.08)] text-accent"
+                            : "border-transparent text-slate-600 hover:border-slate-200 hover:bg-white/58 hover:text-slate-950",
                         )}
                       >
-                        {item.icon}
-                      </span>
-                      <span className="text-base font-medium">{item.label}</span>
-                    </div>
-                    {item.badge ? (
-                      <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-semibold text-slate-500">
-                        {item.badge}
-                      </span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "flex h-5 w-5 items-center justify-center transition",
+                              item.active
+                                ? " "
+                                : " text-slate-700 group-hover:text-[color:#076BD2]",
+                            )}
+                          >
+                            {item.icon}
+                          </span>
+                          <span className={cn("text-[14px] font-medium group-hover:text-[color:#076BD2]", item.active && "text-[#076BD2]")}>{item.label}</span>
+                        </div>
+                        {item.badge ? (
+                          <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-semibold text-slate-500">
+                            {item.badge}
+                          </span>
+                        ) : null}
+                      </Link>
+                    )}
+
+                    {item.children?.length && openMenu === item.href ? (
+                      <div className="mt-2 space-y-1 pl-4">
+                        {item.children.map((child) => {
+                          const childActive =
+                            child.active ||
+                            pathname === child.href ||
+                            pathname.startsWith(`${child.href}/`);
+
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              aria-current={childActive ? "page" : undefined}
+                              className={cn(
+                                "block rounded-[1.1rem] border px-2 py-1 text-sm font-medium transition",
+                                childActive
+                                  ? "border-[rgba(7,107,210,0.16)] bg-[rgba(7,107,210,0.08)] text-[#076BD2]"
+                                  : "border-transparent text-slate-600 hover:border-slate-200 hover:bg-white/58 hover:text-slate-950",
+                              )}
+                            >
+                              {child.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
                     ) : null}
-                  </Link>
+                  </div>
                 ))}
               </div>
             </div>
@@ -741,7 +813,7 @@ export function WorkspaceSidebar({
         </nav>
       </div>
 
-      {sidebarFooter ? <div className="mt-8 lg:mt-0 ">{sidebarFooter}</div> : null}
+      {sidebarFooter ? <div className="mt-auto">{sidebarFooter}</div> : null}
     </aside>
   );
 }
@@ -761,7 +833,7 @@ export function WorkspaceMainContent({
 }: WorkspaceMainContentProps) {
   const theme = toneClasses[tone];
   const content = (
-    <main className="min-w-0 max-w-[1720px] mx-auto pt-[88px] md:pt-[94px] space-y-4 md:py-4 md:pr-4 min-h-screen">
+    <main className="min-w-0 px-4 max-w-[1720px] mx-auto pt-[20px] md:pt-[20px] space-y-4 md:py-4 md:pr-4 min-h-[calc(100vh-63px)]">
       {showTopBanner ? topBanner : null}
 
       {/* {showHeroSection ? (
@@ -809,12 +881,12 @@ export function WorkspaceMainContent({
 
       {children}
     </main>
+
   );
 
   if (!animated) {
     return content;
   }
-
   return <PageTransition className="min-w-0">{content}</PageTransition>;
 }
 
@@ -835,25 +907,28 @@ export function WorkspaceShell({
   showTopBanner = true,
   showHeroSection = true,
   children,
+  name,
+  profile,
 }: WorkspaceShellProps) {
 
   return (
-    <PageTransition>
-      <WorkspaceViewport
+    <WorkspaceViewport
+      tone={tone}
+      name={displayName}
+      roleLabel={roleLabel}
+      navGroups={navGroups}
+    >
+      <WorkspaceSidebar
         tone={tone}
-        name={displayName}
+        displayName={displayName}
         roleLabel={roleLabel}
+        initials={initials}
         navGroups={navGroups}
-      >
-        <WorkspaceSidebar
-          tone={tone}
-          displayName={displayName}
-          roleLabel={roleLabel}
-          initials={initials}
-          navGroups={navGroups}
-          sidebarFooter={sidebarFooter}
-          brands={brands}
-        />
+        sidebarFooter={sidebarFooter}
+        brands={brands}
+      />
+      <div>
+        <Header tone={tone} name={name} roleLabel={roleLabel} profile={profile} />
         <WorkspaceMainContent
           tone={tone}
           eyebrow={eyebrow}
@@ -864,11 +939,12 @@ export function WorkspaceShell({
           headerActions={headerActions}
           showTopBanner={showTopBanner}
           showHeroSection={showHeroSection}
-          animated={false}
+          animated={true}
         >
           {children}
         </WorkspaceMainContent>
-      </WorkspaceViewport>
-    </PageTransition>
+      </div>
+
+    </WorkspaceViewport>
   );
 }

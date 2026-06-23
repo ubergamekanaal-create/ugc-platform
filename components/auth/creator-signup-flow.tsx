@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { SignupRoleTabs } from "./signup-role-tabs";
 import { BrandMark } from "../shared/brand-mark";
+import { CREATOR_COUNTRY_OPTIONS } from "@/lib/creator-country-options";
 
 type StepIconProps = {
   className?: string;
@@ -223,14 +224,6 @@ const CREATOR_INTEREST_OPTIONS = [
 const CREATOR_GENDER_OPTIONS = [
   { value: "male", label: "Male", emoji: "👨🏻" },
   { value: "female", label: "Female", emoji: "👩🏻" },
-] as const;
-
-const CREATOR_COUNTRY_OPTIONS = [
-  "India",
-  "United States",
-  "United Kingdom",
-  "Canada",
-  "Australia",
 ] as const;
 
 const CREATOR_SIGNUP_STEPS: Array<{

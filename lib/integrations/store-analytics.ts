@@ -251,8 +251,23 @@ export function buildStoreAnalyticsInstallBundle(params: {
   origin: string;
   settings: BrandStoreAnalyticsSettings;
   previewDestinationUrl?: string | null;
+  provider?: string;
+  customDomain?: string | null;
+  domainVerified?: boolean;
+  connectionId?: string | null;
 }) {
-  const endpointUrl = `${params.origin}/api/integrations/store/analytics/collect`;
+  // const endpointUrl = `${params.origin}/api/integrations/store/analytics/collect`;
+  const endpointUrl =
+    params.customDomain &&
+      params.domainVerified
+      ? `https://${params.customDomain}/api/integrations/store/analytics/collect`
+      : `${params.origin}/api/integrations/store/analytics/collect`;
+
+  const webhookEndpointUrl =
+    params.customDomain &&
+      params.domainVerified
+      ? `https://${params.customDomain}/api/integrations/store/webhooks/shopify?connectionId=${params.connectionId}`
+      : `${params.origin}/api/integrations/store/webhooks/shopify?connectionId=${params.connectionId}`;
   const enabledEvents: Partial<Record<StoreAnalyticsEventName, boolean>> = {
     page_viewed: params.settings.enable_page_view,
     product_viewed: params.settings.enable_product_view,
@@ -263,7 +278,7 @@ export function buildStoreAnalyticsInstallBundle(params: {
 
   return {
     endpointUrl,
-    webhookEndpointUrl: `${params.origin}/api/integrations/store/webhooks/shopify`,
+    webhookEndpointUrl,
     webhookTopics: ["orders/create", "orders/paid", "orders/updated"],
     customPixelCode: generateShopifyCustomPixelCode({
       endpointUrl,
@@ -272,12 +287,12 @@ export function buildStoreAnalyticsInstallBundle(params: {
     }),
     previewUrl: params.previewDestinationUrl
       ? buildTrackedUrl({
-          destinationUrl: params.previewDestinationUrl,
-          utmSource: params.settings.utm_source_default,
-          utmMedium: params.settings.utm_medium_default,
-          utmCampaign: `${params.settings.utm_campaign_prefix}-preview`,
-          utmTerm: params.settings.utm_term_default,
-        })
+        destinationUrl: params.previewDestinationUrl,
+        utmSource: params.settings.utm_source_default,
+        utmMedium: params.settings.utm_medium_default,
+        utmCampaign: `${params.settings.utm_campaign_prefix}-preview`,
+        utmTerm: params.settings.utm_term_default,
+      })
       : "",
   };
 }
