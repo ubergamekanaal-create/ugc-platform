@@ -53,11 +53,15 @@ async function readConnectionPayload(
   status = "",
 ) {
   const offset = (page - 1) * limit;
-
+  const { data: brandData } = await admin
+    .from("brands")
+    .select("id, full_name, custom_domain, domain_verified, domain_verified_at")
+    .eq("user_id", brandId)
+    .maybeSingle();
   const { data: connection } = await admin
     .from("brand_store_connections")
     .select(
-      "id, brand_id, provider, store_name, store_url, store_domain, access_token, storefront_access_token, api_version, status, analytics_webhook_status, analytics_webhooks_registered_at, last_webhook_at, last_webhook_error, product_count, connected_at, last_synced_at",
+      "id, brand_id, provider, store_name, store_url, store_domain,storefront_domain, access_token, storefront_access_token, api_version, status, analytics_webhook_status, analytics_webhooks_registered_at, last_webhook_at, last_webhook_error, product_count, connected_at, last_synced_at",
     )
     .eq("brand_id", brandId)
     .maybeSingle();
@@ -95,7 +99,7 @@ async function readConnectionPayload(
     products: (products ?? []).map((product) =>
       sanitizeStoreProduct(product as Record<string, unknown>)
     ),
-
+    brand: brandData,
     pagination: {
       page,
       limit,
@@ -323,6 +327,32 @@ export async function DELETE() {
     .select("store_domain")
     .eq("brand_id", brand.brandId)
     .single();
+
+  const { error: updateError } = await admin
+    .from("brands")
+    .update({
+      custom_domain: null,
+      custom_domain_id: null,
+      domain_verified: false,
+      domain_verified_at: null,
+    })
+    .eq("user_id", brand.brandId);
+  if (updateError) {
+    return NextResponse.json({ error: updateError.message }, { status: 400 });
+  }
+  const { error: analyticsError } = await admin
+    .from("brand_store_analytics_settings")
+    .update({
+      web_pixel_id: null,
+    })
+    .eq("brand_id", brand.brandId);
+
+  if (analyticsError) {
+    return NextResponse.json(
+      { error: analyticsError.message },
+      { status: 400 }
+    );
+  }
   const { error } = await admin
     .from("brand_store_connections")
     .delete()

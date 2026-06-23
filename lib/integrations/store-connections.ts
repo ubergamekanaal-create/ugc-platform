@@ -83,6 +83,7 @@ export function sanitizeStoreConnection(
     connected_at: readString(row.connected_at),
     last_synced_at: readNullableString(row.last_synced_at),
     has_storefront_access_token: Boolean(row.storefront_access_token),
+    storefront_domain: readNullableString(row.storefront_domain),
   };
 }
 

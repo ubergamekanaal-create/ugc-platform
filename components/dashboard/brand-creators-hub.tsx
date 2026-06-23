@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { BrandCreatorDirectory } from "@/components/dashboard/brand-creator-directory";
 import { createClient } from "@/lib/supabase/client";
 import type {
   BrandCampaignSummary,
   BrandCreatorDirectoryEntry,
+  BrandPayoutSummary,
   CampaignStatus,
 } from "@/lib/types";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
@@ -16,6 +17,8 @@ type BrandCreatorsHubProps = {
   brandId: string;
   campaigns: BrandCampaignSummary[];
   creators: BrandCreatorDirectoryEntry[];
+  payouts?: BrandPayoutSummary[];
+  view?: "campaigns" | "invite_creators";
 };
 
 function getCampaignStatusClasses(status: CampaignStatus) {
@@ -38,11 +41,14 @@ export function BrandCreatorsHub({
   brandId,
   campaigns,
   creators,
+  payouts = [],
+  view = "campaigns",
 }: BrandCreatorsHubProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"campaigns" | "invite_creators">(
-    "campaigns",
-  );
+  const searchParams = useSearchParams();
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<
+    "campaigns" | "roster" | "samples"
+  >("campaigns");
   const [campaignSearch, setCampaignSearch] = useState("");
   const [campaignStatus, setCampaignStatus] = useState<CampaignStatus | "all">(
     "all",
@@ -50,7 +56,7 @@ export function BrandCreatorsHub({
   const [pendingCampaignId, setPendingCampaignId] = useState<string | null>(null);
   const [campaignFeedback, setCampaignFeedback] = useState<string | null>(null);
   const [preferredCampaignId, setPreferredCampaignId] = useState<string | null>(
-    null,
+    searchParams.get("campaignId"),
   );
   const [, startRefresh] = useTransition();
 
@@ -95,6 +101,46 @@ export function BrandCreatorsHub({
   const inviteReadyCount = campaigns.filter(
     (campaign) => campaign.status !== "completed",
   ).length;
+  const payoutCreatorIds = new Set(
+    payouts
+      .filter((payout) => payout.status !== "failed" && payout.status !== "reversed")
+      .map((payout) => payout.creator_id),
+  );
+  const rosterCreators = creators.filter(
+    (creator) =>
+      creator.accepted > 0 ||
+      creator.applications > 0 ||
+      creator.invitations > 0 ||
+      creator.pending_invitations > 0 ||
+      payoutCreatorIds.has(creator.id),
+  );
+  const totalCreatorApplications = rosterCreators.reduce(
+    (sum, creator) => sum + creator.applications,
+    0,
+  );
+  const totalCreatorAccepted = rosterCreators.reduce(
+    (sum, creator) => sum + creator.accepted,
+    0,
+  );
+  const rosterApprovalRate = totalCreatorApplications
+    ? Math.round((totalCreatorAccepted / totalCreatorApplications) * 100)
+    : 0;
+  const activeRosterCreators = rosterCreators.filter(
+    (creator) => creator.accepted > 0 || creator.applications > 0,
+  ).length;
+  const rosterTotalEarnings = rosterCreators.reduce(
+    (sum, creator) =>
+      sum +
+      payouts
+        .filter(
+          (payout) =>
+            payout.creator_id === creator.id &&
+            payout.status !== "failed" &&
+            payout.status !== "reversed",
+        )
+        .reduce((creatorSum, payout) => creatorSum + payout.creator_amount, 0),
+    0,
+  );
 
   async function handleCampaignStatus(
     campaignId: string,
@@ -125,229 +171,430 @@ export function BrandCreatorsHub({
 
   function handleOpenInviteTab(campaignId: string) {
     setPreferredCampaignId(campaignId);
-    setActiveTab("invite_creators");
+    router.push(`/dashboard/discovery?campaignId=${campaignId}`);
   }
 
   return (
     <div className="min-w-0 space-y-6">
-      <div className="flex flex-wrap gap-3">
-        {[
-          {
-            key: "campaigns" as const,
-            label: "Campaigns",
-            value: `${campaigns.length} items`,
-          },
-          {
-            key: "invite_creators" as const,
-            label: "Invite creators",
-            value: `${creators.length} creators`,
-          },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              "inline-flex items-center gap-3 rounded-full border px-4 py-3 text-sm font-semibold transition",
-              activeTab === tab.key
-                ? "border-transparent bg-[color:#076BD2] text-white shadow-[0_16px_34px_rgba(7,107,210,0.18)]"
-                : "border-slate-200 bg-white text-slate-600 hover:border-accent/20 hover:bg-[rgba(7,107,210,0.05)] hover:text-accent",
-            )}
-          >
-            <span>{tab.label}</span>
-            <span
-              className={cn(
-                "rounded-full px-2.5 py-1 text-xs",
-                activeTab === tab.key
-                  ? "bg-white/10 text-white"
-                  : "bg-slate-100 text-slate-500",
-              )}
-            >
-              {tab.value}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {activeTab === "campaigns" ? (
-        <div className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-                Campaigns
-              </h2>
-              <p className="mt-2 max-w-3xl text-sm text-slate-500">
-                Manage every brand brief from one table, then move into dedicated
-                create and edit pages when the campaign needs full setup work.
-              </p>
+      {view === "campaigns" ? (
+        <>
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-[2rem] font-semibold uppercase text-slate-900">
+                  Creators
+                </p>
+                <h2 className="mt-2 text-[1rem] font-semibold tracking-tight text-slate-950">
+                  Campaigns, roster and sample requests
+                </h2>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href="/dashboard/discovery"
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-accent/25 hover:bg-[rgba(7,107,210,0.06)] hover:text-accent"
+                >
+                  Invite creator
+                </Link>
+                <Link
+                  href="/dashboard/creators/campaigns/new"
+                  className="inline-flex h-10 items-center justify-center rounded-full bg-[color:#076BD2] px-4 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.18)] transition hover:bg-[#0559AE]"
+                >
+                  Create campaign
+                </Link>
+              </div>
             </div>
-            <Link
-              href="/dashboard/creators/campaigns/new"
-              className="inline-flex h-11 items-center justify-center rounded-full bg-[color:#076BD2] px-5 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.2)] transition hover:bg-[#0559AE]"
-            >
-              Create campaign
-            </Link>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              {[
+                {
+                  key: "campaigns" as const,
+                  label: "Campaigns",
+                  value: campaigns.length,
+                },
+                {
+                  key: "roster" as const,
+                  label: "Roster",
+                  value: rosterCreators.length,
+                },
+                {
+                  key: "samples" as const,
+                  label: "Samples",
+                  value: 0,
+                },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveWorkspaceTab(tab.key)}
+                  className={cn(
+                    "inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition",
+                    activeWorkspaceTab === tab.key
+                      ? "border-transparent bg-[rgba(7,107,210,0.1)] text-accent shadow-[0_12px_28px_rgba(7,107,210,0.1)]"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50",
+                  )}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-xs",
+                      activeWorkspaceTab === tab.key
+                        ? "bg-white/80 text-accent"
+                        : "bg-slate-100 text-slate-500",
+                    )}
+                  >
+                    {tab.value}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-3 text-sm">
-            <span className="rounded-full bg-[rgba(7,107,210,0.1)] px-3 py-1 font-medium text-accent">
-              {campaigns.length} total
-            </span>
-            <span className="rounded-full bg-[rgba(7,107,210,0.08)] px-3 py-1 font-medium text-accent">
-              {liveCampaignCount} live
-            </span>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-700">
-              {inviteReadyCount} ready for invites
-            </span>
-          </div>
+          {activeWorkspaceTab === "campaigns" ? (
+            <div className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <h2 className="text-[1.2rem] font-semibold tracking-tight text-slate-950">
+                    Campaigns
+                  </h2>
+                  <p className="mt-2 max-w-3xl text-sm text-slate-500">
+                    Manage every brand brief from one table, then move into dedicated
+                    create and edit pages when the campaign needs full setup work.
+                  </p>
+                </div>
+                {/* <Link
+                  href="/dashboard/creators/campaigns/new"
+                  className="inline-flex h-11 items-center justify-center rounded-full bg-[color:#076BD2] px-5 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.2)] transition hover:bg-[#0559AE]"
+                >
+                  Create campaign
+                </Link> */}
+              </div>
 
-          {campaignFeedback ? (
-            <p className="mt-4 text-sm text-slate-500">{campaignFeedback}</p>
+              <div className="mt-5 flex flex-wrap gap-3 text-sm">
+                <span className="rounded-full bg-[rgba(7,107,210,0.1)] px-3 py-1 font-medium text-accent">
+                  {campaigns.length} total
+                </span>
+                <span className="rounded-full bg-[rgba(7,107,210,0.08)] px-3 py-1 font-medium text-accent">
+                  {liveCampaignCount} live
+                </span>
+                <span className="rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-700">
+                  {inviteReadyCount} ready for invites
+                </span>
+              </div>
+
+              {campaignFeedback ? (
+                <p className="mt-4 text-sm text-slate-500">{campaignFeedback}</p>
+              ) : null}
+
+              <div className="mt-6 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <input
+                  type="search"
+                  value={campaignSearch}
+                  onChange={(event) => setCampaignSearch(event.target.value)}
+                  placeholder="Search title, product, content type, or brief"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)] xl:max-w-md"
+                />
+                <select
+                  value={campaignStatus}
+                  onChange={(event) =>
+                    setCampaignStatus(event.target.value as CampaignStatus | "all")
+                  }
+                  className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
+                >
+                  <option value="all">All statuses</option>
+                  <option value="open">Open</option>
+                  <option value="in_review">In review</option>
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+
+              <div className="mt-6 overflow-x-auto">
+                {filteredCampaigns.length ? (
+                  <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
+                    <thead>
+                      <tr className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        <th className="border-b border-slate-200 px-4 py-3 font-medium">
+                          Campaign
+                        </th>
+                        <th className="border-b border-slate-200 px-4 py-3 font-medium">
+                          Product
+                        </th>
+                        <th className="border-b border-slate-200 px-4 py-3 font-medium">
+                          Platforms
+                        </th>
+                        <th className="border-b border-slate-200 px-4 py-3 font-medium">
+                          Budget
+                        </th>
+                        <th className="border-b border-slate-200 px-4 py-3 font-medium">
+                          Deadline
+                        </th>
+                        <th className="border-b border-slate-200 px-4 py-3 font-medium">
+                          Status
+                        </th>
+                        <th className="border-b border-slate-200 px-4 py-3 text-center font-medium">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredCampaigns.map((campaign) => (
+                        <tr key={campaign.id} className="align-top text-slate-700">
+                          <td className="border-b border-slate-100 px-4 py-4">
+                            <div className="max-w-[16rem]">
+                              <p className="font-semibold text-slate-950">
+                                {campaign.title}
+                              </p>
+                              <p className="mt-1 text-sm text-slate-500">
+                                {campaign.content_type}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="border-b border-slate-100 px-4 py-4">
+                            <div className="max-w-[15rem]">
+                              <p className="font-medium text-slate-950">
+                                {campaign.product_name || "Not set"}
+                              </p>
+                              {campaign.product_details ? (
+                                <p className="mt-1 max-w-[15rem] text-sm text-slate-500">
+                                  {campaign.product_details}
+                                </p>
+                              ) : null}
+                            </div>
+                          </td>
+                          <td className="border-b border-slate-100 px-4 py-4 text-slate-500">
+                            <div className="max-w-[12rem]">
+                              {campaign.platforms.length
+                                ? campaign.platforms.join(", ")
+                                : "Not set"}
+                            </div>
+                          </td>
+                          <td className="border-b border-slate-100 px-4 py-4 font-medium text-slate-950">
+                            {formatCurrency(campaign.budget)}
+                          </td>
+                          <td className="border-b border-slate-100 px-4 py-4 text-slate-500">
+                            {campaign.deadline ? formatDate(campaign.deadline) : "Flexible"}
+                          </td>
+                          <td className="border-b border-slate-100 px-4 py-4">
+                            <span
+                              className={cn(
+                                "inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize",
+                                getCampaignStatusClasses(campaign.status),
+                              )}
+                            >
+                              {formatStatusLabel(campaign.status)}
+                            </span>
+                          </td>
+                          <td className="border-b border-slate-100 px-4 py-4">
+                            <div className="flex min-w-[220px] flex-col gap-2">
+                              <Link
+                                href={`/dashboard/creators/campaigns/${campaign.id}/edit`}
+                                className="inline-flex h-9 items-center justify-center rounded-xl border border-accent/15 bg-[rgba(7,107,210,0.06)] px-3 text-xs font-semibold text-accent transition hover:border-accent/25 hover:bg-[rgba(7,107,210,0.1)]"
+                              >
+                                Edit brief
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenInviteTab(campaign.id)}
+                                className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                              >
+                                Invite creators
+                              </button>
+                              <select
+                                value={campaign.status}
+                                onChange={(event) =>
+                                  void handleCampaignStatus(
+                                    campaign.id,
+                                    event.target.value as CampaignStatus,
+                                  )
+                                }
+                                disabled={pendingCampaignId === campaign.id}
+                                className="h-9 rounded-xl border text-center border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)] disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <option value="open">Open</option>
+                                <option value="in_review">In review</option>
+                                <option value="active">Active</option>
+                                <option value="completed">Completed</option>
+                              </select>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
+                    No campaigns match the current filters.
+                  </div>
+                )}
+              </div>
+            </div>
           ) : null}
 
-          <div className="mt-6 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <input
-              type="search"
-              value={campaignSearch}
-              onChange={(event) => setCampaignSearch(event.target.value)}
-              placeholder="Search title, product, content type, or brief"
-              className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)] xl:max-w-md"
-            />
-            <select
-              value={campaignStatus}
-              onChange={(event) =>
-                setCampaignStatus(event.target.value as CampaignStatus | "all")
-              }
-              className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)]"
-            >
-              <option value="all">All statuses</option>
-              <option value="open">Open</option>
-              <option value="in_review">In review</option>
-              <option value="active">Active</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-
-          <div className="mt-6 overflow-x-auto">
-            {filteredCampaigns.length ? (
-              <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
-                <thead>
-                  <tr className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                    <th className="border-b border-slate-200 px-4 py-3 font-medium">
-                      Campaign
-                    </th>
-                    <th className="border-b border-slate-200 px-4 py-3 font-medium">
-                      Product
-                    </th>
-                    <th className="border-b border-slate-200 px-4 py-3 font-medium">
-                      Platforms
-                    </th>
-                    <th className="border-b border-slate-200 px-4 py-3 font-medium">
-                      Budget
-                    </th>
-                    <th className="border-b border-slate-200 px-4 py-3 font-medium">
-                      Deadline
-                    </th>
-                    <th className="border-b border-slate-200 px-4 py-3 font-medium">
-                      Status
-                    </th>
-                    <th className="border-b border-slate-200 px-4 py-3 text-center font-medium">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredCampaigns.map((campaign) => (
-                    <tr key={campaign.id} className="align-top text-slate-700">
-                      <td className="border-b border-slate-100 px-4 py-4">
-                        <div className="max-w-[16rem]">
-                          <p className="font-semibold text-slate-950">
-                            {campaign.title}
-                          </p>
-                          <p className="mt-1 text-sm text-slate-500">
-                            {campaign.content_type}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="border-b border-slate-100 px-4 py-4">
-                        <div className="max-w-[15rem]">
-                          <p className="font-medium text-slate-950">
-                            {campaign.product_name || "Not set"}
-                          </p>
-                          {campaign.product_details ? (
-                            <p className="mt-1 max-w-[15rem] text-sm text-slate-500">
-                              {campaign.product_details}
-                            </p>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className="border-b border-slate-100 px-4 py-4 text-slate-500">
-                        <div className="max-w-[12rem]">
-                          {campaign.platforms.length
-                            ? campaign.platforms.join(", ")
-                            : "Not set"}
-                        </div>
-                      </td>
-                      <td className="border-b border-slate-100 px-4 py-4 font-medium text-slate-950">
-                        {formatCurrency(campaign.budget)}
-                      </td>
-                      <td className="border-b border-slate-100 px-4 py-4 text-slate-500">
-                        {campaign.deadline ? formatDate(campaign.deadline) : "Flexible"}
-                      </td>
-                      <td className="border-b border-slate-100 px-4 py-4">
-                        <span
-                          className={cn(
-                            "inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize",
-                            getCampaignStatusClasses(campaign.status),
-                          )}
-                        >
-                          {formatStatusLabel(campaign.status)}
-                        </span>
-                      </td>
-                      <td className="border-b border-slate-100 px-4 py-4">
-                        <div className="flex min-w-[220px] flex-col gap-2">
-                          <Link
-                            href={`/dashboard/creators/campaigns/${campaign.id}/edit`}
-                            className="inline-flex h-9 items-center justify-center rounded-xl border border-accent/15 bg-[rgba(7,107,210,0.06)] px-3 text-xs font-semibold text-accent transition hover:border-accent/25 hover:bg-[rgba(7,107,210,0.1)]"
-                          >
-                            Edit brief
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenInviteTab(campaign.id)}
-                            className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                          >
-                            Invite creators
-                          </button>
-                          <select
-                            value={campaign.status}
-                            onChange={(event) =>
-                              void handleCampaignStatus(
-                                campaign.id,
-                                event.target.value as CampaignStatus,
-                              )
-                            }
-                            disabled={pendingCampaignId === campaign.id}
-                            className="h-9 rounded-xl border text-center border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none transition focus:border-accent/40 focus:shadow-[0_0_0_4px_rgba(7,107,210,0.08)] disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            <option value="open">Open</option>
-                            <option value="in_review">In review</option>
-                            <option value="active">Active</option>
-                            <option value="completed">Completed</option>
-                          </select>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
-                No campaigns match the current filters.
+          {activeWorkspaceTab === "roster" ? (
+            <div className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
+                    Roster
+                  </h2>
+                  <p className="mt-2 max-w-3xl text-sm text-slate-500">
+                    Track creators already connected to your campaigns and monitor recent collaboration signals.
+                  </p>
+                </div>
+                <Link
+                  href="/dashboard/discovery"
+                  className="inline-flex h-11 items-center justify-center rounded-full bg-[color:#076BD2] px-5 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.18)] transition hover:bg-[#0559AE]"
+                >
+                  Invite creator
+                </Link>
               </div>
-            )}
-          </div>
-        </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-4">
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Total creators</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-950">
+                    {rosterCreators.length}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Active</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-950">
+                    {activeRosterCreators}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Approval rate</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-950">
+                    {rosterApprovalRate}%
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Total earnings</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-950">
+                    {formatCurrency(rosterTotalEarnings)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 overflow-x-auto">
+                {rosterCreators.length ? (
+                  <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
+                    <thead>
+                      <tr className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        <th className="border-b border-slate-200 px-4 py-3 font-medium">
+                          Creator
+                        </th>
+                        <th className="border-b border-slate-200 px-4 py-3 font-medium">
+                          Applications
+                        </th>
+                        <th className="border-b border-slate-200 px-4 py-3 font-medium">
+                          Accepted
+                        </th>
+                        <th className="border-b border-slate-200 px-4 py-3 font-medium">
+                          Rate
+                        </th>
+                        <th className="border-b border-slate-200 px-4 py-3 font-medium">
+                          Latest campaign
+                        </th>
+                        <th className="border-b border-slate-200 px-4 py-3 font-medium">
+                          Invites
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rosterCreators.map((creator) => (
+                        <tr key={creator.id} className="align-top text-slate-700">
+                          <td className="border-b border-slate-100 px-4 py-4">
+                            <div className="flex items-center gap-3">
+                              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[color:#076BD2] text-xs font-semibold text-white">
+                                {creator.name
+                                  .split(" ")
+                                  .map((part) => part[0])
+                                  .join("")
+                                  .slice(0, 2)
+                                  .toUpperCase()}
+                              </span>
+                              <div>
+                                <p className="font-semibold text-slate-950">
+                                  {creator.name}
+                                </p>
+                                <p className="mt-1 text-sm text-slate-500">
+                                  {creator.headline ?? creator.focus}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="border-b border-slate-100 px-4 py-4 font-medium text-slate-950">
+                            {creator.applications}
+                          </td>
+                          <td className="border-b border-slate-100 px-4 py-4">
+                            {creator.accepted}
+                          </td>
+                          <td className="border-b border-slate-100 px-4 py-4">
+                            {creator.rate > 0
+                              ? formatCurrency(creator.rate)
+                              : "Open"}
+                          </td>
+                          <td className="border-b border-slate-100 px-4 py-4 text-slate-500">
+                            {creator.latest_campaign_title ?? "No campaign yet"}
+                          </td>
+                          <td className="border-b border-slate-100 px-4 py-4">
+                            {creator.pending_invitations > 0 ? (
+                              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                                {creator.pending_invitations} pending
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+                                {creator.invitations}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
+                    Creators will appear here after applications or invitations start.
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {activeWorkspaceTab === "samples" ? (
+            <div className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
+              <div>
+                <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
+                  Samples
+                </h2>
+                <p className="mt-2 max-w-3xl text-sm text-slate-500">
+                  Product gifting requests from creators will live here once sample workflows are active.
+                </p>
+              </div>
+              <div className="mt-6 flex flex-wrap gap-2">
+                {["All", "Pending", "Shipped", "Delivered", "Cancelled"].map(
+                  (label) => (
+                    <span
+                      key={label}
+                      className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600"
+                    >
+                      {label} {label === "All" ? "0" : ""}
+                    </span>
+                  ),
+                )}
+              </div>
+              <div className="mt-5 rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
+                <p className="text-sm font-semibold text-slate-950">
+                  No sample requests yet
+                </p>
+                <p className="mt-2 text-sm text-slate-500">
+                  Creators can request product samples from active campaigns.
+                </p>
+              </div>
+            </div>
+          ) : null}
+        </>
       ) : (
         <BrandCreatorDirectory
           brandId={brandId}

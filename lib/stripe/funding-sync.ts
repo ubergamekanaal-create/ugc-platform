@@ -103,9 +103,9 @@ export async function syncCampaignFundingFromCheckoutSession(
     nextStatus === "paid"
       ? await resolvePaymentIntentFundingDetails(stripe, paymentIntentId)
       : {
-          stripe_charge_id: null,
-          stripe_transfer_group: null,
-        };
+        stripe_charge_id: null,
+        stripe_transfer_group: null,
+      };
 
   const { data: existingFunding, error: lookupError } = await admin
     .from("campaign_fundings")

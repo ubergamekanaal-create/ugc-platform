@@ -85,7 +85,6 @@ export function BrandStoreAnalyticsPanel({
         cache: "no-store",
       });
       const payload = (await response.json()) as StoreAnalyticsResponse;
-
       if (!response.ok) {
         throw new Error(payload.error ?? "Unable to load store analytics.");
       }
@@ -122,7 +121,7 @@ export function BrandStoreAnalyticsPanel({
     setConnectionInfo(connection);
     void loadAnalytics();
   }, [connection, loadAnalytics]);
-  
+
   const metrics = useMemo(
     () => [
       {
@@ -223,16 +222,17 @@ export function BrandStoreAnalyticsPanel({
       setMessage("Copy failed. Select the text and copy it manually.");
     }
   }
-
+  const isHeadless =
+    connectionInfo?.provider === "headless_shopify";
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">
-            Store Attribution + Shopify Tracking
+          <h2 className="text-[1.2rem] font-semibold tracking-tight text-slate-950">
+            Store Attribution + Tracking
           </h2>
           <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-500">
-            Configure default UTMs, generate the Shopify custom pixel code, and capture
+            Configure default UTMs, generate the custom pixel code, and capture
             page views through completed checkouts back into CIRCL.
           </p>
         </div>
@@ -240,7 +240,7 @@ export function BrandStoreAnalyticsPanel({
           type="button"
           onClick={() => void handleSave()}
           disabled={isLoading || isSaving}
-          className="rounded-2xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.22)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl bg-[linear-gradient(135deg,_#076BD2,_#3B82F6)] px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_35px_rgba(7,107,210,0.22)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSaving ? "Saving..." : "Save Tracking Settings"}
         </MotionScale>
@@ -357,9 +357,11 @@ export function BrandStoreAnalyticsPanel({
           <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
             <div className="grid items-start justify-between sm:grid-cols-[1fr_auto] gap-3">
               <div>
-                <p className="text-lg font-semibold text-slate-950">Install details</p>
+                <p className="text-[1rem] font-semibold text-slate-950">Install details</p>
                 <p className="mt-2 text-sm text-slate-500">
-                  Paste the custom pixel code into Shopify Admin {" > "} Settings {" > "} Customer events.
+                  {isHeadless
+                    ? "Add this tracking script to your React/Next.js storefront application."
+                    : "Paste the custom pixel code into Shopify Admin > Settings > Customer events."}
                 </p>
               </div>
               <div className="flex ">
@@ -406,7 +408,7 @@ export function BrandStoreAnalyticsPanel({
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                      Shopify webhook status
+                      {isHeadless ? "Webhook status" : "Shopify webhook status"}
                     </p>
                     <p className="mt-2 font-medium text-slate-950">
                       {connectionInfo?.analytics_webhook_status === "configured"
@@ -428,7 +430,11 @@ export function BrandStoreAnalyticsPanel({
                     }
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {isRegisteringWebhooks ? "Registering..." : "Register webhooks"}
+                    {isRegisteringWebhooks
+                      ? "Registering..."
+                      : isHeadless
+                        ? "Register order webhooks"
+                        : "Register webhooks"}
                   </MotionScale>
                 </div>
                 <p className="mt-3 break-all text-sm text-slate-500">
@@ -457,11 +463,15 @@ export function BrandStoreAnalyticsPanel({
           <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
             <div className="grid items-start justify-between sm:grid-cols-[1fr_auto] gap-3">
               <div>
-                <p className="text-lg font-semibold text-slate-950">
-                  Shopify Custom Pixel Code
+                <p className="text-[1rem] font-semibold text-slate-950">
+                  {isHeadless ? "Tracking Script" : "Custom Pixel Code"}
                 </p>
                 <p className="mt-2 text-sm text-slate-500">
-                  This captures UTMs on landing and posts page, product, cart, and checkout events to CIRCL.
+                  {
+                    isHeadless
+                      ? "Add this script to your storefront application to track page views, products, carts, checkouts, and purchases."
+                      : "This captures UTMs on landing and posts page, product, cart, and checkout events to CIRCL."
+                  }
                 </p>
                 {install?.webhookTopics?.length ? (
                   <p className="mt-2 text-xs uppercase tracking-[0.16em] text-slate-400">
@@ -493,7 +503,7 @@ export function BrandStoreAnalyticsPanel({
           <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
             <div className="grid items-start justify-between sm:grid-cols-[1fr_auto] gap-3">
               <div>
-                <p className="text-lg font-semibold text-slate-950">Recent tracked events</p>
+                <p className="text-[1rem] font-semibold text-slate-950">Recent tracked events</p>
                 <p className="mt-2 text-sm text-slate-500">
                   Use this to verify the pixel is active and UTMs are being recorded.
                 </p>
@@ -521,7 +531,7 @@ export function BrandStoreAnalyticsPanel({
                   >
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                       <div>
-                        <p className="font-semibold text-slate-950">
+                        <p className="font-semibold text-[0.8rem] text-slate-950">
                           {event.event_name.replaceAll("_", " ")}
                         </p>
                         <p className="mt-1 text-xs text-slate-500">
@@ -554,8 +564,13 @@ export function BrandStoreAnalyticsPanel({
               </div>
             ) : (
               <div className="mt-5 rounded-[1.5rem] border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
-                Install the Shopify custom pixel, open a tracked landing URL, and the latest
-                events will appear here.
+                {/* Install the Shopify custom pixel, open a tracked landing URL, and the latest
+                events will appear here. */}
+                {
+                  isHeadless
+                    ? "Add the tracking script to your storefront and open a tracked URL. Events will appear here."
+                    : "Install the Shopify custom pixel, open a tracked landing URL, and the latest events will appear here."
+                }
               </div>
             )}
           </div>
@@ -563,7 +578,7 @@ export function BrandStoreAnalyticsPanel({
           <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
             <div className="grid items-start justify-between sm:grid-cols-[1fr_auto] gap-3">
               <div>
-                <p className="text-lg font-semibold text-slate-950">Attributed orders</p>
+                <p className="text-[1rem] font-semibold text-slate-950">Attributed orders</p>
                 <p className="mt-2 text-sm text-slate-500">
                   Server-side Shopify orders matched back to your tracked landing URLs.
                 </p>

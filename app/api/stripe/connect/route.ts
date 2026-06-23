@@ -41,18 +41,17 @@ export async function POST(request: Request) {
     }
 
     const admin = createAdminClient();
-
     if (!admin) {
       return NextResponse.json(
         { error: "Missing SUPABASE_SERVICE_ROLE_KEY." },
         { status: 503 },
       );
     }
-
     let stripeAccountId =
       typeof rawProfile?.stripe_account_id === "string"
         ? rawProfile.stripe_account_id
         : null;
+
     let account: Stripe.Account | null = null;
 
     if (!stripeAccountId) {

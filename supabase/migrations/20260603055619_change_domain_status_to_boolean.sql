@@ -1,0 +1,5 @@
+ALTER TABLE public.brands
+DROP COLUMN IF EXISTS domain_status;
+
+ALTER TABLE public.brands
+ADD COLUMN IF NOT EXISTS domain_verified BOOLEAN NOT NULL DEFAULT FALSE;

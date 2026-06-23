@@ -6,7 +6,7 @@ function getBaseUrl(req: Request) {
 }
 export async function POST(req: Request) {
   try {
-    const { storeUrl } = await req.json();
+    const { storeUrl, connectionType = "shopify" } = await req.json();
 
     if (!storeUrl) {
       return NextResponse.json(
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       .replace("http://", "")
       .trim();
 
-    // ❗ Handle admin.shopify.com case
+    // Handle admin.shopify.com case
     if (shop.includes("admin.shopify.com")) {
       const parts = shop.split("/store/");
       if (parts[1]) {
@@ -55,6 +55,7 @@ export async function POST(req: Request) {
     // }
     const state = JSON.stringify({
       brandId: user.id,
+      connectionType,
       nonce: crypto.randomUUID(),
     });
 
@@ -72,7 +73,6 @@ export async function POST(req: Request) {
       }&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(
         redirectUri
       )}&state=${encodeURIComponent(state)}`;
-
     return NextResponse.json({ url: installUrl });
 
   } catch (error) {

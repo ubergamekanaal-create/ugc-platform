@@ -137,6 +137,7 @@ export function generateShopifyCustomPixelCode({
   trackingToken,
   enabledEvents,
 }: CustomPixelCodeParams) {
+
   const activeEvents = Object.entries(enabledEvents)
     .filter(([, enabled]) => enabled)
     .map(([eventName]) => eventName as StoreAnalyticsEventName);

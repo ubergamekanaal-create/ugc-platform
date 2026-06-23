@@ -8,7 +8,7 @@ export function getStripeServerClient() {
   if (!secretKey) {
     return null;
   }
-
+  
   if (!stripeClient) {
     stripeClient = new Stripe(secretKey, {
       appInfo: {
@@ -16,6 +16,6 @@ export function getStripeServerClient() {
       },
     });
   }
-
+  
   return stripeClient;
 }
