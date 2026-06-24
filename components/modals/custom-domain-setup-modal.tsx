@@ -8,6 +8,8 @@ type Props = {
     onVerified?: () => void;
     storeUrl: string;
     brandId: string;
+    customDomain:string,
+    domainVerified:boolean | undefined
 };
 
 export function CustomDomainSetupModal({
@@ -16,6 +18,8 @@ export function CustomDomainSetupModal({
     onVerified,
     storeUrl,
     brandId,
+    customDomain,
+    domainVerified
 }: Props) {
     const [step, setStep] = useState(1);
 
@@ -40,6 +44,23 @@ export function CustomDomainSetupModal({
             setDomain(suggestedTrackDomain);
         }
     }, [open, suggestedTrackDomain]);
+
+    useEffect(() => {
+  if (!open) return;
+
+  if (customDomain && !domainVerified) {
+    setDomain(customDomain);
+    setStep(2);
+  } else {
+    setDomain(suggestedTrackDomain);
+    setStep(1);
+  }
+}, [
+  open,
+  customDomain,
+  domainVerified,
+  suggestedTrackDomain,
+]);
 
     if (!open) return null;
 

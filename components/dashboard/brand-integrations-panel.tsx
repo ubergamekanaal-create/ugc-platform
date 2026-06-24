@@ -404,10 +404,6 @@ export function BrandIntegrationsPanel() {
       setCustomTrackingDomain("");
       setPixelStep("domain");
       setHeadlessStep("selection");
-      // if (payload.uninstallUrl) {
-      //   window.open(payload.uninstallUrl, "_blank");
-      //   // window.location.href = "/dashboard/integrations";
-      // }
       if (payload.uninstallUrl) {
         const newTab = window.open(payload.uninstallUrl, "_blank");
 
@@ -873,7 +869,6 @@ export function BrandIntegrationsPanel() {
                   connection?.provider === "headless_shopify" &&
                   !brandInfo?.domain_verified && (
                     <div className="relative rounded-[1.75rem] border border-blue-200 bg-[#f5f9ff] p-6">
-
                       <div className="mt-2 sm:mt-1 grid grid-cols-[auto_1fr] items-start gap-4">
                         <span className="hidden sm:flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-200 bg-white">
                           <svg
@@ -1997,6 +1992,8 @@ export function BrandIntegrationsPanel() {
       )}
       <CustomDomainSetupModal
         open={showDomainModal}
+        customDomain={brandInfo?.custom_domain?? ""}
+        domainVerified={brandInfo?.domain_verified}
         onClose={() => setShowDomainModal(false)}
         onVerified={async () => {
           await loadConnection(page);
